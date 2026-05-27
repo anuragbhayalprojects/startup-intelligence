@@ -1,33 +1,34 @@
 # Python
 venv/
 __pycache__/
-
-# Environment
-.env
+*.pyc
 
 # Node
 node_modules/
+dist/
+build/
 
-# Data
-csv/
-exports/
-data/
-
-# Ollama / Models
-models/
-ollama/
-*.gguf
-*.bin
+# Environment
+.env
+.env.local
 
 # Mac
 .DS_Store
-.pytest_cache/
 
-# Streamlit
-.streamlit/
-
-coverage/
+# Logs
 *.log
-dist/
-build/
-.next/
+
+# Ollama Models
+models/
+*.bin
+*.gguf
+
+# Vercel
+.vercel/
+
+# Supabase
+.supabase/
+
+# IDE
+.vscode/
+.idea/
