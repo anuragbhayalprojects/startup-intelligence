@@ -21,6 +21,13 @@ ollama/
 
 # Mac
 .DS_Store
+.pytest_cache/
 
 # Streamlit
 .streamlit/
+
+coverage/
+*.log
+dist/
+build/
+.next/
