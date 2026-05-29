@@ -1,15 +1,21 @@
-import { supabase } from './supabase'
+import { supabase } from "./supabase";
 
 export async function fetchStartups() {
   const { data, error } = await supabase
-    .from('startups')
-    .select('*')
-    .limit(20)
+    .from("startups")
+    .select("*")
+    .limit(20);
 
   if (error) {
-    console.error(error)
-    return []
+    console.error("Supabase error:", error);
+    return [];
   }
 
-  return data
+  // ✅ CRITICAL SAFETY FIX
+  if (!Array.isArray(data)) {
+    console.warn("Unexpected Supabase response:", data);
+    return [];
+  }
+
+  return data;
 }
