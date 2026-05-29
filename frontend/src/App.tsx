@@ -1,42 +1,89 @@
-import { Routes, Route, Link } from "react-router-dom";
-import { AppShell } from "./components/AppShell";
-import Dashboard from "./pages/Dashboard";
-import Startups from "./pages/Startups";
-import StartupDetails from "./pages/StartupDetails";
-import Analytics from "./pages/Analytics";
-import Assignments from "./pages/Assignments";
-import Sources from "./pages/Sources";
-import Workflow from "./pages/Workflow";
-import Settings from "./pages/Settings";
+import { useEffect, useState } from "react";
+import API from "./services/api";
 
-function NotFound() {
+interface Startup {
+  id: string;
+  startup_name: string;
+  sector: string;
+  city: string;
+  country: string;
+  source: string;
+  analysis: any;
+}
+
+function App() {
+
+  const [startups, setStartups] = useState<Startup[]>([]);
+
+  useEffect(() => {
+
+    fetchStartups();
+
+  }, []);
+
+  const fetchStartups = async () => {
+
+    try {
+
+      const response = await API.get("/startups");
+
+      setStartups(response.data);
+
+    } catch (error) {
+
+      console.error(error);
+
+    }
+
+  };
+
   return (
-    <div className="flex min-h-[60vh] items-center justify-center px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold">404</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Page not found.</p>
-        <Link to="/" className="mt-6 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
-          Go home
-        </Link>
+
+    <div className="min-h-screen bg-black text-white p-8">
+
+      <h1 className="text-4xl font-bold mb-8">
+        Startup Intelligence OS
+      </h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        {startups.map((startup) => (
+
+          <div
+            key={startup.id}
+            className="bg-zinc-900 border border-zinc-800 rounded-xl p-6"
+          >
+
+            <h2 className="text-2xl font-semibold mb-2">
+              {startup.startup_name}
+            </h2>
+
+            <p className="text-zinc-400 mb-2">
+              {startup.sector}
+            </p>
+
+            <p className="text-zinc-400 mb-2">
+              {startup.city}, {startup.country}
+            </p>
+
+            <p className="text-sm text-green-400 mb-4">
+              Source: {startup.source}
+            </p>
+
+            <div className="text-sm text-zinc-300">
+              {startup.analysis?.summary || "No summary available"}
+            </div>
+
+          </div>
+
+        ))}
+
       </div>
+
     </div>
+
   );
+
 }
 
-export default function App() {
-  return (
-    <AppShell>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/startups" element={<Startups />} />
-        <Route path="/startups/:id" element={<StartupDetails />} />
-        <Route path="/analytics" element={<Analytics />} />
-        <Route path="/assignments" element={<Assignments />} />
-        <Route path="/sources" element={<Sources />} />
-        <Route path="/workflow" element={<Workflow />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </AppShell>
-  );
-}
+export default App;
