@@ -1,89 +1,32 @@
-import { useEffect, useState } from "react";
-import API from "./services/api";
+import React, { useState } from 'react';
+import Sidebar from '@/components/Sidebar';
+import Dashboard from './pages/Dashboard';
+import Chat from './pages/Chat';
 
-interface Startup {
-  id: string;
-  startup_name: string;
-  sector: string;
-  city: string;
-  country: string;
-  source: string;
-  analysis: any;
-}
-
-function App() {
-
-  const [startups, setStartups] = useState<Startup[]>([]);
-
-  useEffect(() => {
-
-    fetchStartups();
-
-  }, []);
-
-  const fetchStartups = async () => {
-
-    try {
-
-      const response = await API.get("/startups");
-
-      setStartups(response.data);
-
-    } catch (error) {
-
-      console.error(error);
-
-    }
-
-  };
+const App: React.FC = () => {
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   return (
-
-    <div className="min-h-screen bg-black text-white p-8">
-
-      <h1 className="text-4xl font-bold mb-8">
-        Startup Intelligence OS
-      </h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-        {startups.map((startup) => (
-
-          <div
-            key={startup.id}
-            className="bg-zinc-900 border border-zinc-800 rounded-xl p-6"
-          >
-
-            <h2 className="text-2xl font-semibold mb-2">
-              {startup.startup_name}
+    <div className="flex h-screen bg-slate-100 overflow-hidden text-slate-800 font-sans">
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <header className="bg-white border-b border-slate-200/80 px-8 py-4 flex items-center justify-between flex-shrink-0">
+          <div className="space-y-1">
+            <h2 className="font-extrabold text-sm uppercase tracking-wider text-slate-900">
+              Startup Intelligence & Pilots Registry
             </h2>
-
-            <p className="text-zinc-400 mb-2">
-              {startup.sector}
+            <p className="text-slate-450 text-[11px] font-medium">
+              Enterprise Suite
             </p>
-
-            <p className="text-zinc-400 mb-2">
-              {startup.city}, {startup.country}
-            </p>
-
-            <p className="text-sm text-green-400 mb-4">
-              Source: {startup.source}
-            </p>
-
-            <div className="text-sm text-zinc-300">
-              {startup.analysis?.summary || "No summary available"}
-            </div>
-
           </div>
-
-        ))}
-
+        </header>
+        <main className="flex-1 overflow-y-auto p-8">
+          {activeTab === 'dashboard' && <Dashboard />}
+          {activeTab === 'chat' && <Chat />}
+        </main>
       </div>
-
     </div>
-
   );
-
-}
+};
 
 export default App;
