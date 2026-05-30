@@ -1,26 +1,20 @@
+import os
+from dotenv import load_dotenv
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from supabase import create_client, Client
+from api.routes import startups
 
-app = FastAPI(
-    title="Startup Intelligence OS"
-)
+load_dotenv()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app = FastAPI()
+
+app.include_router(startups.router, prefix="/api")
+
+# Initialize Supabase client
+supabase_url = os.environ.get("SUPABASE_URL")
+supabase_key = os.environ.get("SUPABASE_KEY")
+supabase: Client = create_client(supabase_url, supabase_key)
 
 @app.get("/")
-def home():
-    return {
-        "message": "Startup Intelligence OS Running"
-    }
-
-@app.get("/health")
-def health():
-    return {
-        "status": "healthy"
-    }
+def read_root():
+    return {"Hello": "World"}

@@ -1,69 +1,22 @@
-from fastapi import APIRouter
-from supabase import create_client
+from fastapi import APIRouter, HTTPException, Body
+from pydantic import BaseModel
+from supabase import create_client, PostgrestAPIError
 from dotenv import load_dotenv
-
 import os
-
-load_dotenv()
+from scrapers.scraper_manager import run_scraper
 
 router = APIRouter()
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+class ScrapeRequest(BaseModel):
+    source: str
 
-supabase = create_client(
-    SUPABASE_URL,
-    SUPABASE_KEY
-)
-
-# ---------------------------------------------------
-# GET ALL STARTUPS
-# ---------------------------------------------------
-
-@router.get("/startups")
-def get_startups():
-
-    response = (
-        supabase
-        .table("startups")
-        .select("*")
-        .order("created_at", desc=True)
-        .execute()
-    )
-
-    return response.data
-
-# ---------------------------------------------------
-# GET SINGLE STARTUP
-# ---------------------------------------------------
-
-@router.get("/startup/{startup_id}")
-def get_startup(startup_id: str):
-
-    response = (
-        supabase
-        .table("startups")
-        .select("*")
-        .eq("id", startup_id)
-        .single()
-        .execute()
-    )
-
-    return response.data
-
-# ---------------------------------------------------
-# SEARCH STARTUPS
-# ---------------------------------------------------
-
-@router.get("/search")
-def search_startups(query: str):
-
-    response = (
-        supabase
-        .table("startups")
-        .select("*")
-        .ilike("startup_name", f"%{query}%")
-        .execute()
-    )
-
-    return response.data
+@router.post("/scrape")
+async def scrape(scrape_request: ScrapeRequest = Body(...)):
+    """
+    Triggers a scraper for the specified source.
+    """
+    try:
+        run_scraper(scrape_request.source)
+        return {"message": f"Scraping for {scrape_request.source} initiated."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
