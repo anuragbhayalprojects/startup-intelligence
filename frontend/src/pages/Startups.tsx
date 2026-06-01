@@ -4,7 +4,10 @@ import { PageHeader } from "../components/PageHeader";
 import { Link } from "react-router-dom";
 import { Startup } from "../types";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+const rawApiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+const API_URL = rawApiUrl.endsWith("/") 
+  ? (rawApiUrl.endsWith("/api/") ? rawApiUrl.slice(0, -1) : rawApiUrl + "api") 
+  : (rawApiUrl.endsWith("/api") ? rawApiUrl : rawApiUrl + "/api");
 
 export default function Startups() {
   const [startups, setStartups] = useState<Startup[]>([]);

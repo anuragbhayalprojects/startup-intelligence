@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Sparkles, Globe, MapPin } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+const rawApiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+const API_URL = rawApiUrl.endsWith("/") 
+  ? (rawApiUrl.endsWith("/api/") ? rawApiUrl.slice(0, -1) : rawApiUrl + "api") 
+  : (rawApiUrl.endsWith("/api") ? rawApiUrl : rawApiUrl + "/api");
 
 interface Startup {
   id: number;

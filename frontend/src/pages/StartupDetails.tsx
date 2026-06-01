@@ -7,7 +7,10 @@ import { StatusBadge } from "../components/StatusBadge";
 import { formatUSD } from "../lib/format";
 import { Startup, StartupAnalysis } from "../types";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+const rawApiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+const API_URL = rawApiUrl.endsWith("/") 
+  ? (rawApiUrl.endsWith("/api/") ? rawApiUrl.slice(0, -1) : rawApiUrl + "api") 
+  : (rawApiUrl.endsWith("/api") ? rawApiUrl : rawApiUrl + "/api");
 
 export default function StartupDetails() {
   const { id } = useParams<{ id: string }>();

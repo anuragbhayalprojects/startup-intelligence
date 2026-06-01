@@ -6,7 +6,10 @@ import { Input } from '../components/ui/input'; // Assuming you have an Input co
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'; // Assuming a Select component
 import { Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+const rawApiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+const API_URL = rawApiUrl.endsWith("/") 
+  ? (rawApiUrl.endsWith("/api/") ? rawApiUrl.slice(0, -1) : rawApiUrl + "api") 
+  : (rawApiUrl.endsWith("/api") ? rawApiUrl : rawApiUrl + "/api");
 
 export default function Scraping() {
     const [source, setSource] = useState('zyte');
