@@ -14,6 +14,8 @@ You are an expert startup analyst for a major bank's venture investment arm. You
 
 ```json
 {
+  "extracted_startup_name": "The clean, real name of the startup (e.g. extract 'MediElaj' from a headline like 'Healthcare startup MediElaj raises pre-seed round', or 'Simple Energy' from 'Simple Energy raises Rs 250 Cr...'). Do not include extraneous verbs or numbers.",
+  "startup_website": "The official website URL of the startup (e.g. 'https://medielaj.in', 'https://simpleenergy.in', or 'https://coinbase.com') extracted, inferred, or searched from the article text. If no specific URL is found or inferred, construct one based on the startup's name or use 'https://www.google.com/search?q=' + name.",
   "summary": {
     "one_liner": "A brief, compelling one-sentence summary of the startup.",
     "business_model": "A concise explanation of how the startup creates, delivers, and captures value (e.g., SaaS, marketplace, D2C).",

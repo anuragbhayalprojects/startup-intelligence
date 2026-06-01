@@ -6,7 +6,7 @@ import { Input } from '../components/ui/input'; // Assuming you have an Input co
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'; // Assuming a Select component
 import { Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
 export default function Scraping() {
     const [source, setSource] = useState('zyte');

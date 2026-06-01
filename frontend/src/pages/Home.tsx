@@ -4,7 +4,7 @@ import { PageHeader } from "../components/PageHeader";
 import { Startup } from "../types";
 import { Link } from "react-router-dom";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
 export default function Home() {
   const [latestStartups, setLatestStartups] = useState<Startup[]>([]);

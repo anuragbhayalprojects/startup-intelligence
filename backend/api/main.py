@@ -7,12 +7,26 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from supabase import create_client, Client
 from api.routes import startups
 
 load_dotenv()
 
 app = FastAPI()
+
+# Configure CORS Middleware with explicit origins to comply with spec when allow_credentials=True
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://startup-intelligence.vercel.app"  # Placeholder for your Vercel deployment URL
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(startups.router, prefix="/api")
 
