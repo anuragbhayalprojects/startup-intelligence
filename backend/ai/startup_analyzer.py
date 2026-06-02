@@ -4,8 +4,12 @@ import json
 from jinja2 import Template
 
 # --- Constants ---
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "mistral")
+try:
+    from backend.utils.config import OLLAMA_BASE_URL, OLLAMA_MODEL
+except ImportError:
+    OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
+
 PROMPT_PATH = os.path.join(os.path.dirname(__file__), "../prompts/detailed_analysis_prompt.txt")
 
 # --- Utility Functions ---
@@ -20,17 +24,34 @@ def load_prompt_template():
 
 def clean_llm_response(response_text):
     """Cleans the LLM's response to extract the core JSON object."""
-    # Find the start and end of the JSON block
+    if not response_text:
+        return ""
+        
+    # 1. Try finding ```json block first
     json_start = response_text.find('```json')
     json_end = response_text.rfind('```')
 
     if json_start != -1:
-        # Adjust start position to be after the ```json marker
         json_start += 7
         if json_end > json_start:
-            response_text = response_text[json_start:json_end]
+            return response_text[json_start:json_end].strip()
 
-    # Basic cleaning
+    # 2. Try finding raw ``` block
+    raw_start = response_text.find('```')
+    raw_end = response_text.rfind('```')
+    if raw_start != -1 and raw_end > raw_start:
+        content = response_text[raw_start+3:raw_end].strip()
+        # if it looks like json, return it
+        if content.startswith('{') and content.endswith('}'):
+            return content
+
+    # 3. Fallback: find the outermost curly braces
+    first_brace = response_text.find('{')
+    last_brace = response_text.rfind('}')
+    
+    if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+        return response_text[first_brace:last_brace+1].strip()
+
     return response_text.strip()
 
 # --- Core Analysis Function ---
@@ -40,9 +61,36 @@ def analyze_startup(startup):
     if not OLLAMA_BASE_URL:
         return {"error": "Ollama server is not configured. Please set OLLAMA_BASE_URL."}
 
+    # Fetch web search context
+    startup_name = startup.get("startup_name", "")
+    # Remove common action words if they reside in name (from crawler headlines)
+    clean_name = startup_name.split(" raises ")[0].split(" acquires ")[0].split(" launches ")[0].strip()
+    search_query = f"{clean_name} founders founding year series funding amount investors revenue ebitda multiple"
+    
+    try:
+        from backend.utils.search import search_duckduckgo
+        search_context = search_duckduckgo(search_query)
+    except Exception as e:
+        print(f"⚠️ [Startup Analyzer] Failed to perform web search: {e}")
+        search_context = "No web search context available."
+
+    # Load Master Taxonomy Schema JSON
+    try:
+        taxonomy_path = os.path.join(os.path.dirname(__file__), "../../docs/startup_sector_mappings.json")
+        with open(taxonomy_path, "r") as tf:
+            taxonomy_data = json.load(tf)
+        taxonomy_str = json.dumps(taxonomy_data, indent=2)
+    except Exception as te:
+        print(f"⚠️ [Startup Analyzer] Failed to load taxonomy JSON: {te}")
+        taxonomy_str = "{}"
+
     try:
         prompt_template = load_prompt_template()
-        prompt = prompt_template.render(startup=startup)
+        prompt = prompt_template.render(
+            startup=startup, 
+            search_context=search_context,
+            taxonomy_context=taxonomy_str
+        )
     except Exception as e:
         return {"error": f"Failed to render prompt template: {str(e)}"}
 

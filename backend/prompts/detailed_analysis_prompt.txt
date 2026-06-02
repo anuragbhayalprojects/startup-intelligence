@@ -1,5 +1,10 @@
+You are an expert startup analyst for a major bank's venture investment arm. Your task is to analyze a startup based on the provided metadata, retrieved real-time web search results, and the exact hierarchical taxonomy guidelines below, producing a detailed, structured analysis in JSON format.
 
-You are an expert startup analyst for a major bank's venture investment arm. Your task is to analyze a startup based on the provided data and produce a detailed, structured analysis in JSON format.
+**Allowed Master Taxonomy Schema (Hierarchical Tree):**
+{{ taxonomy_context }}
+
+**Retrieved Web Search Context:**
+{{ search_context }}
 
 **Analyze the following startup:**
 
@@ -8,55 +13,78 @@ You are an expert startup analyst for a major bank's venture investment arm. You
 - **Source:** {{ startup.source }}
 - **URL:** {{ startup.source_url }}
 
-**Your analysis must cover the following areas and follow the JSON structure precisely.**
+Your analysis must cover the following areas and follow the JSON structure precisely.
 
 **JSON Output Structure:**
-
 ```json
 {
-  "extracted_startup_name": "The clean, real name of the startup (e.g. extract 'MediElaj' from a headline like 'Healthcare startup MediElaj raises pre-seed round', or 'Simple Energy' from 'Simple Energy raises Rs 250 Cr...'). Do not include extraneous verbs or numbers.",
-  "startup_website": "The official website URL of the startup (e.g. 'https://medielaj.in', 'https://simpleenergy.in', or 'https://coinbase.com') extracted, inferred, or searched from the article text. If no specific URL is found or inferred, construct one based on the startup's name or use 'https://www.google.com/search?q=' + name.",
+  "extracted_startup_name": "The clean, real brand name of the startup (e.g. 'Digit Insurance', 'Perfios', 'Zerodha').",
+  "startup_website": "The official website URL (e.g., 'https://godigit.com', 'https://perfios.com').",
+  "founded_year": 2019,
   "summary": {
     "one_liner": "A brief, compelling one-sentence summary of the startup.",
-    "business_model": "A concise explanation of how the startup creates, delivers, and captures value (e.g., SaaS, marketplace, D2C).",
-    "target_audience": "The specific customer segment or market the startup is targeting."
+    "business_model": "A concise explanation of the value propositions.",
+    "target_audience": "Target segment."
+  },
+  "founders": [
+    {
+      "name": "Full name of the founder",
+      "role": "Founder's role (e.g., CEO, CTO)",
+      "brief_details": "Brief 1-sentence bio/details of the founder's background."
+    }
+  ],
+  "funding_stages": {
+    "series": "Current funding round (e.g., Series B, Series D, Seed, Bootstrapped)",
+    "amount": "Total funding amount or last raised round capital (e.g., $420M, $12M)",
+    "investors": ["Investor 1", "Investor 2", "Investor 3"]
+  },
+  "valuation_metrics": {
+    "revenue": "Estimated or actual annual revenue (e.g., $50M, Rs 120 Cr)",
+    "ebitda_multiple": "Revenue or EBITDA multiple details (e.g., 12x EBITDA multiple, 8x Revenue multiple)",
+    "other_metrics": "Any other key metric (e.g., EBITDA profitability, active users)"
   },
   "bfsi_relevance": {
-    "is_relevant": "A boolean value (true/false) indicating if the startup is relevant to the Banking, Financial Services, and Insurance (BFSI) sector.",
-    "relevance_score": "A score from 0 to 100, where 100 is extremely relevant. Justify the score.",
+    "is_relevant": true,
+    "relevance_score": 96,
     "use_cases": [
       {
-        "icici_entity": "Specify the relevant ICICI entity (e.g., ICICI Bank, ICICI Lombard, ICICI Prudential).",
-        "use_case": "Describe a specific, practical use case for this startup's product or service within that entity.",
-        "potential_impact": "Explain the potential impact of this use case (e.g., cost savings, revenue growth, improved customer experience)."
+        "icici_entity": "Relevant ICICI entity (e.g., ICICI Bank, ICICI Lombard, ICICI Securities)",
+        "use_case": "Describe a specific, practical use case.",
+        "potential_impact": "Explain the potential impact."
       }
     ]
   },
   "strategic_fit": {
-    "enterprise_readiness": "A score from 0 to 100 indicating the startup's readiness for enterprise-level partnerships. Consider factors like team experience, product maturity, and scalability.",
-    "partnership_opportunity": "Describe a potential strategic partnership or co-creation opportunity between the startup and an ICICI entity.",
-    "integration_feasibility": "Assess the technical and operational feasibility of integrating the startup's solution into ICICI's existing infrastructure. Rate as 'High', 'Medium', or 'Low'."
+    "enterprise_readiness": 90,
+    "partnership_opportunity": "Describe a potential strategic partnership.",
+    "integration_feasibility": "High"
   },
   "scoring": {
-    "overall_priority_score": "A final priority score from 0 to 100, taking all factors into account. This score determines how urgently the startup should be considered.",
-    "risk_assessment": "Identify the top 3-5 risks associated with this startup (e.g., market risk, technology risk, execution risk)."
+    "overall_priority_score": 94,
+    "risk_assessment": "Identify the top 3-5 risks."
   },
   "classification": {
-    "primary_sector": "The primary industry sector (e.g., FinTech, HealthTech, EdTech).",
-    "sub_sectors": [
-      "A list of relevant sub-sectors (e.g., 'Payments', 'InsurTech', 'Lending')."
-    ],
-    "tags": [
-      "A list of relevant keywords and tags for easy filtering and searching."
-    ]
+    "industry": "Selected Industry EXACTLY matching the name key in the hierarchical taxonomy tree",
+    "sector": "Selected Sector EXACTLY matching one of the sector keys belonging to that Industry",
+    "subsector": "Selected Subsector EXACTLY matching one of the subsector items belonging to that Sector. DO NOT make up subsector names.",
+    "business_models": ["Approved Business Model chosen ONLY from the allowed business_models list in the taxonomy tree"],
+    "industry_relevance": ["Approved Industry Relevance chosen ONLY from the allowed industry_relevance list in the taxonomy tree"],
+    "tags": ["Custom tags/keywords"]
   }
 }
 ```
 
-**Instructions:**
+**Instructions & Taxonomy Constraints:**
 
-1.  **Strictly adhere to the JSON format.** Do not include any text or explanations outside of the JSON structure.
-2.  **Be objective and data-driven.** Base your analysis on the information provided. If information is missing, make reasonable assumptions and note them.
-3.  **Think like an investor.** Your analysis should be critical, insightful, and actionable.
+1. **Strictly adhere to the JSON format.** Do not include any conversational wrapping outside of the JSON block (e.g. start directly with ```json and end with ```).
+2. **Use the retrieved web search results** to fill in the founders' details, founding year, funding round/investors, and valuation/financial metrics accurately.
+3. **Master Taxonomy Classification Rules (STRICT CONTROLS):**
+   - You MUST classify the startup into the hierarchical tree shown in "Allowed Master Taxonomy Schema" above.
+   - **classification.industry** must EXACTLY match the "name" of one of the industries in the tree. E.g., if a startup is coworking like Awfis, its industry is `Real Estate & Construction`. If a startup is a travel booking site like EaseMyTrip, its industry is `Consumer Internet`.
+   - **classification.sector** must EXACTLY match one of the keys under "sectors" of that selected industry. E.g., for `Real Estate & Construction`, it should be `PropTech`. For `Consumer Internet`, it should be `TravelTech`.
+   - **classification.subsector** must EXACTLY match one of the items under the selected sector's list in the tree. E.g., for `PropTech`, it could be `Rental Platforms` or `Property Management` (Awfis fits here!). For `TravelTech`, it could be `Booking Platforms` (EaseMyTrip fits here!). DO NOT generate a subsector that is not explicitly listed under that sector in the JSON tree.
+   - **classification.business_models** must be an array of values chosen ONLY from the allowed "business_models" list at the top of the tree.
+   - **classification.industry_relevance** must be an array of values chosen ONLY from the allowed "industry_relevance" list at the top of the tree.
+4. Be highly objective and data-driven.
 
 Begin analysis.

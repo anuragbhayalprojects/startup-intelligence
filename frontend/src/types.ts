@@ -1,21 +1,77 @@
-
 // frontend/src/types.ts
+
+export type AppTab =
+  | "dashboard"
+  | "repository"
+  | "high-priority"
+  | "assignments"
+  | "insights"
+  | "database"
+  | "chat";
 
 export interface Startup {
   id: string;
-  created_at: string;
-  startup_name: string;
+  startup_name: string; // Live PostgreSQL column
+  name?: string;         // Mock fallback / alias
+  logo?: string;         // Mock logo attribute
   description: string;
-  source: string;
-  source_url: string;
-  startup_analyses: { analysis_data: StartupAnalysis }[];
+  website: string;
+  sector: string;
+  subsector?: string;    // Live database column
+  subSector?: string;    // Mock fallback
+  funding_stage: string;
+  funding_amount?: string;
+  founded_year?: number;
+  city?: string;
+  state?: string;
+  country?: string;
+  source?: string;
+  source_url?: string;
+  created_at: string;
+  updated_at?: string;
+
+  // Joined or fallback evaluation attributes
+  ai_summary?: string;
+  entity_relevance?: string;
+  relevance_mapping?: Record<string, string>;
+  use_cases?: string[]; // fallback string list or mapped live use cases
+  priority_score?: number;
+  assigned_team?: string;
+  status?: "Screening" | "Evaluation" | "Proof of Concept" | "Partnership" | "Rejected" | string;
+
+  // Live database PostgreSQL relational joins
+  startup_analyses?: { id?: number; analysis_data: StartupAnalysis }[];
+
+  // Master Taxonomy attributes
+  industry?: string;
+  business_models?: string[];
+  industry_relevance?: string[];
+  tags?: string[];
 }
 
 export interface StartupAnalysis {
+  extracted_startup_name?: string;
+  startup_website?: string;
+  founded_year?: number;
   summary: {
     one_liner: string;
     business_model: string;
     target_audience: string;
+  };
+  founders?: {
+    name: string;
+    role: string;
+    brief_details: string;
+  }[];
+  funding_stages?: {
+    series: string;
+    amount: string;
+    investors: string[];
+  };
+  valuation_metrics?: {
+    revenue: string;
+    ebitda_multiple: string;
+    other_metrics: string;
   };
   bfsi_relevance: {
     is_relevant: boolean;
@@ -33,11 +89,89 @@ export interface StartupAnalysis {
   };
   scoring: {
     overall_priority_score: number;
-    risk_assessment: string;
+    risk_assessment: string | string[];
   };
   classification: {
-    primary_sector: string;
-    sub_sectors: string[];
+    industry?: string;
+    sector?: string;
+    subsector?: string;
+    business_models?: string[];
+    industry_relevance?: string[];
+    primary_sector?: string;
+    sub_sectors?: string[];
     tags: string[];
   };
+}
+
+export interface StartupScore {
+  startup_id: string;
+  market_size: number;
+  team_strength: number;
+  product_fit: number;
+  compliance_risk: number;
+  overall_score: number;
+}
+
+export interface Assignment {
+  id: string;
+  startup_id?: string;  // support live DB
+  startupId?: string;    // support mock data
+  startupName?: string;  // support mock data
+  owner?: string;        // support mock data
+  priority?: string;     // support mock data
+  updatedAt?: string;    // support mock data
+  team: string;
+  entity?: string;       // support live DB
+  assigned_at?: string;  // support live DB
+  status: "Pending Review" | "Active Engagement" | "On Hold" | "Completed" | string;
+  notes?: string;        // support live DB
+}
+
+export interface StartupCategory {
+  id: string;
+  sector: string;
+  core_focus: string;
+  icici_owner: string;
+}
+
+export interface Interaction {
+  id: string;
+  startup_id: string;
+  date: string;
+  type: "Introduction" | "Technical Review" | "POC Execution" | "MOU Signed" | "Stakeholder Pitch" | string;
+  summary: string;
+  next_steps: string;
+}
+
+export interface DBConsoleState {
+  activeTable: "startups" | "startup_scores" | "assignments" | "startup_categories" | "interactions";
+  customSQL: string;
+  queryResult: any[] | null;
+  queryError: string | null;
+}
+
+export interface UserRole {
+  username: string;
+  role: "Admin" | "Investment Officer" | "ICICI Entity Stakeholder";
+  entity?: string; // Optional target ICICI entity
+}
+
+// Pre-existing Workspace Mocks
+export interface Source {
+  id: string;
+  name: string;
+  type: "News" | "Database" | "Crunchbase" | "RSS" | "Social" | string;
+  status: "Active" | "Paused" | "Error" | string;
+  lastScrape: string;
+  startupCount: number;
+  successRate: number;
+}
+
+export interface WorkflowJob {
+  id: string;
+  name: string;
+  stage: "Ingest" | "Enrich" | "Score" | "Notify" | string;
+  status: "Running" | "Queued" | "Completed" | "Failed" | string;
+  progress: number;
+  startedAt: string;
 }
