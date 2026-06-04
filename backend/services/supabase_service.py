@@ -2,14 +2,28 @@ from supabase import create_client
 from backend.utils.config import SUPABASE_URL, SUPABASE_KEY
 import logging
 
+def format_outreach_message(msg):
+    if not msg:
+        return None
+    if isinstance(msg, dict):
+        if "subject_line" in msg and "body" in msg:
+            return f"Subject: {msg['subject_line']}\n\n{msg['body']}"
+        elif "subject" in msg and "body" in msg:
+            return f"Subject: {msg['subject']}\n\n{msg['body']}"
+        else:
+            return "\n".join(f"{k.capitalize()}: {v}" for k, v in msg.items())
+    return str(msg)
+
+
 try:
-    from backend.utils.taxonomy_mapper import normalize_taxonomy, normalize_business_models, normalize_industry_relevance, get_canonical_tags
+    from backend.utils.taxonomy_mapper import normalize_taxonomy, normalize_business_models, normalize_industry_relevance, get_canonical_tags, get_canonical_founders
 except ImportError:
     # Safe fallbacks if running in standalone scripts
     def normalize_taxonomy(name, i, s, sub): return i, s, sub
     def normalize_business_models(name, bm): return bm
     def normalize_industry_relevance(name, ir): return ir
     def get_canonical_tags(name, tags): return tags
+    def get_canonical_founders(name): return None
 
 print("SUPABASE_URL:", SUPABASE_URL)
 
@@ -67,6 +81,13 @@ def insert_startup(data):
     )
 
     print(f"Inserted startup: {data.get('startup_name')}")
+    
+    if response.data:
+        try:
+            from backend.api.routes.startups import assign_fprs_for_startup
+            assign_fprs_for_startup(response.data[0]["id"])
+        except Exception as e:
+            print(f"⚠️ Failed to auto-assign FPRs on insert: {e}")
 
     return response.data
 
@@ -121,6 +142,38 @@ def save_startup_analysis(startup_id, analysis_json):
         logging.warning(f"Skipping analysis insert for startup_id {startup_id} due to invalid analysis_json.")
         return None
 
+    # Fetch actual startup brand name to apply high-precision overrides
+    startup_name = ""
+    try:
+        s_res = supabase.table("startups").select("startup_name").eq("id", startup_id).execute()
+        if s_res.data:
+            startup_name = s_res.data[0].get("startup_name", "")
+    except Exception as ne:
+        logging.warning(f"Failed to fetch startup name: {ne}")
+
+    # Override founders and taxonomy with canonical values if available
+    canonical_founders = get_canonical_founders(startup_name)
+    if canonical_founders:
+        analysis_json["founders"] = canonical_founders
+
+    if startup_name:
+        from backend.utils.taxonomy_mapper import CANONICAL_OVERLOADS
+        name_clean = startup_name.strip().lower()
+        matched_over = None
+        if name_clean in CANONICAL_OVERLOADS:
+            matched_over = CANONICAL_OVERLOADS[name_clean]
+        else:
+            for k, v in CANONICAL_OVERLOADS.items():
+                if k in name_clean or name_clean in k:
+                    matched_over = v
+                    break
+        if matched_over:
+            if "classification" not in analysis_json:
+                analysis_json["classification"] = {}
+            analysis_json["classification"]["industry"] = matched_over["industry"]
+            analysis_json["classification"]["sector"] = matched_over["sector"]
+            analysis_json["classification"]["subsector"] = matched_over["subsector"]
+
     # Parse nested fields from the analysis JSON
     summary = analysis_json.get("summary", {})
     bfsi = analysis_json.get("bfsi_relevance", {})
@@ -145,7 +198,7 @@ def save_startup_analysis(startup_id, analysis_json):
 
     analysis_data = {
         "startup_id": startup_id,
-        "ai_summary": summary.get("one_liner", "") or summary.get("business_model", ""),
+        "ai_summary": summary.get("one_liner", ""),
         "bfsi_relevance_score": to_int(bfsi.get("relevance_score")),
         "enterprise_readiness_score": to_int(fit.get("enterprise_readiness")),
         "strategic_fit_score": to_int(fit.get("enterprise_readiness")), # Fallback mapping
@@ -187,15 +240,6 @@ def save_startup_analysis(startup_id, analysis_json):
     # Synchronize core startup registry columns from the parsed AI intelligence results
     startup_updates = {}
     
-    # Fetch actual startup brand name to apply high-precision overrides
-    startup_name = ""
-    try:
-        s_res = supabase.table("startups").select("startup_name").eq("id", startup_id).execute()
-        if s_res.data:
-            startup_name = s_res.data[0].get("startup_name", "")
-    except Exception as ne:
-        logging.warning(f"Failed to fetch startup name for overrides sync: {ne}")
-
     raw_industry = classification.get("industry")
     raw_sector = classification.get("sector") or classification.get("primary_sector") or "Unknown"
     raw_subsector = classification.get("subsector") or "Unknown"
@@ -252,6 +296,18 @@ def save_startup_analysis(startup_id, analysis_json):
         except Exception:
             pass
 
+    # Extract primary founder information to store on startup
+    founders = analysis_json.get("founders", [])
+    if founders and isinstance(founders, list):
+        primary_founder = founders[0]
+        if isinstance(primary_founder, dict):
+            f_name = primary_founder.get("name")
+            f_linkedin = primary_founder.get("linkedin_url") or primary_founder.get("linkedin")
+            if f_name:
+                startup_updates["founder_name"] = f_name
+            if f_linkedin:
+                startup_updates["founder_linkedin_url"] = f_linkedin
+
     if startup_updates:
         try:
             supabase.table("startups").update(startup_updates).eq("id", startup_id).execute()
@@ -259,4 +315,25 @@ def save_startup_analysis(startup_id, analysis_json):
         except Exception as se:
             print(f"⚠️ Failed to sync core startup columns for ID {startup_id}: {se}")
             
+    # Synchronize startup assignments with custom outreach messages and startup name
+    try:
+        asg_res = supabase.table("startup_assignments").select("id").eq("startup_id", startup_id).execute()
+        if asg_res.data:
+            linkedin_msg = format_outreach_message(analysis_json.get("linkedin_reachout_message"))
+            email_msg = format_outreach_message(analysis_json.get("email_reachout_message"))
+            
+            asg_updates = {}
+            if linkedin_msg:
+                asg_updates["linkedin_reachout_message"] = linkedin_msg
+            if email_msg:
+                asg_updates["email_reachout_message"] = email_msg
+            if startup_name:
+                asg_updates["startup_name"] = startup_name
+                
+            if asg_updates:
+                supabase.table("startup_assignments").update(asg_updates).eq("startup_id", startup_id).execute()
+                print(f"✅ Synchronized startup_assignments outreach messages for startup ID {startup_id}")
+    except Exception as e:
+        print(f"⚠️ Failed to sync outreach messages in startup_assignments for ID {startup_id}: {e}")
+
     return response.data

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Repository from "./pages/Repository";
@@ -7,6 +8,8 @@ import Assignments from "./pages/Assignments";
 import Insights from "./pages/Insights";
 import SupabaseConsole from "./pages/SupabaseConsole";
 import Chat from "./pages/Chat";
+import StartupDetails from "./pages/StartupDetails";
+import Scraping from "./pages/Scraping";
 import DetailModal from "./components/DetailModal";
 import { AppTab, Startup, Assignment, StartupCategory, Interaction, UserRole, StartupAnalysis } from "./types";
 import { AlertCircle, CheckCircle, RefreshCw } from "lucide-react";
@@ -44,9 +47,8 @@ const guessFundingStage = (name: string, desc: string): string => {
   if (text.includes("pre-seed")) return "Pre-Seed";
   if (text.includes("angel")) return "Angel";
   if (text.includes("venture") || text.includes("funding")) return "Growth";
-  return "Seed"; // Standard fallback
+  return ""; // Standard fallback
 };
-
 const guessFundingAmount = (name: string, desc: string): string => {
   const text = `${name} ${desc}`;
   const dollarRegex = /\$[0-9]+(\.[0-9]+)?\s*(M|Mn|Million|B|Bn|Billion|K)?\b/gi;
@@ -57,9 +59,8 @@ const guessFundingAmount = (name: string, desc: string): string => {
   const rupeeMatch = text.match(rupeeRegex);
   if (rupeeMatch) return rupeeMatch[0];
 
-  return "$1.5M"; // Standard fallback
+  return ""; // Standard fallback
 };
-
 const guessIndustry = (name: string, desc: string): string => {
   const text = `${name} ${desc}`.toLowerCase();
   if (text.includes("insurance") || text.includes("insurtech") || text.includes("claim") || text.includes("underwrite") || text.includes("lending") || text.includes("loan") || text.includes("credit") || text.includes("wealth") || text.includes("advisory") || text.includes("trading") || text.includes("payment") || text.includes("upi")) return "Financial Services";
@@ -199,21 +200,27 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
   }
 
   // Funding Stage Resolution with AI override & smart guess fallback
-  let rawFundingStage = s.funding_stage || "Unknown";
+  let rawFundingStage = s.funding_stage || "";
   if ((!rawFundingStage || rawFundingStage.toLowerCase() === "unknown") && analysis?.funding_stages?.series) {
     rawFundingStage = analysis.funding_stages.series;
   }
   if (!rawFundingStage || rawFundingStage.toLowerCase() === "unknown") {
     rawFundingStage = guessFundingStage(rawName, s.description || "");
   }
+  if (rawFundingStage.toLowerCase() === "unknown") {
+    rawFundingStage = "";
+  }
 
   // Funding Amount Resolution with AI override & smart guess fallback
-  let rawFundingAmount = s.funding_amount || "Unknown";
-  if ((!rawFundingAmount || rawFundingAmount.toLowerCase() === "unknown" || rawFundingAmount === "$1.2M") && analysis?.funding_stages?.amount) {
+  let rawFundingAmount = s.funding_amount || "";
+  if ((!rawFundingAmount || rawFundingAmount.toLowerCase() === "unknown" || rawFundingAmount === "$1.2M" || rawFundingAmount === "$1.5M") && analysis?.funding_stages?.amount) {
     rawFundingAmount = analysis.funding_stages.amount;
   }
-  if (!rawFundingAmount || rawFundingAmount.toLowerCase() === "unknown" || rawFundingAmount === "$1.2M") {
+  if (!rawFundingAmount || rawFundingAmount.toLowerCase() === "unknown" || rawFundingAmount === "$1.2M" || rawFundingAmount === "$1.5M") {
     rawFundingAmount = guessFundingAmount(rawName, s.description || "");
+  }
+  if (rawFundingAmount.toLowerCase() === "unknown" || rawFundingAmount === "$1.2M" || rawFundingAmount === "$1.5M") {
+    rawFundingAmount = "";
   }
 
   // Founded Year
@@ -227,8 +234,8 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
   if ((!rawWebsite || rawWebsite.includes("example.com")) && analysis?.startup_website) {
     rawWebsite = analysis.startup_website;
   }
-  if (!rawWebsite) {
-    rawWebsite = "https://example.com";
+  if (!rawWebsite || rawWebsite.includes("example.com") || rawWebsite.trim() === "") {
+    rawWebsite = "";
   }
 
   // Priority Score Resolution with AI override & keyword heuristics to prevent flat scoring lists
@@ -248,10 +255,10 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
   // AI Summary
   let rawAiSummary = s.ai_summary || "";
   if (analysis) {
-    rawAiSummary = analysis.summary?.one_liner || analysis.summary?.business_model || "";
+    rawAiSummary = analysis.summary?.one_liner || "";
   }
-  if (!rawAiSummary) {
-    rawAiSummary = "No AI analysis performed yet. Please trigger an evaluation in the detail drawer.";
+  if (!rawAiSummary || rawAiSummary.includes("No AI analysis") || rawAiSummary.includes("Registry Entry") || rawAiSummary.includes("CSV Import")) {
+    rawAiSummary = "Business profile pending AI enrichment.";
   }
 
   // Entity Relevance & Mappings
@@ -259,20 +266,36 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
   if (analysis && analysis.bfsi_relevance?.use_cases?.[0]) {
     rawEntityRelevance = analysis.bfsi_relevance.use_cases[0].potential_impact;
   }
-  if (!rawEntityRelevance) {
-    rawEntityRelevance = "BFSI Underwriting automation fit.";
+  if (
+    !rawEntityRelevance || 
+    rawEntityRelevance === "BFSI Underwriting automation fit." || 
+    rawEntityRelevance === "Relevant for BFSI underwritings." ||
+    rawEntityRelevance === "Explain the potential impact."
+  ) {
+    rawEntityRelevance = "";
   }
 
-  const rawRelevanceMapping = (analysis && analysis.bfsi_relevance?.use_cases)
+  const rawRelevanceMapping = (analysis && analysis.bfsi_relevance?.use_cases && analysis.bfsi_relevance.is_relevant !== false)
     ? analysis.bfsi_relevance.use_cases.reduce((acc: Record<string, string>, uc: any) => {
-        acc[uc.icici_entity] = uc.use_case;
+        const entity = uc.icici_entity;
+        const ucDesc = uc.use_case;
+        if (
+          entity && 
+          entity !== "None" && 
+          entity !== "Relevant ICICI entity" && 
+          ucDesc && 
+          !ucDesc.includes("Describe a specific") &&
+          !ucDesc.includes("automation fit")
+        ) {
+          acc[entity] = ucDesc;
+        }
         return acc;
       }, {})
-    : s.relevance_mapping || { "ICICI Bank": "Sandbox evaluation pending." };
+    : (s.relevance_mapping || {});
 
   const rawUseCases = (analysis && analysis.bfsi_relevance?.use_cases)
     ? analysis.bfsi_relevance.use_cases.map((uc: any) => `${uc.icici_entity}: ${uc.use_case}`)
-    : s.use_cases || ["Process underwriting automation."];
+    : s.use_cases || [];
 
   return {
     ...s,
@@ -306,12 +329,35 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
       : rawSector === "LendingTech"
       ? "Lending Team"
       : "Enterprise AI Team"),
-    status: s.status || "Screening"
+    status: s.status || "Screening",
+    startup_analyses: rawAnalysisRecord ? [{
+      analysis_data: analysis
+    }] : s.startup_analyses
   };
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<AppTab>("dashboard");
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const getActiveTabFromPath = (path: string): AppTab => {
+    if (path === "/" || path.startsWith("/dashboard")) return "dashboard";
+    if (path.startsWith("/repository")) return "repository";
+    if (path.startsWith("/high-priority")) return "high-priority";
+    if (path.startsWith("/assignments")) return "assignments";
+    if (path.startsWith("/insights")) return "insights";
+    if (path.startsWith("/chat")) return "chat";
+    if (path.startsWith("/database")) return "database";
+    if (path.startsWith("/scraping")) return "scraping";
+    return "dashboard";
+  };
+
+  const activeTab = getActiveTabFromPath(location.pathname);
+
+  const handleTabChange = (tab: AppTab) => {
+    if (tab === "dashboard") navigate("/");
+    else navigate(`/${tab}`);
+  };
   const [currentUser, setCurrentUser] = useState<UserRole>({
     username: "Rajesh Kumar",
     role: "Admin"
@@ -460,18 +506,61 @@ export default function App() {
         setIsLiveConnected(true);
 
         // Fetch assignments if available (mock load or custom dynamic assignments from backend)
-        // If the backend routes aren't present yet, initialize local stores
         try {
           const asgResp = await fetch(`${API_URL}/assignments`);
           if (asgResp.ok) {
             const asgData = await asgResp.json();
-            setAssignments(asgData || []);
+            const mappedAsg = (asgData || []).map((a: any) => ({
+              id: String(a.id),
+              startup_id: String(a.startup_id),
+              assigned_to_fpr1: a.assigned_to_fpr1 || a.assigned_to || "",
+              assigned_to_fpr2: a.assigned_to_fpr2 || "",
+              startup_name: a.startup_name || "",
+              linkedin_reachout_message: a.linkedin_reachout_message || "",
+              email_reachout_message: a.email_reachout_message || "",
+              team: a.assigned_to_fpr1 || a.assigned_to || "Unassigned",
+              entity: a.assigned_to_fpr2 || a.icici_entity || "Unassigned",
+              assigned_at: a.created_at || a.assigned_at || new Date().toISOString(),
+              status: a.assignment_status || "pending",
+              notes: a.notes || ""
+            }));
+            setAssignments(mappedAsg);
           }
         } catch (_) {
-          // Local assignments initialize
+          // Local assignments initialize fallback
           setAssignments([
-            { id: "as-1", startup_id: mapped[0]?.id || "st-1", team: "Lending Team", entity: "ICICI Bank", assigned_at: new Date().toISOString(), status: "Active Engagement", notes: "Sandbox evaluation active." }
+            {
+              id: "as-1",
+              startup_id: mapped[0]?.id || "st-1",
+              assigned_to_fpr1: "Anurag",
+              assigned_to_fpr2: "Keroli",
+              startup_name: mapped[0]?.startup_name || "Digit Insurance",
+              team: "Anurag",
+              entity: "Keroli",
+              assigned_at: new Date().toISOString(),
+              status: "Active Engagement",
+              notes: "Sandbox evaluation active."
+            }
           ]);
+        }
+
+        // Fetch interactions/activity logs
+        try {
+          const intResp = await fetch(`${API_URL}/interactions`);
+          if (intResp.ok) {
+            const intData = await intResp.json();
+            const mappedInt = (intData || []).map((i: any) => ({
+              id: String(i.id),
+              startup_id: String(i.startup_id),
+              date: i.date || new Date().toISOString(),
+              type: i.type || "Introduction",
+              summary: i.summary || "",
+              next_steps: i.next_steps || ""
+            }));
+            setInteractions(mappedInt);
+          }
+        } catch (e) {
+          console.warn("Could not load database interactions:", e);
         }
       } else {
         throw new Error("Invalid payload format received.");
@@ -542,10 +631,12 @@ export default function App() {
     setGlobalError("");
     setGlobalSuccess("");
     try {
-      // Direct PostgreSQL insert backend fetch
-      const exists = startups.some((s) => s.startup_name.toLowerCase() === startupData.name.toLowerCase());
+      // Name normalization duplicate check
+      const normalizeName = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const normalizedNew = normalizeName(startupData.name);
+      const exists = startups.some((s) => normalizeName(s.startup_name) === normalizedNew);
       if (exists) {
-        return { error: `Venture "${startupData.name}" already exists in our registry.` };
+        return { error: `Venture "${startupData.name}" already exists in our registry (similar name detected).` };
       }
 
       if (isLiveConnected) {
@@ -557,9 +648,12 @@ export default function App() {
             startup_name: startupData.name,
             website: startupData.website,
             description: startupData.description,
+            industry: startupData.industry || "Financial Services",
             sector: startupData.sector,
-            funding_stage: startupData.funding_stage,
-            funding_amount: startupData.funding_amount
+            subsector: startupData.subsector || "Unknown",
+            funding_stage: startupData.funding_stage || "Seed",
+            funding_amount: startupData.funding_amount || "$1M",
+            business_models: startupData.business_models || []
           })
         });
         const data = await response.json();
@@ -774,22 +868,51 @@ export default function App() {
   // Create Assignment
   const handleCreateAssignment = async (startupId: string, assignmentData: any) => {
     try {
+      const startup = startups.find(s => String(s.id) === String(startupId));
+      const sName = startup ? startup.startup_name : "";
+
+      let responseData: any = null;
       if (isLiveConnected) {
         const response = await fetch(`${API_URL}/assignments`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ startup_id: Number(startupId), ...assignmentData })
+          body: JSON.stringify({
+            startup_id: Number(startupId),
+            assigned_to_fpr1: assignmentData.assigned_to_fpr1,
+            assigned_to_fpr2: assignmentData.assigned_to_fpr2,
+            notes: assignmentData.notes
+          })
         });
         if (!response.ok) throw new Error("Failed completing pilot routing file.");
+        const result = await response.json();
+        if (result.status === "success" && result.data && result.data.length > 0) {
+          responseData = result.data[0];
+        }
       }
 
-      const newAssignment: Assignment = {
+      const newAssignment: Assignment = responseData ? {
+        id: String(responseData.id),
+        startup_id: String(responseData.startup_id),
+        startup_name: responseData.startup_name || sName,
+        assigned_to_fpr1: responseData.assigned_to_fpr1,
+        assigned_to_fpr2: responseData.assigned_to_fpr2,
+        linkedin_reachout_message: responseData.linkedin_reachout_message,
+        email_reachout_message: responseData.email_reachout_message,
+        team: responseData.assigned_to_fpr1 || "Unassigned",
+        entity: responseData.assigned_to_fpr2 || "Unassigned",
+        assigned_at: responseData.created_at || new Date().toISOString(),
+        status: responseData.assignment_status || "pending",
+        notes: responseData.notes || ""
+      } : {
         id: `as-${Date.now()}`,
         startup_id: startupId,
-        team: assignmentData.team,
-        entity: assignmentData.entity,
+        startup_name: sName,
+        assigned_to_fpr1: assignmentData.assigned_to_fpr1,
+        assigned_to_fpr2: assignmentData.assigned_to_fpr2,
+        team: assignmentData.assigned_to_fpr1,
+        entity: assignmentData.assigned_to_fpr2,
         assigned_at: new Date().toISOString(),
-        status: "Active Engagement",
+        status: `Assigned to ${assignmentData.assigned_to_fpr1}`,
         notes: assignmentData.notes || "Assigned."
       };
       setAssignments([newAssignment, ...assignments]);
@@ -797,12 +920,12 @@ export default function App() {
       // Sync startup assigned team
       const updated = startups.map((s) => {
         if (String(s.id) === String(startupId)) {
-          return { ...s, assigned_team: assignmentData.team };
+          return { ...s, assigned_team: assignmentData.assigned_to_fpr1 };
         }
         return s;
       });
       setStartups(updated);
-      setGlobalSuccess(`Venture successfully routed to ${assignmentData.entity}!`);
+      setGlobalSuccess(`Venture successfully routed to FPR1: ${assignmentData.assigned_to_fpr1}, FPR2: ${assignmentData.assigned_to_fpr2}!`);
     } catch (e) {
       console.error(e);
     }
@@ -891,7 +1014,7 @@ export default function App() {
       {/* Sidebar navigation */}
       <Sidebar
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         currentUser={currentUser}
         onUserChange={setCurrentUser}
         totalCount={startups.length}
@@ -954,18 +1077,26 @@ export default function App() {
               </div>
             </div>
           ) : (
-            <>
-              {activeTab === "dashboard" && (
+            <Routes>
+              <Route path="/" element={
                 <Dashboard
                   startups={startups}
                   assignments={assignments}
                   interactions={interactions}
                   onSelectStartup={setSelectedStartup}
-                  onTabChange={setActiveTab}
+                  onTabChange={handleTabChange}
                 />
-              )}
-
-              {activeTab === "repository" && (
+              } />
+              <Route path="/dashboard" element={
+                <Dashboard
+                  startups={startups}
+                  assignments={assignments}
+                  interactions={interactions}
+                  onSelectStartup={setSelectedStartup}
+                  onTabChange={handleTabChange}
+                />
+              } />
+              <Route path="/repository" element={
                 <Repository
                   startups={startups}
                   currentUser={currentUser}
@@ -975,13 +1106,11 @@ export default function App() {
                   onSemanticSearch={handleSemanticSearch}
                   onResetDB={handleResetDB}
                 />
-              )}
-
-              {activeTab === "high-priority" && (
+              } />
+              <Route path="/high-priority" element={
                 <HighPriority startups={startups} onSelectStartup={setSelectedStartup} />
-              )}
-
-              {activeTab === "assignments" && (
+              } />
+              <Route path="/assignments" element={
                 <Assignments
                   startups={startups}
                   assignments={assignments}
@@ -989,14 +1118,14 @@ export default function App() {
                   currentUser={currentUser}
                   onUpdateAssignment={handleUpdateAssignment}
                 />
-              )}
-
-              {activeTab === "insights" && <Insights startups={startups} isLiveConnected={isLiveConnected} />}
-
-              {activeTab === "database" && <SupabaseConsole onRunSQL={handleRunSQL} />}
-              
-              {activeTab === "chat" && <Chat />}
-            </>
+              } />
+              <Route path="/insights" element={<Insights startups={startups} isLiveConnected={isLiveConnected} />} />
+              <Route path="/database" element={<SupabaseConsole onRunSQL={handleRunSQL} />} />
+              <Route path="/chat" element={<Chat />} />
+              <Route path="/scraping" element={<Scraping />} />
+              <Route path="/startups/:id" element={<StartupDetails />} />
+              <Route path="/startup/:id" element={<StartupDetails />} />
+            </Routes>
           )}
         </main>
       </div>

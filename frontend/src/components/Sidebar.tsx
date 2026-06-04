@@ -174,6 +174,22 @@ export default function Sidebar({
             Backing Systems
           </p>
           <button
+            id="nav-scraping"
+            onClick={() => onTabChange("scraping")}
+            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all mb-1 ${
+              activeTab === "scraping"
+                ? "bg-amber-500/10 text-amber-400 border-l-2 border-amber-500 font-semibold"
+                : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <Zap size={18} className="text-amber-500" />
+              <span>Scraping Console</span>
+            </div>
+            <ChevronRight size={14} className="opacity-40" />
+          </button>
+
+          <button
             id="nav-database"
             onClick={() => onTabChange("database")}
             className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${

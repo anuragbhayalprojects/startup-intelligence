@@ -23,12 +23,16 @@ def cleanup_database():
     
     # --- PHASE 1: DEDUPLICATE BY SOURCE URL (Article-Level Deduplication) ---
     url_groups = {}
+    no_url_count = 0
     for startup in startups:
         url = startup.get("source_url")
         if url:
             if url not in url_groups:
                 url_groups[url] = []
             url_groups[url].append(startup)
+        else:
+            no_url_count += 1
+            url_groups[f"no_url_{no_url_count}"] = [startup]
             
     deduplicated_startups = []
     for url, group in url_groups.items():
@@ -44,6 +48,7 @@ def cleanup_database():
                 dup_id = dup["id"]
                 print(f"   --> Deleting duplicate ID {dup_id} ('{dup.get('startup_name')}')")
                 try:
+                    supabase.table("startup_assignments").delete().eq("startup_id", dup_id).execute()
                     supabase.table("startup_analysis").delete().eq("startup_id", dup_id).execute()
                     supabase.table("startups").delete().eq("id", dup_id).execute()
                 except Exception as e:
@@ -104,7 +109,7 @@ def cleanup_database():
     grouped_startups = {}
     for entry in valid_startups:
         startup, clean_name, analysis = entry
-        name_key = clean_name.lower().strip()
+        name_key = re.sub(r'[^a-z0-9]', '', clean_name.lower())
         if name_key not in grouped_startups:
             grouped_startups[name_key] = []
         grouped_startups[name_key].append(entry)
@@ -129,12 +134,37 @@ def cleanup_database():
             keep_id = keep_startup["id"]
             print(f"   --> Keeping ID {keep_id} ('{keep_startup['startup_name']}')")
             
+            # --- MERGE LATEST NEWS ---
+            # Sort entries by created_at descending (latest news first)
+            sorted_by_date = sorted(entries, key=lambda x: x[0].get("created_at") or "", reverse=True)
+            latest_entry = sorted_by_date[0]
+            latest_startup = latest_entry[0]
+            
+            if latest_startup["id"] != keep_id:
+                print(f"   --> Merging latest news from ID {latest_startup['id']} into kept entry ID {keep_id}")
+                keep_startup["description"] = latest_startup["description"]
+                keep_startup["source_url"] = latest_startup["source_url"]
+                keep_startup["source"] = latest_startup["source"]
+                if latest_startup.get("created_at"):
+                    keep_startup["created_at"] = latest_startup["created_at"]
+                
+                try:
+                    supabase.table("startups").update({
+                        "description": keep_startup["description"],
+                        "source_url": keep_startup["source_url"],
+                        "source": keep_startup["source"],
+                        "created_at": keep_startup["created_at"]
+                    }).eq("id", keep_id).execute()
+                except Exception as ue:
+                    print(f"       Failed to merge news into kept record: {ue}")
+            
             for entry in entries:
                 dup_startup = entry[0]
                 dup_id = dup_startup["id"]
                 if dup_id != keep_id:
                     print(f"   --> Deleting duplicate ID {dup_id} ('{dup_startup['startup_name']}')")
                     try:
+                        supabase.table("startup_assignments").delete().eq("startup_id", dup_id).execute()
                         supabase.table("startup_analysis").delete().eq("startup_id", dup_id).execute()
                         supabase.table("startups").delete().eq("id", dup_id).execute()
                     except Exception as e:

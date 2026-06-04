@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Search,
   Filter,
@@ -16,6 +16,7 @@ import {
   CheckCircle2
 } from "lucide-react";
 import { Startup, UserRole } from "../types";
+import { TAXONOMY } from "../lib/taxonomy";
 
 interface RepositoryProps {
   startups: Startup[];
@@ -27,8 +28,6 @@ interface RepositoryProps {
   onResetDB: () => Promise<void>;
 }
 
-const SECTORS = ["All Sectors", "InsurTech", "WealthTech", "LendingTech", "AI Ops"];
-const STAGES = ["All Stages", "Seed", "Series A", "Series B", "Series C", "Series D", "Series E", "Growth", "Public"];
 const ENTITIES = [
   "All Entities",
   "ICICI Bank",
@@ -50,10 +49,61 @@ export default function Repository({
 }: RepositoryProps) {
   // Filters State
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedIndustry, setSelectedIndustry] = useState("All Industries");
   const [selectedSector, setSelectedSector] = useState("All Sectors");
+  const [selectedSubsector, setSelectedSubsector] = useState("All Subsectors");
   const [selectedStage, setSelectedStage] = useState("All Stages");
+  const [selectedBusinessModel, setSelectedBusinessModel] = useState("All Models");
   const [selectedEntity, setSelectedEntity] = useState("All Entities");
   const [minPriorityScore, setMinPriorityScore] = useState(0);
+
+  // Dynamic dropdown calculations
+  const sectorOptions = useMemo(() => {
+    if (selectedIndustry === "All Industries") {
+      const allSectors = TAXONOMY.industries.reduce((acc, ind) => {
+        return [...acc, ...Object.keys(ind.sectors)];
+      }, [] as string[]);
+      return ["All Sectors", ...Array.from(new Set(allSectors))];
+    } else {
+      const ind = TAXONOMY.industries.find((i) => i.name === selectedIndustry);
+      return ["All Sectors", ...(ind ? Object.keys(ind.sectors) : [])];
+    }
+  }, [selectedIndustry]);
+
+  const subsectorOptions = useMemo(() => {
+    if (selectedSector === "All Sectors") {
+      if (selectedIndustry === "All Industries") {
+        const allSubs = TAXONOMY.industries.reduce((acc, ind) => {
+          const indSubs = Object.values(ind.sectors).reduce((acc2, subs) => [...acc2, ...subs], [] as string[]);
+          return [...acc, ...indSubs];
+        }, [] as string[]);
+        return ["All Subsectors", ...Array.from(new Set(allSubs))];
+      } else {
+        const ind = TAXONOMY.industries.find((i) => i.name === selectedIndustry);
+        if (!ind) return ["All Subsectors"];
+        const indSubs = Object.values(ind.sectors).reduce((acc, subs) => [...acc, ...subs], [] as string[]);
+        return ["All Subsectors", ...Array.from(new Set(indSubs))];
+      }
+    } else {
+      let targetSectorSubs: string[] = [];
+      for (const ind of TAXONOMY.industries) {
+        if (ind.sectors[selectedSector]) {
+          targetSectorSubs = ind.sectors[selectedSector];
+          break;
+        }
+      }
+      return ["All Subsectors", ...targetSectorSubs];
+    }
+  }, [selectedIndustry, selectedSector]);
+
+  useEffect(() => {
+    setSelectedSector("All Sectors");
+    setSelectedSubsector("All Subsectors");
+  }, [selectedIndustry]);
+
+  useEffect(() => {
+    setSelectedSubsector("All Subsectors");
+  }, [selectedSector]);
 
   // Semantic Match state
   const [semanticActive, setSemanticActive] = useState(false);
@@ -118,12 +168,39 @@ export default function Repository({
     name: "",
     website: "",
     description: "",
-    sector: "LendingTech",
+    industry: "Financial Services",
+    sector: "FinTech",
+    subsector: "Digital Banking",
     funding_stage: "Seed",
-    funding_amount: "$1M"
+    funding_amount: "",
+    business_models: [] as string[]
   });
   const [formError, setFormError] = useState("");
   const [formLoading, setFormLoading] = useState(false);
+
+  // Cascade form fields
+  useEffect(() => {
+    const ind = TAXONOMY.industries.find((i) => i.name === newStartup.industry);
+    const sectors = ind ? Object.keys(ind.sectors) : [];
+    const defaultSector = sectors[0] || "";
+    const defaultSubs = defaultSector && ind ? ind.sectors[defaultSector] : [];
+    const defaultSub = defaultSubs[0] || "Unknown";
+    setNewStartup((prev) => ({
+      ...prev,
+      sector: defaultSector,
+      subsector: defaultSub
+    }));
+  }, [newStartup.industry]);
+
+  useEffect(() => {
+    const ind = TAXONOMY.industries.find((i) => i.name === newStartup.industry);
+    if (!ind) return;
+    const subs = ind.sectors[newStartup.sector] || [];
+    setNewStartup((prev) => ({
+      ...prev,
+      subsector: subs[0] || "Unknown"
+    }));
+  }, [newStartup.sector]);
 
   // CSV State
   const [csvText, setCsvText] = useState("");
@@ -162,17 +239,26 @@ HansaCredit,Prepaid payroll card issuance layer for building SME credit buffers.
     }
 
     // Apply structured controls
+    if (selectedIndustry !== "All Industries") {
+      list = list.filter((s) => s.industry === selectedIndustry);
+    }
     if (selectedSector !== "All Sectors") {
       list = list.filter((s) => s.sector === selectedSector);
     }
+    if (selectedSubsector !== "All Subsectors") {
+      list = list.filter((s) => s.subsector === selectedSubsector || s.subSector === selectedSubsector);
+    }
     if (selectedStage !== "All Stages") {
-      list = list.filter((s) => s.funding_stage.includes(selectedStage));
+      list = list.filter((s) => s.funding_stage === selectedStage);
+    }
+    if (selectedBusinessModel !== "All Models") {
+      list = list.filter((s) => s.business_models && s.business_models.some((bm) => bm.toLowerCase() === selectedBusinessModel.toLowerCase()));
     }
     if (selectedEntity !== "All Entities") {
       list = list.filter(
         (s) =>
           s.entity_relevance?.toLowerCase().includes(selectedEntity.toLowerCase()) ||
-          (s.relevance_mapping && s.relevance_mapping[selectedEntity] !== undefined)
+          (s.relevance_mapping && typeof s.relevance_mapping === "object" && !Array.isArray(s.relevance_mapping) && s.relevance_mapping[selectedEntity] !== undefined)
       );
     }
     if (minPriorityScore > 0) {
@@ -180,7 +266,19 @@ HansaCredit,Prepaid payroll card issuance layer for building SME credit buffers.
     }
 
     return list;
-  }, [startups, searchQuery, selectedSector, selectedStage, selectedEntity, minPriorityScore, semanticActive, semanticMatches]);
+  }, [
+    startups,
+    searchQuery,
+    selectedIndustry,
+    selectedSector,
+    selectedSubsector,
+    selectedStage,
+    selectedBusinessModel,
+    selectedEntity,
+    minPriorityScore,
+    semanticActive,
+    semanticMatches
+  ]);
 
   // Handle Manual Create
   const handleCreateStartup = async (e: React.FormEvent) => {
@@ -262,6 +360,13 @@ HansaCredit,Prepaid payroll card issuance layer for building SME credit buffers.
     setSemanticQuery("");
     setSemanticActive(false);
     setSemanticMatches([]);
+    setSelectedIndustry("All Industries");
+    setSelectedSector("All Sectors");
+    setSelectedSubsector("All Subsectors");
+    setSelectedStage("All Stages");
+    setSelectedBusinessModel("All Models");
+    setSelectedEntity("All Entities");
+    setMinPriorityScore(0);
   };
 
   return (
@@ -374,6 +479,22 @@ HansaCredit,Prepaid payroll card issuance layer for building SME credit buffers.
           <span>Filters:</span>
         </div>
 
+        {/* Industry */}
+        <div className="space-y-1">
+          <select
+            value={selectedIndustry}
+            onChange={(e) => setSelectedIndustry(e.target.value)}
+            className="bg-white border border-slate-200 text-slate-700 text-xs rounded-lg p-1.5 focus:outline-none"
+          >
+            <option value="All Industries">All Industries</option>
+            {TAXONOMY.industries.map((ind) => (
+              <option key={ind.name} value={ind.name}>
+                {ind.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {/* Sector */}
         <div className="space-y-1">
           <select
@@ -381,9 +502,24 @@ HansaCredit,Prepaid payroll card issuance layer for building SME credit buffers.
             onChange={(e) => setSelectedSector(e.target.value)}
             className="bg-white border border-slate-200 text-slate-700 text-xs rounded-lg p-1.5 focus:outline-none"
           >
-            {SECTORS.map((s) => (
+            {sectorOptions.map((s) => (
               <option key={s} value={s}>
                 {s}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Sub Sector */}
+        <div className="space-y-1">
+          <select
+            value={selectedSubsector}
+            onChange={(e) => setSelectedSubsector(e.target.value)}
+            className="bg-white border border-slate-200 text-slate-700 text-xs rounded-lg p-1.5 focus:outline-none"
+          >
+            {subsectorOptions.map((sub) => (
+              <option key={sub} value={sub}>
+                {sub}
               </option>
             ))}
           </select>
@@ -396,9 +532,26 @@ HansaCredit,Prepaid payroll card issuance layer for building SME credit buffers.
             onChange={(e) => setSelectedStage(e.target.value)}
             className="bg-white border border-slate-200 text-slate-700 text-xs rounded-lg p-1.5 focus:outline-none"
           >
-            {STAGES.map((s) => (
+            <option value="All Stages">All Stages</option>
+            {TAXONOMY.stages.map((s) => (
               <option key={s} value={s}>
                 {s}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Business Model */}
+        <div className="space-y-1">
+          <select
+            value={selectedBusinessModel}
+            onChange={(e) => setSelectedBusinessModel(e.target.value)}
+            className="bg-white border border-slate-200 text-slate-700 text-xs rounded-lg p-1.5 focus:outline-none"
+          >
+            <option value="All Models">All Models</option>
+            {TAXONOMY.business_models.map((bm) => (
+              <option key={bm} value={bm}>
+                {bm}
               </option>
             ))}
           </select>
@@ -549,21 +702,36 @@ HansaCredit,Prepaid payroll card issuance layer for building SME credit buffers.
                     <td className="py-4 px-4 space-y-1 text-left overflow-hidden">
                       <div className="flex items-center gap-1 truncate">
                         <span className="font-extrabold text-slate-900 hover:text-blue-600 truncate">{s.startup_name}</span>
-                        {s.website && (
+                      </div>
+                      <p className="text-slate-500 text-[11px] line-clamp-2 leading-relaxed whitespace-normal mt-1">
+                        {s.ai_summary}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-3 mt-1 text-[10px] text-slate-400">
+                        {s.website && s.website.trim() !== "" && s.website !== "https://example.com" && (
                           <a
                             href={s.website}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-slate-400 hover:text-blue-500 inline-block pl-1 flex-shrink-0"
+                            className="flex items-center gap-1 hover:text-blue-600 transition-colors"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <ExternalLink size={12} />
+                            <Globe size={11} className="text-slate-400" />
+                            <span className="underline">Website</span>
+                          </a>
+                        )}
+                        {s.source_url && (
+                          <a
+                            href={s.source_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <ExternalLink size={11} className="text-slate-400" />
+                            <span className="underline">News Article ({s.source || "Source"})</span>
                           </a>
                         )}
                       </div>
-                      <p className="text-slate-500 text-[11px] line-clamp-2 leading-relaxed whitespace-normal">
-                        {s.description}
-                      </p>
                       {semanticExplain && (
                         <div className="bg-amber-50 border border-amber-200 text-amber-900 p-2 rounded text-[10.5px] mt-1.5 flex items-start gap-1 whitespace-normal">
                           <Sparkles size={11} className="text-amber-500 flex-shrink-0 mt-0.5" />
@@ -589,7 +757,7 @@ HansaCredit,Prepaid payroll card issuance layer for building SME credit buffers.
                     </td>
 
                     <td className="py-3 px-4 space-y-1 whitespace-nowrap text-left overflow-hidden">
-                      <p className="font-bold text-slate-800 truncate">{s.funding_amount || "$1.5M"}</p>
+                      <p className="font-bold text-slate-800 truncate">{s.funding_amount || ""}</p>
                       <p className="text-[10px] text-slate-400 truncate">{s.funding_stage}</p>
                     </td>
 
@@ -621,7 +789,7 @@ HansaCredit,Prepaid payroll card issuance layer for building SME credit buffers.
                         {s.entity_relevance}
                       </p>
                       <div className="flex flex-wrap gap-1 mt-1">
-                        {s.relevance_mapping && Object.keys(s.relevance_mapping).map((ent) => (
+                        {s.relevance_mapping && typeof s.relevance_mapping === "object" && !Array.isArray(s.relevance_mapping) && Object.keys(s.relevance_mapping).map((ent) => (
                           <span key={ent} className="text-[9px] bg-blue-50 text-blue-700 px-1 py-0.5 rounded truncate">
                             {ent}
                           </span>
@@ -737,33 +905,73 @@ HansaCredit,Prepaid payroll card issuance layer for building SME credit buffers.
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[10.5px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                    Target Sector
+                    Industry
+                  </label>
+                  <select
+                    value={newStartup.industry}
+                    onChange={(e) => setNewStartup({ ...newStartup, industry: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-lg p-2 focus:ring-1 focus:ring-indigo-500"
+                  >
+                    {TAXONOMY.industries.map((ind) => (
+                      <option key={ind.name} value={ind.name}>
+                        {ind.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10.5px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    Sector
                   </label>
                   <select
                     value={newStartup.sector}
                     onChange={(e) => setNewStartup({ ...newStartup, sector: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-lg p-2"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-lg p-2 focus:ring-1 focus:ring-indigo-500"
                   >
-                    <option value="InsurTech">InsurTech</option>
-                    <option value="WealthTech">WealthTech</option>
-                    <option value="LendingTech">LendingTech</option>
-                    <option value="AI Ops">AI Ops</option>
+                    {(TAXONOMY.industries.find((i) => i.name === newStartup.industry)?.sectors ? Object.keys(TAXONOMY.industries.find((i) => i.name === newStartup.industry)!.sectors) : []).map((sec) => (
+                      <option key={sec} value={sec}>
+                        {sec}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[10.5px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    Sub Sector
+                  </label>
+                  <select
+                    value={newStartup.subsector}
+                    onChange={(e) => setNewStartup({ ...newStartup, subsector: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-lg p-2 focus:ring-1 focus:ring-indigo-500"
+                  >
+                    {(TAXONOMY.industries.find((i) => i.name === newStartup.industry)?.sectors[newStartup.sector] || []).map((sub) => (
+                      <option key={sub} value={sub}>
+                        {sub}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-[10.5px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                     Funding Stage
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={newStartup.funding_stage}
                     onChange={(e) => setNewStartup({ ...newStartup, funding_stage: e.target.value })}
-                    placeholder="Series A"
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-lg p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-                  />
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-lg p-2 focus:ring-1 focus:ring-indigo-500"
+                  >
+                    {TAXONOMY.stages.map((stg) => (
+                      <option key={stg} value={stg}>
+                        {stg}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-[10.5px] font-bold text-slate-500 uppercase tracking-wider mb-1">
@@ -776,6 +984,30 @@ HansaCredit,Prepaid payroll card issuance layer for building SME credit buffers.
                     placeholder="e.g. $14M"
                     className="w-full bg-slate-50 border border-slate-200 text-slate-805 text-slate-800 text-xs rounded-lg p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                   />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10.5px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                  Business Models
+                </label>
+                <div className="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200 max-h-28 overflow-y-auto">
+                  {TAXONOMY.business_models.map((bm) => (
+                    <label key={bm} className="flex items-center gap-1.5 text-xs text-slate-700 font-semibold cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newStartup.business_models.includes(bm)}
+                        onChange={(e) => {
+                          const updated = e.target.checked
+                            ? [...newStartup.business_models, bm]
+                            : newStartup.business_models.filter((x) => x !== bm);
+                          setNewStartup({ ...newStartup, business_models: updated });
+                        }}
+                        className="accent-blue-600 rounded"
+                      />
+                      <span>{bm}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
 

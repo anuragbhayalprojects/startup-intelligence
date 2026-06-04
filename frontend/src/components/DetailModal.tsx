@@ -17,9 +17,21 @@ import {
   CheckCircle2,
   Calendar,
   RefreshCw,
-  ChevronRight
+  ChevronRight,
+  ExternalLink,
+  Linkedin
 } from "lucide-react";
 import { Startup, StartupScore, Assignment, Interaction, UserRole } from "../types";
+
+const FPR1_LIST = [
+  "Anurag", "Simran", "Rameez", "Shubham", "Dhanush", 
+  "Rahul", "Jayvi", "Ishan", "Utkarsh", "Shivani", 
+  "Divya", "Nikhil", "Akash", "Mohit"
+];
+
+const FPR2_LIST = [
+  "Keroli", "Shakti", "Vishesh", "Kushal"
+];
 
 interface DetailModalProps {
   startup: Startup;
@@ -59,8 +71,8 @@ export default function DetailModal({
 
   // Assignment Form
   const [newAssignment, setNewAssignment] = useState({
-    entity: "ICICI Bank",
-    team: "Lending Team",
+    assigned_to_fpr1: "Anurag",
+    assigned_to_fpr2: "Keroli",
     notes: ""
   });
   const [assignLoading, setAssignLoading] = useState(false);
@@ -74,8 +86,14 @@ export default function DetailModal({
   // AI analysis loader
   const [analyzing, setAnalyzing] = useState(false);
 
-  const analysis = startup.startup_analyses && startup.startup_analyses.length > 0
-    ? startup.startup_analyses[0].analysis_data
+  const rawAnalysisRecord = (startup.startup_analyses && startup.startup_analyses.length > 0)
+    ? startup.startup_analyses[0]
+    : (startup.startup_analysis && startup.startup_analysis.length > 0)
+    ? startup.startup_analysis[0]
+    : null;
+
+  const analysis = rawAnalysisRecord
+    ? ((rawAnalysisRecord.analysis_data || rawAnalysisRecord.analysis_json) as any)
     : null;
 
   // Rich details resolver with fallback for preloaded mock data
@@ -84,7 +102,11 @@ export default function DetailModal({
     if (analysis && (analysis.founders || analysis.funding_stages || analysis.valuation_metrics)) {
       return {
         founded_year: analysis.founded_year || startup.founded_year || 2018,
-        founders: analysis.founders || [],
+        founders: (analysis.founders && analysis.founders.length > 0)
+          ? analysis.founders
+          : (startup.founder_name
+            ? [{ name: startup.founder_name, role: "Founder", brief_details: "", linkedin_url: startup.founder_linkedin_url }]
+            : []),
         funding_stages: analysis.funding_stages || { 
           series: startup.funding_stage, 
           amount: startup.funding_amount || "Unknown", 
@@ -176,19 +198,19 @@ export default function DetailModal({
 
     // Default generic fallback
     return {
-      founded_year: startup.founded_year || 2019,
-      founders: [
-        { name: "Founding Team", role: "Founder", brief_details: "Industry expert scaling digital financial automation platforms." }
-      ],
+      founded_year: startup.founded_year || undefined,
+      founders: startup.founder_name
+        ? [{ name: startup.founder_name, role: "Founder", brief_details: "", linkedin_url: startup.founder_linkedin_url }]
+        : [],
       funding_stages: {
-        series: startup.funding_stage || "Seed",
-        amount: startup.funding_amount || "$1.5M",
-        investors: ["Venture Capital Fund", "FinTech Angels"]
+        series: startup.funding_stage || "",
+        amount: startup.funding_amount || "",
+        investors: []
       },
       valuation_metrics: {
-        revenue: "Estimated $1.2M ARR",
-        ebitda_multiple: "10.0x EV/Revenue",
-        other_metrics: "Demonstrates strong pilot metrics with active customer traction."
+        revenue: "",
+        ebitda_multiple: "",
+        other_metrics: ""
       }
     };
   };
@@ -228,7 +250,7 @@ export default function DetailModal({
     setAssignLoading(true);
     try {
       await onCreateAssignment(startup.id, newAssignment);
-      setNewAssignment({ entity: "ICICI Bank", team: "Lending Team", notes: "" });
+      setNewAssignment({ assigned_to_fpr1: "Anurag", assigned_to_fpr2: "Keroli", notes: "" });
     } catch (e) {
       console.error(e);
     } finally {
@@ -264,7 +286,7 @@ export default function DetailModal({
             </div>
             <h3 className="text-xl font-extrabold text-white flex items-center gap-2">
               {startup.startup_name}
-              {startup.website && (
+              {startup.website && startup.website.trim() !== "" && startup.website !== "https://example.com" && (
                 <a
                   href={startup.website}
                   target="_blank"
@@ -331,10 +353,35 @@ export default function DetailModal({
           {/* Description Block */}
           <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm space-y-3 text-left">
             <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-2">
-              Operational Profile
+              Brief Business Profile
             </h4>
-            <p className="text-slate-650 text-xs leading-relaxed">{startup.description}</p>
+            <p className="text-slate-655 text-xs leading-relaxed">
+              {analysis?.summary?.business_model || 
+               (startup.ai_summary && !startup.ai_summary.includes("No AI analysis") && !startup.ai_summary.includes("Registry Entry") && !startup.ai_summary.includes("CSV Import") ? startup.ai_summary : "") || 
+               "Business profile pending AI evaluation. Please trigger 'Enrich AI' above to construct the business model and value propositions."}
+            </p>
           </div>
+
+          {/* News Article Summary Block */}
+          {startup.description && startup.description.trim() !== "" && (
+            <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm space-y-3 text-left animate-fade-in">
+              <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-2 flex items-center justify-between">
+                <span>Recent News & Updates</span>
+                {startup.source_url && (
+                  <a
+                    href={startup.source_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-slate-400 hover:text-blue-600 text-[10px] font-bold tracking-normal normal-case flex items-center gap-1 cursor-pointer"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Source: {startup.source || "News Link"} <ExternalLink size={10} />
+                  </a>
+                )}
+              </h4>
+              <p className="text-slate-650 text-xs leading-relaxed">{startup.description}</p>
+            </div>
+          )}
 
           {/* Taxonomy & Classification Mapping */}
           <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm space-y-4 text-left">
@@ -475,7 +522,7 @@ export default function DetailModal({
                     Founding & Capital Structure
                   </h5>
                   <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-mono font-bold">
-                    Est. {details.founded_year}
+                    Est. {details?.founded_year || "Unknown"}
                   </span>
                 </div>
                 
@@ -483,17 +530,28 @@ export default function DetailModal({
                 <div className="space-y-3">
                   <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Founding Leadership</p>
                   <div className="grid grid-cols-1 gap-2.5">
-                    {details.founders.map((founder, idx) => (
+                    {(details?.founders || []).map((founder: any, idx: number) => (
                       <div key={idx} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100 hover:bg-slate-100/50 transition-colors">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-650 text-white flex items-center justify-center font-bold text-xs uppercase shadow-sm flex-shrink-0">
-                          {founder.name.split(" ").map(w => w[0]).join("").slice(0, 2)}
+                          {founder?.name ? founder.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2) : "FD"}
                         </div>
                         <div className="space-y-0.5 text-left">
                           <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="text-xs font-bold text-slate-800">{founder.name}</span>
-                            <span className="text-[9px] bg-indigo-50 text-indigo-700 px-1.5 py-0.2 rounded font-bold uppercase tracking-wide">{founder.role}</span>
+                            <span className="text-xs font-bold text-slate-800">{founder?.name || "Founder"}</span>
+                            {founder?.linkedin_url && (
+                              <a
+                                href={founder.linkedin_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-500 hover:text-blue-700 inline-flex items-center"
+                                title="LinkedIn Profile"
+                              >
+                                <Linkedin size={11} />
+                              </a>
+                            )}
+                            <span className="text-[9px] bg-indigo-50 text-indigo-700 px-1.5 py-0.2 rounded font-bold uppercase tracking-wide">{founder?.role || "Founder"}</span>
                           </div>
-                          <p className="text-[11px] text-slate-500 leading-normal">{founder.brief_details}</p>
+                          <p className="text-[11px] text-slate-500 leading-normal">{founder?.brief_details || ""}</p>
                         </div>
                       </div>
                     ))}
@@ -509,7 +567,7 @@ export default function DetailModal({
                     Funding Rounds & Investors
                   </h5>
                   <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-bold uppercase tracking-wide">
-                    {details.funding_stages.series}
+                    {details?.funding_stages?.series || "Unknown"}
                   </span>
                 </div>
                 
@@ -518,13 +576,13 @@ export default function DetailModal({
                     <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Total Capital Raised</p>
                     <p className="text-base font-black text-emerald-650 mt-1 flex items-baseline gap-0.5">
                       <span className="text-xs font-bold">$</span>
-                      {details.funding_stages.amount.replace("$", "")}
+                      {details?.funding_stages?.amount ? String(details.funding_stages.amount).replace("$", "") : "Unknown"}
                     </p>
                   </div>
                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
                     <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Investment Status</p>
                     <p className="text-xs font-bold text-slate-700 mt-1.5 truncate">
-                      {details.funding_stages.series.includes("Bootstrapped") ? "Organic Operations" : "Strategic Fit Validated"}
+                      {details?.funding_stages?.series?.includes("Bootstrapped") ? "Organic Operations" : "Strategic Fit Validated"}
                     </p>
                   </div>
                 </div>
@@ -533,8 +591,8 @@ export default function DetailModal({
                 <div className="space-y-2">
                   <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Key Capital Supporters</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {details.funding_stages.investors.length > 0 ? (
-                      details.funding_stages.investors.map((inv, idx) => (
+                    {(details?.funding_stages?.investors || []).length > 0 ? (
+                      (details?.funding_stages?.investors || []).map((inv: string, idx: number) => (
                         <span key={idx} className="bg-slate-50 hover:bg-slate-100 text-slate-700 px-2 py-1 rounded text-[10.5px] font-medium border border-slate-200/50 transition-colors">
                           {inv}
                         </span>
@@ -562,18 +620,18 @@ export default function DetailModal({
                   <div className="p-3 bg-amber-50/30 rounded-lg border border-amber-100/50">
                     <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Reported Annual Revenue</p>
                     <p className="text-xs font-black text-slate-800 mt-1.5 truncate">
-                      {details.valuation_metrics.revenue}
+                      {details?.valuation_metrics?.revenue || "Unknown"}
                     </p>
                   </div>
                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
                     <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">EBITDA / Valuation Multiple</p>
                     <p className="text-xs font-black text-slate-800 mt-1.5 truncate">
-                      {details.valuation_metrics.ebitda_multiple}
+                      {details?.valuation_metrics?.ebitda_multiple || "N/A"}
                     </p>
                   </div>
                 </div>
 
-                {details.valuation_metrics.other_metrics && (
+                {details?.valuation_metrics?.other_metrics && (
                   <div className="p-2.5 bg-blue-50/50 rounded-lg border border-blue-100/50 text-[10.5px] leading-relaxed text-blue-900 flex items-start gap-2 shadow-xs">
                     <Sparkles size={12} className="text-blue-500 mt-0.5 flex-shrink-0" />
                     <span><strong>Key Performance Metric:</strong> {details.valuation_metrics.other_metrics}</span>
@@ -588,7 +646,7 @@ export default function DetailModal({
                 </h5>
                 <p className="text-xs text-slate-500 mb-2">{startup.entity_relevance}</p>
                 <div className="space-y-3">
-                  {startup.relevance_mapping && Object.entries(startup.relevance_mapping).map(([ent, desc]) => (
+                  {startup.relevance_mapping && typeof startup.relevance_mapping === "object" && !Array.isArray(startup.relevance_mapping) && Object.entries(startup.relevance_mapping).map(([ent, desc]) => (
                     <div key={ent} className="p-3 bg-blue-50/50 rounded-lg border border-blue-100/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                       <strong className="text-xs text-blue-800 font-bold whitespace-nowrap">{ent}</strong>
                       <span className="text-[11px] text-slate-655 leading-relaxed text-left sm:text-right">
@@ -596,7 +654,7 @@ export default function DetailModal({
                       </span>
                     </div>
                   ))}
-                  {(!startup.relevance_mapping || Object.keys(startup.relevance_mapping).length === 0) && (
+                  {(!startup.relevance_mapping || typeof startup.relevance_mapping !== "object" || Array.isArray(startup.relevance_mapping) || Object.keys(startup.relevance_mapping).length === 0) && (
                     <p className="text-xs text-slate-400 text-center py-4">
                       No standalone target relevance records.
                     </p>
@@ -724,32 +782,32 @@ export default function DetailModal({
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[10px] font-bold text-slate-450 uppercase mb-1 block">Group Target Entity</label>
+                      <label className="text-[10px] font-bold text-slate-450 uppercase mb-1 block">Assigned FPR1</label>
                       <select
-                        value={newAssignment.entity}
-                        onChange={(e) => setNewAssignment({ ...newAssignment, entity: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 text-slate-805 text-slate-800 text-xs rounded-lg p-1.5"
+                        value={newAssignment.assigned_to_fpr1}
+                        onChange={(e) => setNewAssignment({ ...newAssignment, assigned_to_fpr1: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-lg p-1.5 focus:outline-none"
                       >
-                        <option value="ICICI Bank">ICICI Bank</option>
-                        <option value="ICICI Lombard">ICICI Lombard</option>
-                        <option value="ICICI Securities">ICICI Securities</option>
-                        <option value="ICICI Prudential AMC">ICICI Prudential AMC</option>
-                        <option value="ICICI Prudential Life Insurance">ICICI Prudential Life Insurance</option>
-                        <option value="ICICI Housing Finance">ICICI Housing Finance</option>
+                        {FPR1_LIST.map((fpr) => (
+                          <option key={fpr} value={fpr}>
+                            {fpr}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold text-slate-450 uppercase mb-1 block">Advisory Owner Team</label>
+                      <label className="text-[10px] font-bold text-slate-450 uppercase mb-1 block">Assigned FPR2</label>
                       <select
-                        value={newAssignment.team}
-                        onChange={(e) => setNewAssignment({ ...newAssignment, team: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 text-slate-808 text-slate-800 text-xs rounded-lg p-1.5"
+                        value={newAssignment.assigned_to_fpr2}
+                        onChange={(e) => setNewAssignment({ ...newAssignment, assigned_to_fpr2: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-lg p-1.5 focus:outline-none"
                       >
-                        <option value="Lending Team">Lending Team</option>
-                        <option value="Insurance Team">Insurance Team</option>
-                        <option value="AMC/Securities Team">AMC/Securities Team</option>
-                        <option value="Enterprise AI Team">Enterprise AI Team</option>
+                        {FPR2_LIST.map((fpr) => (
+                          <option key={fpr} value={fpr}>
+                            {fpr}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -762,7 +820,7 @@ export default function DetailModal({
                       value={newAssignment.notes}
                       onChange={(e) => setNewAssignment({ ...newAssignment, notes: e.target.value })}
                       placeholder="Special directives, pilot roadmap, compliance checks sponsors directives..."
-                      className="w-full bg-slate-50 border border-slate-200 text-slate-808 text-slate-850 text-xs rounded-lg p-1.5 focus:outline-none"
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-850 text-xs rounded-lg p-1.5 focus:outline-none"
                     />
                   </div>
 
@@ -785,19 +843,35 @@ export default function DetailModal({
                 </h5>
                 <div className="space-y-3">
                   {assignments.filter(a => String(a.startup_id) === String(startup.id)).map((as) => (
-                    <div key={as.id} className="p-4 bg-white rounded-xl border border-slate-200/80 shadow-xs space-y-2">
+                    <div key={as.id} className="p-4 bg-white rounded-xl border border-slate-200/80 shadow-xs space-y-3">
                       <div className="flex justify-between items-center border-b border-slate-100 pb-1">
-                        <span className="font-extrabold text-xs text-indigo-900">{as.entity}</span>
+                        <span className="font-extrabold text-xs text-indigo-900">ICICI Bank</span>
                         <span className="text-[9.5px] bg-indigo-50 text-indigo-750 px-1.5 py-0.5 rounded font-bold font-mono">
                           {as.status}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-600 font-medium leading-relaxed italic">
+                      <p className="text-xs text-slate-655 text-slate-600 font-medium leading-relaxed italic">
                         "{as.notes}"
                       </p>
-                      <div className="flex justify-between items-center text-[10px] text-slate-400">
-                        <span>Delegated to: {as.team}</span>
-                        <span>Filed: {new Date(as.assigned_at).toLocaleDateString()}</span>
+
+                      {/* Outreach Pitch Templates inside Assignment */}
+                      {as.linkedin_reachout_message && (
+                        <div className="p-2.5 bg-blue-50/50 rounded-lg border border-blue-100 text-[10.5px] leading-relaxed text-blue-900 shadow-xs">
+                          <span className="font-extrabold text-blue-800 block mb-0.5">LinkedIn Outreach Pitch:</span>
+                          <p className="italic">"{as.linkedin_reachout_message}"</p>
+                        </div>
+                      )}
+
+                      {as.email_reachout_message && (
+                        <div className="p-2.5 bg-indigo-50/50 rounded-lg border border-indigo-100 text-[10.5px] leading-relaxed text-indigo-950 shadow-xs">
+                          <span className="font-extrabold text-indigo-850 block mb-0.5">Email Outreach Proposal:</span>
+                          <p className="whitespace-pre-wrap font-sans italic">"{as.email_reachout_message}"</p>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center text-[10px] text-slate-400 pt-1 border-t border-slate-100/40">
+                        <span>FPR1: {as.assigned_to_fpr1 || as.team} • FPR2: {as.assigned_to_fpr2 || as.entity}</span>
+                        <span>Filed: {as.assigned_at ? new Date(as.assigned_at).toLocaleDateString() : ""}</span>
                       </div>
                     </div>
                   ))}

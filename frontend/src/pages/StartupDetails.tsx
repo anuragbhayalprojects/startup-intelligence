@@ -31,6 +31,8 @@ export default function StartupDetails() {
         setStartup(data);
         if (data.startup_analyses && data.startup_analyses.length > 0) {
           setAnalysis(data.startup_analyses[0].analysis_data);
+        } else if (data.startup_analysis && data.startup_analysis.length > 0) {
+          setAnalysis(data.startup_analysis[0].analysis_json || data.startup_analysis[0].analysis_data);
         }
       } catch (err) {
         setError(err.message);
@@ -130,44 +132,76 @@ export default function StartupDetails() {
   );
 }
 
-const AnalysisSection = ({ analysis }: { analysis: StartupAnalysis }) => {
+const AnalysisSection = ({ analysis }: { analysis: any }) => {
     return (
         <div className="mt-4 space-y-4">
             <SectionCard title="AI Analysis Summary">
-                <p className="text-sm"><strong>One-Liner:</strong> {analysis.summary.one_liner}</p>
-                <p className="text-sm mt-2"><strong>Business Model:</strong> {analysis.summary.business_model}</p>
-                <p className="text-sm mt-2"><strong>Target Audience:</strong> {analysis.summary.target_audience}</p>
+                <p className="text-sm"><strong>One-Liner:</strong> {analysis?.summary?.one_liner || "N/A"}</p>
+                <p className="text-sm mt-2"><strong>Business Model:</strong> {analysis?.summary?.business_model || "N/A"}</p>
+                <p className="text-sm mt-2"><strong>Target Audience:</strong> {analysis?.summary?.target_audience || "N/A"}</p>
             </SectionCard>
+
+            {analysis?.founders && analysis.founders.length > 0 && (
+                <SectionCard title="Founding Leadership">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {analysis.founders.map((founder: any, index: number) => (
+                            <div key={index} className="p-4 bg-muted/30 rounded-lg border border-border flex items-start gap-3">
+                                <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
+                                    {founder?.name ? founder.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2) : "FD"}
+                                </div>
+                                <div className="space-y-1 text-left">
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                        <span className="font-semibold text-sm text-foreground">{founder?.name || "Founder"}</span>
+                                        {founder?.linkedin_url && (
+                                            <a
+                                                href={founder.linkedin_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-500 hover:text-blue-755 hover:text-blue-600 inline-flex items-center"
+                                                title="LinkedIn Profile"
+                                            >
+                                                <Linkedin className="h-3.5 w-3.5" />
+                                            </a>
+                                        )}
+                                        <span className="text-[10px] bg-secondary text-secondary-foreground px-2 py-0.5 rounded font-medium">{founder?.role || "Founder"}</span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground leading-relaxed">{founder?.brief_details || ""}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </SectionCard>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <SectionCard title="BFSI Relevance">
-                    <p className="text-sm"><strong>Relevant:</strong> {analysis.bfsi_relevance.is_relevant ? 'Yes' : 'No'}</p>
-                    <p className="text-sm mt-2"><strong>Relevance Score:</strong> {analysis.bfsi_relevance.relevance_score}/100</p>
+                    <p className="text-sm"><strong>Relevant:</strong> {analysis?.bfsi_relevance?.is_relevant ? 'Yes' : 'No'}</p>
+                    <p className="text-sm mt-2"><strong>Relevance Score:</strong> {analysis?.bfsi_relevance?.relevance_score || 0}/100</p>
                 </SectionCard>
                 <SectionCard title="Strategic Fit">
-                    <p className="text-sm"><strong>Enterprise Readiness:</strong> {analysis.strategic_fit.enterprise_readiness}/100</p>
-                    <p className="text-sm mt-2"><strong>Integration Feasibility:</strong> {analysis.strategic_fit.integration_feasibility}</p>
+                    <p className="text-sm"><strong>Enterprise Readiness:</strong> {analysis?.strategic_fit?.enterprise_readiness || 0}/100</p>
+                    <p className="text-sm mt-2"><strong>Integration Feasibility:</strong> {analysis?.strategic_fit?.integration_feasibility || "N/A"}</p>
                 </SectionCard>
             </div>
 
              <SectionCard title="Use Cases">
                 <div className="space-y-3">
-                    {analysis.bfsi_relevance.use_cases.map((uc, index) => (
+                    {(analysis?.bfsi_relevance?.use_cases || []).map((uc: any, index: number) => (
                         <div key={index} className="p-3 rounded-md bg-muted/50">
-                            <p className="font-semibold text-sm">{uc.icici_entity}</p>
-                            <p className="text-sm mt-1"><strong>Use Case:</strong> {uc.use_case}</p>
-                            <p className="text-sm mt-1"><strong>Potential Impact:</strong> {uc.potential_impact}</p>
+                            <p className="font-semibold text-sm">{uc?.icici_entity || "N/A"}</p>
+                            <p className="text-sm mt-1"><strong>Use Case:</strong> {uc?.use_case || "N/A"}</p>
+                            <p className="text-sm mt-1"><strong>Potential Impact:</strong> {uc?.potential_impact || "N/A"}</p>
                         </div>
                     ))}
                 </div>
             </SectionCard>
 
             <SectionCard title="Scoring & Classification">
-                <p className="text-sm"><strong>Overall Priority Score:</strong> {analysis.scoring.overall_priority_score}/100</p>
-                 <p className="text-sm mt-2"><strong>Risk Assessment:</strong> {analysis.scoring.risk_assessment}</p>
-                <p className="text-sm mt-4"><strong>Primary Sector:</strong> {analysis.classification.primary_sector}</p>
+                <p className="text-sm"><strong>Overall Priority Score:</strong> {analysis?.scoring?.overall_priority_score || 0}/100</p>
+                 <p className="text-sm mt-2"><strong>Risk Assessment:</strong> {Array.isArray(analysis?.scoring?.risk_assessment) ? analysis.scoring.risk_assessment.join(", ") : analysis?.scoring?.risk_assessment || "N/A"}</p>
+                <p className="text-sm mt-4"><strong>Primary Sector:</strong> {analysis?.classification?.primary_sector || "N/A"}</p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                    {analysis.classification.sub_sectors.map(tag => <StatusBadge key={tag} tone="info">{tag}</StatusBadge>)}
+                    {(analysis?.classification?.sub_sectors || []).map((tag: string) => <StatusBadge key={tag} tone="info">{tag}</StatusBadge>)}
                 </div>
             </SectionCard>
         </div>

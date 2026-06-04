@@ -1,0 +1,21 @@
+You are a startup market intelligence parser. Your task is to identify and extract ALL startup and technology company names mentioned in the following news article text (headline and description).
+
+Please follow these guidelines:
+1. Extract the names of all startups, tech companies, parent companies, and digital brands mentioned (e.g. "PhonePe", "Indus Appstore", "Glance", "Paytm", "Flipkart", "Swiggy", "PhysicsWallah", "Zepto").
+2. Handle compound references: If the text mentions relationships like "X-owned Y", "X-backed Y", "X-funded Y", "X acquires Y", "X partners with Y", or "X invest in Y", you MUST extract BOTH "X" and "Y" as separate individual items in the JSON array (e.g. for "PhonePe-owned Indus Appstore", extract "PhonePe" and "Indus Appstore").
+3. Do not combine names. Every company name should be a separate standalone string in the array.
+4. Do not extract names of venture capital investors (e.g. "Peak XV", "SoftBank", "Tiger Global", "Vanguard", "Prosus") unless they are the operating startup being discussed.
+5. Do not extract global general non-Indian tech giants (e.g. "Google", "Microsoft", "Amazon", "Apple", "Meta") unless they are the direct subject of a startup-style product launch.
+6. If no specific startup name is found, or if this is a general industry report/macro news roundup that does not detail specific startups, return an empty array.
+
+Return ONLY a valid JSON object containing a single key "extracted_startup_names" which maps to an array of strings. Do not include any introductory or concluding text.
+
+Article Title: {{ headline }}
+Article Description: {{ description }}
+
+Output format:
+```json
+{
+  "extracted_startup_names": ["Name 1", "Name 2"]
+}
+```

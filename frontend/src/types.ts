@@ -7,7 +7,8 @@ export type AppTab =
   | "assignments"
   | "insights"
   | "database"
-  | "chat";
+  | "chat"
+  | "scraping";
 
 export interface Startup {
   id: string;
@@ -120,8 +121,13 @@ export interface Assignment {
   owner?: string;        // support mock data
   priority?: string;     // support mock data
   updatedAt?: string;    // support mock data
-  team: string;
-  entity?: string;       // support live DB
+  assigned_to_fpr1?: string; // support live DB renamed columns
+  assigned_to_fpr2?: string; // support live DB new columns
+  startup_name?: string;     // support live DB new columns
+  linkedin_reachout_message?: string;
+  email_reachout_message?: string;
+  team: string;          // support mock data / fallback mapped team (FPR1)
+  entity?: string;       // support mock data / fallback mapped entity (FPR2)
   assigned_at?: string;  // support live DB
   status: "Pending Review" | "Active Engagement" | "On Hold" | "Completed" | string;
   notes?: string;        // support live DB

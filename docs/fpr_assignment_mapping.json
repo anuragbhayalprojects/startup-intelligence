@@ -1,0 +1,81 @@
+{
+    "version": "1.0",
+    "last_updated": "2026-06-03",
+    "assignment_rules": {
+        "method": "round_robin",
+        "primary_owner": "FPR1",
+        "secondary_owner": "FPR2"
+    },
+    "fpr_mappings": [
+        {
+            "id": 1,
+            "fpr1": "Anurag",
+            "fpr2": "Keroli"
+        },
+        {
+            "id": 2,
+            "fpr1": "Simran",
+            "fpr2": "Keroli"
+        },
+        {
+            "id": 3,
+            "fpr1": "Rameez",
+            "fpr2": "Keroli"
+        },
+        {
+            "id": 4,
+            "fpr1": "Shubham",
+            "fpr2": "Keroli"
+        },
+        {
+            "id": 5,
+            "fpr1": "Dhanush",
+            "fpr2": "Shakti"
+        },
+        {
+            "id": 6,
+            "fpr1": "Rahul",
+            "fpr2": "Shakti"
+        },
+        {
+            "id": 7,
+            "fpr1": "Jayvi",
+            "fpr2": "Shakti"
+        },
+        {
+            "id": 8,
+            "fpr1": "Ishan",
+            "fpr2": "Shakti"
+        },
+        {
+            "id": 9,
+            "fpr1": "Utkarsh",
+            "fpr2": "Vishesh"
+        },
+        {
+            "id": 10,
+            "fpr1": "Shivani",
+            "fpr2": "Vishesh"
+        },
+        {
+            "id": 11,
+            "fpr1": "Divya",
+            "fpr2": "Kushal"
+        },
+        {
+            "id": 12,
+            "fpr1": "Nikhil",
+            "fpr2": "Kushal"
+        },
+        {
+            "id": 13,
+            "fpr1": "Akash",
+            "fpr2": "Kushal"
+        },
+        {
+            "id": 14,
+            "fpr1": "Mohit",
+            "fpr2": "Kushal"
+        }
+    ]
+}

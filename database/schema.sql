@@ -3,6 +3,8 @@ CREATE TABLE startups (
     startup_name TEXT UNIQUE NOT NULL,
     website TEXT,
     linkedin_url TEXT,
+    founder_name TEXT,
+    founder_linkedin_url TEXT,
     city TEXT,
     state TEXT,
     country TEXT DEFAULT 'India',
@@ -24,7 +26,7 @@ CREATE TABLE startups (
 
 CREATE TABLE startup_analysis (
     id BIGSERIAL PRIMARY KEY,
-    startup_id BIGINT REFERENCES startups(id),
+    startup_id BIGINT REFERENCES startups(id) ON DELETE CASCADE,
 
     ai_summary TEXT,
 
@@ -47,14 +49,18 @@ CREATE TABLE startup_analysis (
 CREATE TABLE startup_assignments (
     id BIGSERIAL PRIMARY KEY,
 
-    startup_id BIGINT REFERENCES startups(id),
+    startup_id BIGINT REFERENCES startups(id) ON DELETE CASCADE,
 
-    assigned_to TEXT,
-    icici_entity TEXT,
+    startup_name TEXT,
+    assigned_to_fpr1 TEXT,
+    assigned_to_fpr2 TEXT,
+    icici_entity TEXT DEFAULT 'ICICI Bank',
 
     assignment_status TEXT DEFAULT 'pending',
 
     notes TEXT,
+    linkedin_reachout_message TEXT,
+    email_reachout_message TEXT,
 
     created_at TIMESTAMP DEFAULT NOW()
 );
@@ -62,7 +68,7 @@ CREATE TABLE startup_assignments (
 CREATE TABLE startup_activity_logs (
     id BIGSERIAL PRIMARY KEY,
 
-    startup_id BIGINT REFERENCES startups(id),
+    startup_id BIGINT REFERENCES startups(id) ON DELETE CASCADE,
 
     activity_type TEXT,
     activity_notes TEXT,

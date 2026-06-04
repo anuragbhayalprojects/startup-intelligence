@@ -22,26 +22,29 @@ Your analysis must cover the following areas and follow the JSON structure preci
   "startup_website": "The official website URL (e.g., 'https://godigit.com', 'https://perfios.com').",
   "founded_year": 2019,
   "summary": {
-    "one_liner": "A brief, compelling one-sentence summary of the startup.",
-    "business_model": "A concise explanation of the value propositions.",
+    "one_liner": "A brief, compelling one-sentence summary of what the company does/its core business. Do NOT summarize the news article, funding round, acquisitions, or recent financial events. Focus strictly on the startup's permanent business function (e.g., 'A digital general insurance aggregator providing cloud-based claims settlement').",
+    "business_model": "A detailed 4-5 sentence paragraph describing the startup's core business model, value propositions, and operational offerings.",
     "target_audience": "Target segment."
   },
   "founders": [
     {
       "name": "Full name of the founder",
       "role": "Founder's role (e.g., CEO, CTO)",
-      "brief_details": "Brief 1-sentence bio/details of the founder's background."
+      "brief_details": "Brief 1-sentence bio/details of the founder's background.",
+      "linkedin_url": "The founder's official LinkedIn profile URL (e.g. 'https://www.linkedin.com/in/username'). Conduct web search or infer to find the correct URL. If not found, use empty string."
     }
   ],
+  "linkedin_reachout_message": "A personalized 2-3 sentence LinkedIn outreach request message to the founder(s) proposing a strategic sandbox pilot collaboration with ICICI Bank.",
+  "email_reachout_message": "A separate professional email outreach proposal writeup (including subject line and body) to the founder(s) proposing an integration or pilot with ICICI Bank.",
   "funding_stages": {
-    "series": "Current funding round (e.g., Series B, Series D, Seed, Bootstrapped)",
-    "amount": "Total funding amount or last raised round capital (e.g., $420M, $12M)",
+    "series": "Current funding round (e.g., Series B, Series D, Seed, Bootstrapped). If not available, leave empty string.",
+    "amount": "Total funding amount or last raised round capital (e.g., $420M, $12M). If not available, leave empty string.",
     "investors": ["Investor 1", "Investor 2", "Investor 3"]
   },
   "valuation_metrics": {
-    "revenue": "Estimated or actual annual revenue (e.g., $50M, Rs 120 Cr)",
-    "ebitda_multiple": "Revenue or EBITDA multiple details (e.g., 12x EBITDA multiple, 8x Revenue multiple)",
-    "other_metrics": "Any other key metric (e.g., EBITDA profitability, active users)"
+    "revenue": "Estimated or actual annual revenue. If not available, leave empty string or null.",
+    "ebitda_multiple": "Revenue or EBITDA multiple details. If not available, leave empty string or null.",
+    "other_metrics": "Any other key metric. If not available, leave empty string or null."
   },
   "bfsi_relevance": {
     "is_relevant": true,
@@ -87,4 +90,16 @@ Your analysis must cover the following areas and follow the JSON structure preci
    - **classification.industry_relevance** must be an array of values chosen ONLY from the allowed "industry_relevance" list at the top of the tree.
 4. Be highly objective and data-driven.
 
+**CRITICAL STARTUP IDENTIFICATION CONTROLS:**
+- You must only extract the name of a SINGLE, GENUINE corporate startup or company.
+- If the article is a roundup, listicle, or summary covering MULTIPLE separate startups (e.g., "Eternal and Meesho", "Weekly funding wraps"), or if multiple startup names are combined in the headline, you MUST set "extracted_startup_name": "None". Do not combine them.
+- If the article does not center on a specific startup, or is about a state/government (e.g., "Haryana"), an industry coalition/consortium (e.g., "digital commerce coalition"), or a general business model (e.g., "D2C", "B2B SaaS") rather than a specific company, you MUST set "extracted_startup_name": "None".
+- If a verb in the headline causes an incorrect extraction (e.g., "Zee scores FIFA goal" -> "Zee Scores", or "D2C goes..." -> "D2C Goes"), resolve it by extracting the clean brand name (e.g. "Zee") or output "None" if it's not a specific startup profile.
+
+**CRITICAL VALUE RESOLUTION CONTROLS:**
+- Do NOT use mock/placeholder defaults for funding stage/amount or relevance fields. If the funding amount or stage is not available in the search context or article, set it to an empty string or null. Do NOT output "$1.5M" or "Seed" as default unless confirmed by the context.
+- Similarly, do NOT default the relevance to ICICI or use cases to placeholder templates. If there is no specific relevance to any ICICI entity or BFSI sector, mark "is_relevant" as false and leave use_cases empty.
+
 Begin analysis.
+
+

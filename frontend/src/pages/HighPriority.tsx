@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import {
   Flame,
   Award,
@@ -10,9 +10,11 @@ import {
   Sparkles,
   Layers,
   Activity,
-  Milestone
+  Milestone,
+  Filter
 } from "lucide-react";
 import { Startup } from "../types";
+import { TAXONOMY } from "../lib/taxonomy";
 
 interface HighPriorityProps {
   startups: Startup[];
@@ -20,7 +22,82 @@ interface HighPriorityProps {
 }
 
 export default function HighPriority({ startups, onSelectStartup }: HighPriorityProps) {
-  const highPriorityList = startups.filter((s) => (s.priority_score || 0) >= 90);
+  // Filters State
+  const [selectedIndustry, setSelectedIndustry] = useState("All Industries");
+  const [selectedSector, setSelectedSector] = useState("All Sectors");
+  const [selectedSubsector, setSelectedSubsector] = useState("All Subsectors");
+  const [selectedStage, setSelectedStage] = useState("All Stages");
+  const [selectedBusinessModel, setSelectedBusinessModel] = useState("All Models");
+
+  // Dynamic dropdown calculations
+  const sectorOptions = useMemo(() => {
+    if (selectedIndustry === "All Industries") {
+      const allSectors = TAXONOMY.industries.reduce((acc, ind) => {
+        return [...acc, ...Object.keys(ind.sectors)];
+      }, [] as string[]);
+      return ["All Sectors", ...Array.from(new Set(allSectors))];
+    } else {
+      const ind = TAXONOMY.industries.find((i) => i.name === selectedIndustry);
+      return ["All Sectors", ...(ind ? Object.keys(ind.sectors) : [])];
+    }
+  }, [selectedIndustry]);
+
+  const subsectorOptions = useMemo(() => {
+    if (selectedSector === "All Sectors") {
+      if (selectedIndustry === "All Industries") {
+        const allSubs = TAXONOMY.industries.reduce((acc, ind) => {
+          const indSubs = Object.values(ind.sectors).reduce((acc2, subs) => [...acc2, ...subs], [] as string[]);
+          return [...acc, ...indSubs];
+        }, [] as string[]);
+        return ["All Subsectors", ...Array.from(new Set(allSubs))];
+      } else {
+        const ind = TAXONOMY.industries.find((i) => i.name === selectedIndustry);
+        if (!ind) return ["All Subsectors"];
+        const indSubs = Object.values(ind.sectors).reduce((acc, subs) => [...acc, ...subs], [] as string[]);
+        return ["All Subsectors", ...Array.from(new Set(indSubs))];
+      }
+    } else {
+      let targetSectorSubs: string[] = [];
+      for (const ind of TAXONOMY.industries) {
+        if (ind.sectors[selectedSector]) {
+          targetSectorSubs = ind.sectors[selectedSector];
+          break;
+        }
+      }
+      return ["All Subsectors", ...targetSectorSubs];
+    }
+  }, [selectedIndustry, selectedSector]);
+
+  React.useEffect(() => {
+    setSelectedSector("All Sectors");
+    setSelectedSubsector("All Subsectors");
+  }, [selectedIndustry]);
+
+  React.useEffect(() => {
+    setSelectedSubsector("All Subsectors");
+  }, [selectedSector]);
+
+  // Filtered List
+  const highPriorityList = useMemo(() => {
+    let list = startups.filter((s) => (s.priority_score || 0) >= 90);
+
+    if (selectedIndustry !== "All Industries") {
+      list = list.filter((s) => s.industry === selectedIndustry);
+    }
+    if (selectedSector !== "All Sectors") {
+      list = list.filter((s) => s.sector === selectedSector);
+    }
+    if (selectedSubsector !== "All Subsectors") {
+      list = list.filter((s) => s.subsector === selectedSubsector || s.subSector === selectedSubsector);
+    }
+    if (selectedStage !== "All Stages") {
+      list = list.filter((s) => s.funding_stage === selectedStage);
+    }
+    if (selectedBusinessModel !== "All Models") {
+      list = list.filter((s) => s.business_models && s.business_models.some((bm) => bm.toLowerCase() === selectedBusinessModel.toLowerCase()));
+    }
+    return list;
+  }, [startups, selectedIndustry, selectedSector, selectedSubsector, selectedStage, selectedBusinessModel]);
 
   return (
     <div className="space-y-6" id="high-priority-startups-panel">
@@ -40,6 +117,92 @@ export default function HighPriority({ startups, onSelectStartup }: HighPriority
         <div className="flex items-center gap-1.5 text-xs bg-slate-800 p-2 rounded-lg border border-slate-700 font-mono text-slate-300">
           <ShieldAlert size={14} className="text-amber-500 animate-pulse" />
           <span>Active files: {highPriorityList.length}</span>
+        </div>
+      </div>
+
+      {/* Dynamic Filters */}
+      <div className="bg-slate-50 border border-slate-200/80 p-4 rounded-xl flex flex-wrap gap-4 items-center" id="high-priority-filters">
+        <div className="flex items-center gap-2 text-xs text-slate-550 font-bold">
+          <Filter size={14} />
+          <span>Filters:</span>
+        </div>
+
+        {/* Industry */}
+        <div className="space-y-1">
+          <select
+            value={selectedIndustry}
+            onChange={(e) => setSelectedIndustry(e.target.value)}
+            className="bg-white border border-slate-200 text-slate-700 text-xs rounded-lg p-1.5 focus:outline-none"
+          >
+            <option value="All Industries">All Industries</option>
+            {TAXONOMY.industries.map((ind) => (
+              <option key={ind.name} value={ind.name}>
+                {ind.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Sector */}
+        <div className="space-y-1">
+          <select
+            value={selectedSector}
+            onChange={(e) => setSelectedSector(e.target.value)}
+            className="bg-white border border-slate-200 text-slate-700 text-xs rounded-lg p-1.5 focus:outline-none"
+          >
+            {sectorOptions.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Sub Sector */}
+        <div className="space-y-1">
+          <select
+            value={selectedSubsector}
+            onChange={(e) => setSelectedSubsector(e.target.value)}
+            className="bg-white border border-slate-200 text-slate-700 text-xs rounded-lg p-1.5 focus:outline-none"
+          >
+            {subsectorOptions.map((sub) => (
+              <option key={sub} value={sub}>
+                {sub}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Stages */}
+        <div className="space-y-1">
+          <select
+            value={selectedStage}
+            onChange={(e) => setSelectedStage(e.target.value)}
+            className="bg-white border border-slate-200 text-slate-700 text-xs rounded-lg p-1.5 focus:outline-none"
+          >
+            <option value="All Stages">All Stages</option>
+            {TAXONOMY.stages.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Business Model */}
+        <div className="space-y-1">
+          <select
+            value={selectedBusinessModel}
+            onChange={(e) => setSelectedBusinessModel(e.target.value)}
+            className="bg-white border border-slate-200 text-slate-700 text-xs rounded-lg p-1.5 focus:outline-none"
+          >
+            <option value="All Models">All Models</option>
+            {TAXONOMY.business_models.map((bm) => (
+              <option key={bm} value={bm}>
+                {bm}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
