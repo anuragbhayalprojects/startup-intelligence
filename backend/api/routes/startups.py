@@ -679,6 +679,8 @@ async def trigger_startup_analysis(id: str, force: bool = False):
             created_at_str = record.get("created_at")
             if created_at_str:
                 created_at = dateutil.parser.isoparse(created_at_str)
+                if created_at.tzinfo is None:
+                    created_at = created_at.replace(tzinfo=timezone.utc)
                 now = datetime.now(timezone.utc)
                 age = now - created_at
                 if age.days < 30:
