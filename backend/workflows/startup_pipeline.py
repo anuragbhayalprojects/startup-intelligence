@@ -1,10 +1,14 @@
 import re
 import os
 import json
+from datetime import datetime, timezone
+import dateutil.parser
 from backend.ai.startup_analyzer import analyze_startup, discover_startup_names
 from backend.services.supabase_service import (
     upsert_startup,
-    save_startup_analysis
+    save_startup_analysis,
+    check_existing_startup,
+    supabase
 )
 
 def clean_string(text):
@@ -343,6 +347,26 @@ def process_startup(startup):
             "source": startup.get("source", "Unknown"),
             "source_url": startup.get("source_url", "")
         }
+        
+        # Cache Check: Check if startup already exists and has a fresh analysis
+        existing_startup = check_existing_startup(clean_name)
+        if existing_startup:
+            startup_id = existing_startup["id"]
+            analysis_resp = supabase.table("startup_analysis").select("*").eq("startup_id", startup_id).execute()
+            if analysis_resp.data:
+                record = analysis_resp.data[0]
+                created_at_str = record.get("created_at")
+                if created_at_str:
+                    created_at = dateutil.parser.isoparse(created_at_str)
+                    now = datetime.now(timezone.utc)
+                    age = now - created_at
+                    if age.days < 30:
+                        print(f"✅ Cache hit: '{clean_name}' already exists with a fresh analysis (created {age.days} days ago). Skipping re-analysis.")
+                        processed_results.append({
+                            "startup": existing_startup,
+                            "analysis": record.get("analysis_json") or {}
+                        })
+                        continue
         
         # Step 2: Run Pass 2 (Rich Data Enrichment using targeted search)
         print("Step 2: Running AI Pass 2 detailed enrichment...")

@@ -378,7 +378,7 @@ async def get_startup_details(id: str):
 
 
 @router.post("/analyze/{id}")
-async def trigger_startup_analysis(id: str):
+async def trigger_startup_analysis(id: str, force: bool = False):
     """Manually triggers an AI analysis for a specific startup, saves it, and returns the result."""
     try:
         try:
@@ -391,6 +391,22 @@ async def trigger_startup_analysis(id: str):
             raise HTTPException(status_code=404, detail="Startup not found")
             
         startup = startup_resp.data[0]
+        
+        # Check cache (30-day time-based cache limit)
+        from datetime import datetime, timezone
+        import dateutil.parser
+        
+        analysis_resp = supabase.table("startup_analysis").select("*").eq("startup_id", int_id).execute()
+        if analysis_resp.data and not force:
+            record = analysis_resp.data[0]
+            created_at_str = record.get("created_at")
+            if created_at_str:
+                created_at = dateutil.parser.isoparse(created_at_str)
+                now = datetime.now(timezone.utc)
+                age = now - created_at
+                if age.days < 30:
+                    print(f"✅ Cache hit: Using fresh startup analysis from DB (created {age.days} days ago).")
+                    return {"analysis_data": record.get("analysis_json")}
         
         print(f"Triggering manual AI analysis for startup: {startup.get('startup_name')}")
         analysis = analyze_startup(startup)

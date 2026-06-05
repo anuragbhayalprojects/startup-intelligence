@@ -51,7 +51,7 @@ Your analysis must cover the following areas and follow the JSON structure preci
     "relevance_score": 96,
     "use_cases": [
       {
-        "icici_entity": "Relevant ICICI entity (e.g., ICICI Bank, ICICI Lombard, ICICI Securities)",
+        "icici_entity": "Relevant ICICI entity (e.g., ICICI Bank, ICICI Lombard, ICICI Securities, ICICI Prudential AMC, ICICI Prudential Life, ICICI HFC)",
         "use_case": "Describe a specific, practical use case.",
         "potential_impact": "Explain the potential impact."
       }

@@ -1,8 +1,13 @@
-import requests
+try:
+    from curl_cffi import requests
+except ImportError:
+    import requests
 from bs4 import BeautifulSoup
 import urllib.parse
 import os
 import json
+import time
+import random
 
 def load_priority_sources():
     """Loads priority search sources configuration from docs."""
@@ -30,9 +35,19 @@ def search_google(query: str) -> str:
         "Accept-Language": "en-US,en;q=0.9"
     }
     
+    # Add randomized jitter delay to prevent rate limits
+    delay = random.uniform(2.0, 5.0)
+    print(f"⏳ [Search Evasion] Delaying Google request by {delay:.2f} seconds...")
+    time.sleep(delay)
+    
     print(f"🔍 [Google Web Search] Querying Google: '{query}'...")
     try:
-        response = requests.get(url, headers=headers, timeout=10)
+        kwargs = {"headers": headers, "timeout": 10}
+        try:
+            response = requests.get(url, impersonate="chrome120", **kwargs)
+        except TypeError:
+            response = requests.get(url, **kwargs)
+            
         if response.status_code == 429:
             print("⚠️ [Google Web Search] Google rate limited (429).")
             return ""
@@ -92,9 +107,18 @@ def search_ddg_raw(query: str) -> str:
         "Accept-Language": "en-US,en;q=0.5"
     }
     
+    # Add randomized jitter delay to prevent rate limits
+    delay = random.uniform(2.0, 5.0)
+    print(f"⏳ [Search Evasion] Delaying DDG request by {delay:.2f} seconds...")
+    time.sleep(delay)
+    
     print(f"🔍 [DDG Web Search] Querying DuckDuckGo: '{query}'...")
     try:
-        response = requests.get(url, headers=headers, timeout=10)
+        kwargs = {"headers": headers, "timeout": 10}
+        try:
+            response = requests.get(url, impersonate="chrome120", **kwargs)
+        except TypeError:
+            response = requests.get(url, **kwargs)
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, "html.parser")
