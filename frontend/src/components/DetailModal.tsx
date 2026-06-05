@@ -19,7 +19,9 @@ import {
   RefreshCw,
   ChevronRight,
   ExternalLink,
-  Linkedin
+  Linkedin,
+  Pencil,
+  Edit
 } from "lucide-react";
 import { Startup, StartupScore, Assignment, Interaction, UserRole } from "../types";
 
@@ -43,7 +45,9 @@ interface DetailModalProps {
   onUpdateStatus: (id: string, status: any, team?: string, priorityScore?: number) => Promise<void>;
   onAddInteraction: (startupId: string, logData: any) => Promise<void>;
   onCreateAssignment: (startupId: string, assignmentData: any) => Promise<void>;
-  onAnalyze?: (startupId: string) => Promise<any>;
+  onAnalyze?: (startupId: string, force?: boolean) => Promise<any>;
+  onUpdateField?: (startupId: string, field: string, value: any) => Promise<any>;
+  onRecheckField?: (startupId: string, field: string) => Promise<any>;
 }
 
 export default function DetailModal({
@@ -56,7 +60,9 @@ export default function DetailModal({
   onUpdateStatus,
   onAddInteraction,
   onCreateAssignment,
-  onAnalyze
+  onAnalyze,
+  onUpdateField,
+  onRecheckField
 }: DetailModalProps) {
   // Local state
   const [activeTab, setActiveTab] = useState<"insights" | "interactions" | "assignment">("insights");
@@ -216,6 +222,103 @@ export default function DetailModal({
   };
 
   const details = getRichDetails();
+
+  // Edit forms states
+  const [editingField, setEditingField] = useState<"website" | "founders" | "funding" | null>(null);
+
+  // Field values
+  const [websiteInput, setWebsiteInput] = useState(startup.website || "");
+  const [foundersInput, setFoundersInput] = useState("");
+  
+  // Funding stage & amount
+  const [fundingSeriesInput, setFundingSeriesInput] = useState("");
+  const [fundingAmountInput, setFundingAmountInput] = useState("");
+  const [fundingInvestorsInput, setFundingInvestorsInput] = useState("");
+
+  const [savingField, setSavingField] = useState(false);
+  const [recheckingField, setRecheckingField] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  // Sync inputs on startup change or details resolution
+  React.useEffect(() => {
+    setWebsiteInput(startup.website || "");
+    setFoundersInput(JSON.stringify(details?.founders || [], null, 2));
+    setFundingSeriesInput(details?.funding_stages?.series || "");
+    setFundingAmountInput(details?.funding_stages?.amount || "");
+    setFundingInvestorsInput((details?.funding_stages?.investors || []).join(", "));
+    setEditError(null);
+    setEditingField(null);
+  }, [startup, details?.founded_year, details?.funding_stages?.series]);
+
+  const handleSaveField = async (field: "website" | "founders" | "funding") => {
+    if (!onUpdateField) return;
+    setSavingField(true);
+    setEditError(null);
+    try {
+      let value: any;
+      if (field === "website") {
+        value = websiteInput.trim();
+      } else if (field === "founders") {
+        try {
+          value = JSON.parse(foundersInput);
+          if (!Array.isArray(value)) {
+            throw new Error("Founders list must be a JSON array.");
+          }
+        } catch (je: any) {
+          setEditError(`Invalid JSON format: ${je.message}`);
+          setSavingField(false);
+          return;
+        }
+      } else {
+        const investorsList = fundingInvestorsInput
+          .split(",")
+          .map(i => i.trim())
+          .filter(i => i.length > 0);
+        value = {
+          series: fundingSeriesInput.trim(),
+          amount: fundingAmountInput.trim(),
+          investors: investorsList
+        };
+      }
+
+      await onUpdateField(startup.id, field, value);
+      setEditingField(null);
+    } catch (err: any) {
+      setEditError(err.message || "Failed to update field.");
+    } finally {
+      setSavingField(false);
+    }
+  };
+
+  const handleRecheckFieldClick = async (field: "website" | "founders" | "funding") => {
+    if (!onRecheckField) return;
+    setRecheckingField(true);
+    setEditError(null);
+    try {
+      const res = await onRecheckField(startup.id, field);
+      if (res.error) {
+        throw new Error(res.error);
+      }
+      
+      if (field === "website") {
+        const url = res.data?.startup_website || "";
+        setWebsiteInput(url);
+      } else if (field === "founders") {
+        const list = res.data?.founders || [];
+        setFoundersInput(JSON.stringify(list, null, 2));
+      } else if (field === "funding") {
+        const stages = res.data?.funding_stages || {};
+        setFundingSeriesInput(stages.series || "");
+        setFundingAmountInput(stages.amount || "");
+        setFundingInvestorsInput((stages.investors || []).join(", "));
+      }
+      setEditingField(null);
+    } catch (err: any) {
+      setEditError(err.message || "AI Targeted Recheck failed.");
+    } finally {
+      setRecheckingField(false);
+    }
+  };
 
   // Submit Status Change
   const handleUpdateDetails = async () => {
@@ -525,37 +628,155 @@ export default function DetailModal({
                     Est. {details?.founded_year || "Unknown"}
                   </span>
                 </div>
+
+                {/* Website row */}
+                <div className="space-y-1 pb-3 border-b border-slate-100/60">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] uppercase font-bold text-slate-450 tracking-wider">
+                      Corporate Website
+                    </span>
+                    <button 
+                      onClick={() => setEditingField(editingField === "website" ? null : "website")}
+                      className="text-slate-450 hover:text-blue-600 transition-colors p-1"
+                      title="Edit website"
+                    >
+                      <Pencil size={11} />
+                    </button>
+                  </div>
+                  {editingField === "website" ? (
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2.5 mt-1 animate-fade-in">
+                      <input
+                        type="url"
+                        value={websiteInput}
+                        onChange={(e) => setWebsiteInput(e.target.value)}
+                        placeholder="https://example.com"
+                        className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2 outline-none focus:ring-1 focus:ring-blue-500 transition-all font-mono"
+                      />
+                      {editError && <p className="text-[10px] font-semibold text-red-650">{editError}</p>}
+                      <div className="flex justify-end gap-2 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setEditingField(null)}
+                          className="px-2.5 py-1 bg-slate-200 text-slate-700 font-bold rounded-md"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRecheckFieldClick("website")}
+                          disabled={recheckingField || savingField}
+                          className="px-2.5 py-1 bg-amber-500 text-slate-950 font-bold rounded-md flex items-center gap-1"
+                        >
+                          {recheckingField ? <RefreshCw size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                          AI Re-check
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSaveField("website")}
+                          disabled={recheckingField || savingField}
+                          className="px-2.5 py-1 bg-blue-600 text-white font-bold rounded-md"
+                        >
+                          {savingField ? "Saving..." : "Save"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs font-semibold text-slate-800 flex items-center gap-1">
+                      {startup.website ? (
+                        <a href={startup.website} target="_blank" rel="noopener noreferrer" className="text-blue-650 hover:underline flex items-center gap-1">
+                          {startup.website} <ExternalLink size={11} />
+                        </a>
+                      ) : (
+                        <span className="text-slate-400 italic font-medium">Not configured</span>
+                      )}
+                    </p>
+                  )}
+                </div>
                 
                 {/* Founders Row */}
                 <div className="space-y-3">
-                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Founding Leadership</p>
-                  <div className="grid grid-cols-1 gap-2.5">
-                    {(details?.founders || []).map((founder: any, idx: number) => (
-                      <div key={idx} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100 hover:bg-slate-100/50 transition-colors">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-650 text-white flex items-center justify-center font-bold text-xs uppercase shadow-sm flex-shrink-0">
-                          {founder?.name ? founder.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2) : "FD"}
-                        </div>
-                        <div className="space-y-0.5 text-left">
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="text-xs font-bold text-slate-800">{founder?.name || "Founder"}</span>
-                            {founder?.linkedin_url && (
-                              <a
-                                href={founder.linkedin_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-500 hover:text-blue-700 inline-flex items-center"
-                                title="LinkedIn Profile"
-                              >
-                                <Linkedin size={11} />
-                              </a>
-                            )}
-                            <span className="text-[9px] bg-indigo-50 text-indigo-700 px-1.5 py-0.2 rounded font-bold uppercase tracking-wide">{founder?.role || "Founder"}</span>
-                          </div>
-                          <p className="text-[11px] text-slate-500 leading-normal">{founder?.brief_details || ""}</p>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="flex justify-between items-center">
+                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Founding Leadership</p>
+                    <button 
+                      onClick={() => setEditingField(editingField === "founders" ? null : "founders")}
+                      className="text-slate-450 hover:text-blue-600 transition-colors p-1"
+                      title="Edit founders"
+                    >
+                      <Pencil size={11} />
+                    </button>
                   </div>
+                  {editingField === "founders" ? (
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2.5 mt-1 animate-fade-in">
+                      <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">
+                        Founders List (JSON Array)
+                      </label>
+                      <textarea
+                        rows={6}
+                        value={foundersInput}
+                        onChange={(e) => setFoundersInput(e.target.value)}
+                        placeholder='[ { "name": "Name", "role": "CEO", "brief_details": "Bio", "linkedin_url": "" } ]'
+                        className="w-full bg-white border border-slate-200 text-slate-800 text-[10.5px] font-mono rounded-lg p-2 outline-none focus:ring-1 focus:ring-blue-500 transition-all leading-normal"
+                      />
+                      <span className="text-[9px] text-slate-450 font-semibold leading-tight block">
+                        Must be a valid JSON array of objects with keys: name, role, brief_details, linkedin_url.
+                      </span>
+                      {editError && <p className="text-[10px] font-semibold text-red-650">{editError}</p>}
+                      <div className="flex justify-end gap-2 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setEditingField(null)}
+                          className="px-2.5 py-1 bg-slate-200 text-slate-700 font-bold rounded-md"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRecheckFieldClick("founders")}
+                          disabled={recheckingField || savingField}
+                          className="px-2.5 py-1 bg-amber-500 text-slate-950 font-bold rounded-md flex items-center gap-1"
+                        >
+                          {recheckingField ? <RefreshCw size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                          AI Re-check
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSaveField("founders")}
+                          disabled={recheckingField || savingField}
+                          className="px-2.5 py-1 bg-blue-600 text-white font-bold rounded-md"
+                        >
+                          {savingField ? "Saving..." : "Save"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-2.5">
+                      {(details?.founders || []).map((founder: any, idx: number) => (
+                        <div key={idx} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100 hover:bg-slate-100/50 transition-colors">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-650 text-white flex items-center justify-center font-bold text-xs uppercase shadow-sm flex-shrink-0">
+                            {founder?.name ? founder.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2) : "FD"}
+                          </div>
+                          <div className="space-y-0.5 text-left">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-xs font-bold text-slate-800">{founder?.name || "Founder"}</span>
+                              {founder?.linkedin_url && (
+                                <a
+                                  href={founder.linkedin_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-500 hover:text-blue-700 inline-flex items-center"
+                                  title="LinkedIn Profile"
+                                >
+                                  <Linkedin size={11} />
+                                </a>
+                              )}
+                              <span className="text-[9px] bg-indigo-50 text-indigo-700 px-1.5 py-0.2 rounded font-bold uppercase tracking-wide">{founder?.role || "Founder"}</span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 leading-normal">{founder?.brief_details || ""}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -566,42 +787,117 @@ export default function DetailModal({
                     <DollarSign size={14} className="text-emerald-500" />
                     Funding Rounds & Investors
                   </h5>
-                  <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-bold uppercase tracking-wide">
-                    {details?.funding_stages?.series || "Unknown"}
-                  </span>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-emerald-50/40 rounded-lg border border-emerald-100/50">
-                    <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Total Capital Raised</p>
-                    <p className="text-base font-black text-emerald-650 mt-1 flex items-baseline gap-0.5">
-                      <span className="text-xs font-bold">$</span>
-                      {details?.funding_stages?.amount ? String(details.funding_stages.amount).replace("$", "") : "Unknown"}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Investment Status</p>
-                    <p className="text-xs font-bold text-slate-700 mt-1.5 truncate">
-                      {details?.funding_stages?.series?.includes("Bootstrapped") ? "Organic Operations" : "Strategic Fit Validated"}
-                    </p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-bold uppercase tracking-wide">
+                      {details?.funding_stages?.series || "Unknown"}
+                    </span>
+                    <button 
+                      onClick={() => setEditingField(editingField === "funding" ? null : "funding")}
+                      className="text-slate-450 hover:text-blue-600 transition-colors p-1"
+                      title="Edit funding details"
+                    >
+                      <Pencil size={11} />
+                    </button>
                   </div>
                 </div>
 
-                {/* Key Investors */}
-                <div className="space-y-2">
-                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Key Capital Supporters</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(details?.funding_stages?.investors || []).length > 0 ? (
-                      (details?.funding_stages?.investors || []).map((inv: string, idx: number) => (
-                        <span key={idx} className="bg-slate-50 hover:bg-slate-100 text-slate-700 px-2 py-1 rounded text-[10.5px] font-medium border border-slate-200/50 transition-colors">
-                          {inv}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-slate-400 text-xs italic">No cap table investors reported (Bootstrapped or Self-Funded).</span>
-                    )}
+                {editingField === "funding" ? (
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-3 mt-1 animate-fade-in text-left">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-450 uppercase mb-1 block">Series / Stage</label>
+                        <input
+                          type="text"
+                          value={fundingSeriesInput}
+                          onChange={(e) => setFundingSeriesInput(e.target.value)}
+                          placeholder="e.g. Series A"
+                          className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2 outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-450 uppercase mb-1 block">Capital Raised Amount</label>
+                        <input
+                          type="text"
+                          value={fundingAmountInput}
+                          onChange={(e) => setFundingAmountInput(e.target.value)}
+                          placeholder="e.g. $10M"
+                          className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2 outline-none focus:ring-1 focus:ring-blue-500 transition-all font-mono"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-450 uppercase mb-1 block">Investors (comma separated)</label>
+                      <input
+                        type="text"
+                        value={fundingInvestorsInput}
+                        onChange={(e) => setFundingInvestorsInput(e.target.value)}
+                        placeholder="Investor 1, Investor 2"
+                        className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2 outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+                      />
+                    </div>
+                    {editError && <p className="text-[10px] font-semibold text-red-650">{editError}</p>}
+                    <div className="flex justify-end gap-2 text-xs pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setEditingField(null)}
+                        className="px-2.5 py-1 bg-slate-200 text-slate-700 font-bold rounded-md"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRecheckFieldClick("funding")}
+                        disabled={recheckingField || savingField}
+                        className="px-2.5 py-1 bg-amber-500 text-slate-950 font-bold rounded-md flex items-center gap-1"
+                      >
+                        {recheckingField ? <RefreshCw size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                        AI Re-check
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveField("funding")}
+                        disabled={recheckingField || savingField}
+                        className="px-2.5 py-1 bg-blue-600 text-white font-bold rounded-md"
+                      >
+                        {savingField ? "Saving..." : "Save"}
+                      </button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-3 bg-emerald-50/40 rounded-lg border border-emerald-100/50 text-left">
+                        <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Total Capital Raised</p>
+                        <p className="text-base font-black text-emerald-650 mt-1 flex items-baseline gap-0.5">
+                          <span className="text-xs font-bold">$</span>
+                          {details?.funding_stages?.amount ? String(details.funding_stages.amount).replace("$", "") : "Unknown"}
+                        </p>
+                      </div>
+                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-left">
+                        <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Investment Status</p>
+                        <p className="text-xs font-bold text-slate-700 mt-1.5 truncate">
+                          {details?.funding_stages?.series?.includes("Bootstrapped") ? "Organic Operations" : "Strategic Fit Validated"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Key Investors */}
+                    <div className="space-y-2 text-left">
+                      <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Key Capital Supporters</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(details?.funding_stages?.investors || []).length > 0 ? (
+                          (details?.funding_stages?.investors || []).map((inv: string, idx: number) => (
+                            <span key={idx} className="bg-slate-50 hover:bg-slate-100 text-slate-700 px-2 py-1 rounded text-[10.5px] font-medium border border-slate-200/50 transition-colors">
+                              {inv}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-slate-400 text-xs italic font-medium">No cap table investors reported (Bootstrapped or Self-Funded).</span>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Financials & Valuation Multiples Card */}
@@ -934,11 +1230,25 @@ export default function DetailModal({
             </div>
 
             {/* Commit update button */}
-            <div className="w-full sm:w-auto text-right">
+            <div className="w-full sm:w-auto text-right flex gap-2 flex-shrink-0">
+              {onAnalyze && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAnalyzing(true);
+                    onAnalyze(startup.id, true).finally(() => setAnalyzing(false));
+                  }}
+                  disabled={analyzing || statusLoading}
+                  className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 hover:border-slate-400 text-xs font-bold px-3 py-2 rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer"
+                >
+                  {analyzing ? <RefreshCw className="animate-spin" size={13} /> : <Sparkles size={13} />}
+                  <span>Re-Enrich Profile</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleUpdateDetails}
-                disabled={statusLoading}
+                disabled={statusLoading || analyzing}
                 className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white border-0 hover:text-amber-400 text-xs font-bold px-4 py-2 rounded-lg shadow-sm transition-all cursor-pointer"
               >
                 {statusLoading ? "Updating..." : "Commit Update"}

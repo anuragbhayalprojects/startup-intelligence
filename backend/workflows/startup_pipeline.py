@@ -11,6 +11,14 @@ from backend.services.supabase_service import (
     supabase
 )
 
+def pipeline_log(message):
+    print(message)
+    try:
+        from backend.api.routes.startups import add_scrape_log
+        add_scrape_log(message)
+    except Exception:
+        pass
+
 def clean_string(text):
     """
     Core string cleaning utility that strips action verbs, possessives, 
@@ -190,7 +198,7 @@ def search_website_duckduckgo(clean_name):
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
     
-    print(f"🔍 [Pipeline Website Search] Querying DuckDuckGo for: '{clean_name}' website...")
+    pipeline_log(f"🔍 [Pipeline Website Search] Querying DuckDuckGo for: '{clean_name}' website...")
     try:
         response = requests.get(url, headers=headers, timeout=5)
         if response.status_code == 200:
@@ -213,10 +221,10 @@ def search_website_duckduckgo(clean_name):
                         ]
                         if not any(domain in real_url_lower for domain in exclude_domains):
                             if verify_website(real_url):
-                                print(f"✅ Found active official website via search: {real_url}")
+                                pipeline_log(f"✅ Found active official website via search: {real_url}")
                                 return real_url
     except Exception as e:
-        print(f"⚠️ Search for website failed: {e}")
+        pipeline_log(f"⚠️ Search for website failed: {e}")
     return None
 
 def get_clean_website(clean_name, extracted_website):
@@ -301,7 +309,7 @@ def process_startup(startup):
     """
     original_headline = startup.get("startup_name", "")
     original_description = startup.get("description", "")
-    print(f"\n--- Processing News Headline: '{original_headline}' ---")
+    pipeline_log(f"\n--- Processing News Headline: '{original_headline}' ---")
     
     # Step 1: Run Pass 1 (Name Discovery) to extract all featured startup names
     discovered_names = discover_startup_names(original_headline, original_description)
@@ -313,11 +321,11 @@ def process_startup(startup):
             discovered_names = [fallback_name]
     elif not discovered_names:
         # LLM successfully ran and determined there were no startup names
-        print(f"Skipping generic/industry news article (no startup name extracted by AI): '{original_headline}'")
+        pipeline_log(f"Skipping generic/industry news article (no startup name extracted by AI): '{original_headline}'")
         return None
             
     if not discovered_names:
-        print(f"Skipping generic/industry news article (no startup name extracted): '{original_headline}'")
+        pipeline_log(f"Skipping generic/industry news article (no startup name extracted): '{original_headline}'")
         return None
         
     processed_results = []
@@ -335,10 +343,10 @@ def process_startup(startup):
             "electric two-wheeler", "electric two wheeler"
         ]
         if any(term in clean_name.lower() for term in macro_terms) and len(clean_name.split()) > 1:
-            print(f"Skipping generic phrase match: '{clean_name}'")
+            pipeline_log(f"Skipping generic phrase match: '{clean_name}'")
             continue
             
-        print(f"\n✨ Processing Discovered Startup: '{clean_name}'")
+        pipeline_log(f"\n✨ Processing Discovered Startup: '{clean_name}'")
         
         # Build individual startup item for Pass 2 enrichment
         startup_item = {
@@ -361,7 +369,7 @@ def process_startup(startup):
                     now = datetime.now(timezone.utc)
                     age = now - created_at
                     if age.days < 30:
-                        print(f"✅ Cache hit: '{clean_name}' already exists with a fresh analysis (created {age.days} days ago). Skipping re-analysis.")
+                        pipeline_log(f"✅ Cache hit: '{clean_name}' already exists with a fresh analysis (created {age.days} days ago). Skipping re-analysis.")
                         processed_results.append({
                             "startup": existing_startup,
                             "analysis": record.get("analysis_json") or {}
@@ -369,31 +377,31 @@ def process_startup(startup):
                         continue
         
         # Step 2: Run Pass 2 (Rich Data Enrichment using targeted search)
-        print("Step 2: Running AI Pass 2 detailed enrichment...")
+        pipeline_log("Step 2: Running AI Pass 2 detailed enrichment...")
         analysis = analyze_startup(startup_item)
         
         if not analysis or "error" in analysis:
-            print(f"❌ AI Pass 2 analysis failed for '{clean_name}'. Error: {analysis.get('error') if analysis else 'No response'}")
+            pipeline_log(f"❌ AI Pass 2 analysis failed for '{clean_name}'. Error: {analysis.get('error') if analysis else 'No response'}")
             continue
             
         # Get verified website domain
         website = get_clean_website(clean_name, analysis.get("startup_website"))
         startup_item["website"] = website
         
-        print(f"Extracted website domain: '{website}'")
+        pipeline_log(f"Extracted website domain: '{website}'")
         
         # Step 3: Upsert basic startup details
-        print("Step 3: Saving startup metadata to Supabase...")
+        pipeline_log("Step 3: Saving startup metadata to Supabase...")
         response = upsert_startup(startup_item)
         
         if response and len(response) > 0:
             startup_id = response[0]["id"]
             
             # Step 4: Save strategic enrichment analysis parameters
-            print("Step 4: Saving startup AI analysis parameters to Supabase...")
+            pipeline_log("Step 4: Saving startup AI analysis parameters to Supabase...")
             analysis_response = save_startup_analysis(startup_id, analysis)
             
-            print(f"✅ Successfully processed startup: {clean_name}")
+            pipeline_log(f"✅ Successfully processed startup: {clean_name}")
             processed_results.append({
                 "startup": response[0],
                 "analysis": analysis_response

@@ -369,6 +369,14 @@ export default function App() {
   const [categories, setCategories] = useState<StartupCategory[]>([]);
   const [interactions, setInteractions] = useState<Interaction[]>([]);
 
+  // Scraping global states
+  const [scrapingActive, setScrapingActive] = useState<boolean>(false);
+  const [scrapingLogs, setScrapingLogs] = useState<string[]>([]);
+  const [scrapingProcessed, setScrapingProcessed] = useState<string[]>([]);
+  const [scrapingCurrentStep, setScrapingCurrentStep] = useState<string>("Idle");
+  const [scrapingTarget, setScrapingTarget] = useState<number>(0);
+  const [scrapingProgress, setScrapingProgress] = useState<number>(0);
+
   // Detailed Modal Drawer
   const [selectedStartup, setSelectedStartup] = useState<Startup | null>(null);
 
@@ -577,12 +585,53 @@ export default function App() {
     loadDatabase();
   }, []);
 
+  useEffect(() => {
+    let intervalId: any = null;
+    
+    const fetchStatus = async () => {
+      try {
+        const response = await fetch(`${API_URL}/scrape/status`);
+        if (response.ok) {
+          const data = await response.json();
+          setScrapingActive(data.active);
+          setScrapingTarget(data.total_target);
+          setScrapingProgress(data.discovered_count);
+          setScrapingCurrentStep(data.current_step);
+          setScrapingLogs(data.logs || []);
+          setScrapingProcessed(data.processed_startups || []);
+          
+          if (!data.active && scrapingActive) {
+            loadDatabase();
+          }
+        }
+      } catch (err) {
+        console.warn("Error polling scrape status:", err);
+      }
+    };
+
+    fetchStatus();
+    intervalId = setInterval(fetchStatus, 1500);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [scrapingActive]);
+
+  useEffect(() => {
+    if (selectedStartup) {
+      const updated = startups.find(s => String(s.id) === String(selectedStartup.id));
+      if (updated) {
+        setSelectedStartup(updated);
+      }
+    }
+  }, [startups]);
+
   // AI manual evaluation trigger
-  const handleAnalyzeStartup = async (startupId: string) => {
+  const handleAnalyzeStartup = async (startupId: string, force: boolean = false) => {
     setGlobalError("");
     setGlobalSuccess("");
     try {
-      const response = await fetch(`${API_URL}/analyze/${startupId}`, {
+      const response = await fetch(`${API_URL}/analyze/${startupId}?force=${force}`, {
         method: "POST",
       });
       const data = await response.json();
@@ -835,6 +884,46 @@ export default function App() {
       }
     } catch (e: any) {
       setGlobalError(e.message || "Failed committing state variables.");
+    }
+  };
+
+  const handleUpdateField = async (startupId: string, field: string, value: any) => {
+    try {
+      const response = await fetch(`${API_URL}/startups/${startupId}/field`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ field, value })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || "Failed to update field.");
+      }
+      await loadDatabase();
+      setGlobalSuccess(`Successfully updated field "${field}"!`);
+      return { success: true };
+    } catch (err: any) {
+      setGlobalError(err.message || "Failed to update field.");
+      return { error: err.message };
+    }
+  };
+
+  const handleRecheckField = async (startupId: string, field: string) => {
+    try {
+      const response = await fetch(`${API_URL}/startups/${startupId}/recheck`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ field })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || "Failed to run AI recheck.");
+      }
+      await loadDatabase();
+      setGlobalSuccess(`Successfully ran AI targeted recheck for "${field}"!`);
+      return { success: true, data: data.data };
+    } catch (err: any) {
+      setGlobalError(err.message || "Failed to run AI recheck.");
+      return { error: err.message };
     }
   };
 
@@ -1122,7 +1211,41 @@ export default function App() {
               <Route path="/insights" element={<Insights startups={startups} isLiveConnected={isLiveConnected} />} />
               <Route path="/database" element={<SupabaseConsole onRunSQL={handleRunSQL} />} />
               <Route path="/chat" element={<Chat />} />
-              <Route path="/scraping" element={<Scraping />} />
+              <Route path="/scraping" element={
+                <Scraping
+                  scrapingActive={scrapingActive}
+                  scrapingLogs={scrapingLogs}
+                  scrapingProcessed={scrapingProcessed}
+                  scrapingCurrentStep={scrapingCurrentStep}
+                  scrapingTarget={scrapingTarget}
+                  scrapingProgress={scrapingProgress}
+                  onStartScrape={async (sources: string[], limit: number, filters: any) => {
+                    try {
+                      const response = await fetch(`${API_URL}/scrape`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          sources,
+                          limit,
+                          ...filters
+                        })
+                      });
+                      const data = await response.json();
+                      if (!response.ok) {
+                        throw new Error(data.detail || "Failed to trigger discovery.");
+                      }
+                      setScrapingActive(true);
+                      setScrapingTarget(limit);
+                      setScrapingProgress(0);
+                      setScrapingLogs([]);
+                      setScrapingProcessed([]);
+                      return { success: true };
+                    } catch (err: any) {
+                      return { error: err.message };
+                    }
+                  }}
+                />
+              } />
               <Route path="/startups/:id" element={<StartupDetails />} />
               <Route path="/startup/:id" element={<StartupDetails />} />
             </Routes>
@@ -1142,6 +1265,8 @@ export default function App() {
           onAddInteraction={handleAddInteraction}
           onCreateAssignment={handleCreateAssignment}
           onAnalyze={isLiveConnected ? handleAnalyzeStartup : undefined}
+          onUpdateField={handleUpdateField}
+          onRecheckField={handleRecheckField}
         />
       )}
     </div>

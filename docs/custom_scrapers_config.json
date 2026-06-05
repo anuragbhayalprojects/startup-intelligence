@@ -1,0 +1,12 @@
+[
+  {
+    "name": "Inc42",
+    "url": "https://inc42.com/feed/",
+    "is_custom": false
+  },
+  {
+    "name": "Entrackr",
+    "url": "https://entrackr.com/rss",
+    "is_custom": false
+  }
+]

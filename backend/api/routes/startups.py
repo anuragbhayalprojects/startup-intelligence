@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, BackgroundTasks
 from pydantic import BaseModel
 from typing import List, Dict, Any
 from backend.services.supabase_service import supabase, save_startup_analysis
@@ -8,9 +8,42 @@ import os
 import re
 import json
 import requests
+import threading
+from datetime import datetime
 from backend.utils.config import OLLAMA_BASE_URL, OLLAMA_MODEL
 
 router = APIRouter()
+
+# Thread-safe global scraper state for real-time console feedback
+SCRAPE_STATUS = {
+    "active": False,
+    "total_target": 0,
+    "discovered_count": 0,
+    "current_step": "Idle",
+    "logs": [],
+    "processed_startups": []
+}
+status_lock = threading.Lock()
+
+def add_scrape_log(message: str):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_line = f"[{timestamp}] {message}"
+    print(log_line)
+    with status_lock:
+        SCRAPE_STATUS["logs"].append(log_line)
+        if len(SCRAPE_STATUS["logs"]) > 200:
+            SCRAPE_STATUS["logs"].pop(0)
+
+def update_scrape_status(current_step: str = None, discovered_increment: int = 0, processed_name: str = None, active: bool = None):
+    with status_lock:
+        if current_step is not None:
+            SCRAPE_STATUS["current_step"] = current_step
+        if active is not None:
+            SCRAPE_STATUS["active"] = active
+        if discovered_increment > 0:
+            SCRAPE_STATUS["discovered_count"] += discovered_increment
+        if processed_name:
+            SCRAPE_STATUS["processed_startups"].append(processed_name)
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 MAPPING_PATH = os.path.join(PROJECT_ROOT, "docs", "fpr_assignment_mapping.json")
@@ -130,6 +163,13 @@ class StartupUpdateRequest(BaseModel):
     assigned_team: str = None
     priority_score: int = None
 
+class FieldUpdateRequest(BaseModel):
+    field: str
+    value: Any
+
+class FieldRecheckRequest(BaseModel):
+    field: str
+
 class AssignmentCreateRequest(BaseModel):
     startup_id: int
     assigned_to_fpr1: str
@@ -161,53 +201,91 @@ class ChatRequest(BaseModel):
 
 # --- Endpoints ---
 
-@router.post("/scrape")
-async def scrape(scrape_request: ScrapeRequest = Body(...)):
-    """Triggers scrapers or web search updates for specified sources."""
+def run_scrape_background(sources: List[str], limit: int, industry: str, sector: str, subsector: str, keywords: str):
+    """Worker function executed in background threads."""
+    import time
+    import random
+    import urllib.parse
+    import feedparser
+    from bs4 import BeautifulSoup
+    
+    add_scrape_log(f"Starting discovery run for sources: {sources} (Target: {limit} startups)")
+    
     try:
-        results = []
-        limit = scrape_request.limit
-        
-        for src in scrape_request.sources:
+        # Load custom scrapers config to resolve URLs
+        config_path = os.path.join(PROJECT_ROOT, "docs", "custom_scrapers_config.json")
+        sources_map = {}
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, "r") as f:
+                    configs = json.load(f)
+                    for c in configs:
+                        sources_map[c["name"]] = c
+            except Exception as e:
+                add_scrape_log(f"⚠️ Failed to parse custom scrapers config: {e}")
+
+        from backend.workflows.startup_pipeline import process_startup
+
+        for src in sources:
+            with status_lock:
+                if SCRAPE_STATUS["discovered_count"] >= limit:
+                    break
+                
+            add_scrape_log(f"Processing source: {src}...")
+            update_scrape_status(current_step=f"Scraping {src}...")
+            
             if src == "Inc42":
-                print(f"🚀 Running Inc42 scraper, limit: {limit}...")
                 from backend.scrapers.inc42.scraper import scrape_inc42
-                data = scrape_inc42(limit)
+                add_scrape_log("Fetching Inc42 latest updates...")
+                data = scrape_inc42(30)
+                add_scrape_log(f"Found {len(data)} feed articles on Inc42. Commencing extraction...")
                 for item in data:
-                    from backend.workflows.startup_pipeline import process_startup
-                    process_startup(item)
-                results.append(f"Inc42 scraper processed {len(data)} articles.")
-                
+                    with status_lock:
+                        if SCRAPE_STATUS["discovered_count"] >= limit:
+                            break
+                    add_scrape_log(f"Discovering startups from: '{item['startup_name']}'")
+                    res = process_startup(item)
+                    if res:
+                        for startup_dict in res:
+                            startup_name = startup_dict.get("startup", {}).get("startup_name", "Unknown")
+                            update_scrape_status(discovered_increment=1, processed_name=startup_name)
+                            add_scrape_log(f"✨ Discovered and enriched: '{startup_name}'")
+                            
             elif src == "Entrackr":
-                print(f"🚀 Running Entrackr scraper, limit: {limit}...")
                 from backend.scrapers.entrackr.scraper import scrape_entrackr
-                data = scrape_entrackr(limit)
+                add_scrape_log("Fetching Entrackr latest updates...")
+                data = scrape_entrackr(30)
+                add_scrape_log(f"Found {len(data)} feed articles on Entrackr. Commencing extraction...")
                 for item in data:
-                    from backend.workflows.startup_pipeline import process_startup
-                    process_startup(item)
-                results.append(f"Entrackr scraper processed {len(data)} articles.")
-                
+                    with status_lock:
+                        if SCRAPE_STATUS["discovered_count"] >= limit:
+                            break
+                    add_scrape_log(f"Discovering startups from: '{item['startup_name']}'")
+                    res = process_startup(item)
+                    if res:
+                        for startup_dict in res:
+                            startup_name = startup_dict.get("startup", {}).get("startup_name", "Unknown")
+                            update_scrape_status(discovered_increment=1, processed_name=startup_name)
+                            add_scrape_log(f"✨ Discovered and enriched: '{startup_name}'")
+                            
             elif src == "Custom Web Search":
-                print(f"🚀 Running Custom Web Search update pipeline...")
-                # Compile dynamic search query from filters
+                add_scrape_log("Compiling Custom Web Search query...")
                 query_parts = []
-                if scrape_request.keywords:
-                    query_parts.append(scrape_request.keywords)
-                if scrape_request.subsector and scrape_request.subsector != "Unknown":
-                    query_parts.append(scrape_request.subsector)
-                if scrape_request.sector and scrape_request.sector != "Unknown":
-                    query_parts.append(scrape_request.sector)
-                if scrape_request.industry and scrape_request.industry != "Unknown":
-                    query_parts.append(scrape_request.industry)
-                    
+                if keywords:
+                    query_parts.append(keywords)
+                if subsector and subsector != "Unknown":
+                    query_parts.append(subsector)
+                if sector and sector != "Unknown":
+                    query_parts.append(sector)
+                if industry and industry != "Unknown":
+                    query_parts.append(industry)
                 query_parts.append("startup news funding India 2026")
                 search_query = " ".join(query_parts)
+                add_scrape_log(f"Query: '{search_query}'")
                 
-                # Perform Search to discover article links
                 from backend.utils.search import search_duckduckgo
                 search_res = search_duckduckgo(search_query)
                 
-                # Parse Google/DDG result snippets to extract titles and links
                 lines = search_res.split("\n")
                 articles = []
                 current_title = ""
@@ -226,7 +304,7 @@ async def scrape(scrape_request: ScrapeRequest = Body(...)):
                         current_snippet = line.replace("Snippet: ", "").strip()
                         if current_title and current_url:
                             articles.append({
-                                "startup_name": current_title, # Raw headline
+                                "startup_name": current_title,
                                 "description": current_snippet or "No description available.",
                                 "source": "Custom Web Search",
                                 "source_url": current_url
@@ -234,21 +312,220 @@ async def scrape(scrape_request: ScrapeRequest = Body(...)):
                             current_title = ""
                             current_url = ""
                             current_snippet = ""
-                
-                # Run through pipeline
-                count = 0
-                for art in articles[:limit]:
-                    from backend.workflows.startup_pipeline import process_startup
+                            
+                add_scrape_log(f"Parsed {len(articles)} search updates. Initiating pipeline...")
+                for art in articles:
+                    with status_lock:
+                        if SCRAPE_STATUS["discovered_count"] >= limit:
+                            break
+                    add_scrape_log(f"Processing search item: '{art['startup_name']}'")
                     res = process_startup(art)
                     if res:
-                        count += len(res)
+                        for startup_dict in res:
+                            startup_name = startup_dict.get("startup", {}).get("startup_name", "Unknown")
+                            update_scrape_status(discovered_increment=1, processed_name=startup_name)
+                            add_scrape_log(f"✨ Discovered and enriched: '{startup_name}'")
+                            
+            else:
+                # Custom registered RSS/homepage source added by user!
+                if src in sources_map:
+                    custom_url = sources_map[src]["url"]
+                    
+                    add_scrape_log(f"Fetching from Custom URL: '{custom_url}'")
+                    try:
+                        from curl_cffi import requests as cffi_requests
+                        response = cffi_requests.get(custom_url, impersonate="chrome120", timeout=15)
+                        content_text = response.text
+                    except Exception as re_err:
+                        add_scrape_log(f"⚠️ Failed fetching URL via curl_cffi: {re_err}. Trying standard requests fallback...")
+                        response = requests.get(custom_url, timeout=15)
+                        content_text = response.text
                         
-                results.append(f"Custom Web Search discovered and processed {count} startups.")
-                
-        return {"message": " / ".join(results)}
+                    parsed_entries = []
+                    
+                    # Try feed parser first
+                    feed = feedparser.parse(content_text)
+                    if feed.entries:
+                        add_scrape_log(f"Parsed {len(feed.entries)} feed entries via RSS parser.")
+                        for entry in feed.entries:
+                            title = entry.get("title")
+                            link = entry.get("link")
+                            summary = entry.get("summary") or entry.get("description") or "N/A"
+                            if summary != "N/A":
+                                summary = BeautifulSoup(summary, "html.parser").get_text(strip=True)
+                            if title and link:
+                                parsed_entries.append({"title": title, "link": link, "summary": summary})
+                    else:
+                        # Fallback to HTML crawling for homepage links
+                        add_scrape_log("Feed parser returned zero entries. Running HTML crawler fallback...")
+                        soup = BeautifulSoup(content_text, "html.parser")
+                        seen_links = set()
+                        for a in soup.find_all("a"):
+                            title = a.get_text(strip=True)
+                            link = a.get("href")
+                            if title and link and len(title) > 20 and not link.startswith("#") and not any(k in link.lower() for k in ["about", "contact", "privacy", "terms"]):
+                                if link.startswith("/"):
+                                    parsed_uri = urllib.parse.urlparse(custom_url)
+                                    link = f"{parsed_uri.scheme}://{parsed_uri.netloc}{link}"
+                                if link not in seen_links:
+                                    seen_links.add(link)
+                                    parsed_entries.append({"title": title, "link": link, "summary": "N/A"})
+                                    
+                    add_scrape_log(f"Commencing extraction on {len(parsed_entries)} discovered articles...")
+                    for entry in parsed_entries:
+                        with status_lock:
+                            if SCRAPE_STATUS["discovered_count"] >= limit:
+                                break
+                        title = entry["title"]
+                        link = entry["link"]
+                        description = entry["summary"]
+                        
+                        add_scrape_log(f"Discovering startups from: '{title}'")
+                        
+                        if link.startswith("http"):
+                            delay = random.uniform(1.0, 3.0)
+                            time.sleep(delay)
+                            try:
+                                try:
+                                    art_resp = cffi_requests.get(link, impersonate="chrome120", timeout=10)
+                                except Exception:
+                                    art_resp = requests.get(link, timeout=10)
+                                if art_resp.status_code == 200:
+                                    art_soup = BeautifulSoup(art_resp.text, "html.parser")
+                                    paragraphs = []
+                                    for p in art_soup.find_all("p"):
+                                        t = p.get_text(strip=True)
+                                        if len(t) > 45 and not any(phrase in t for phrase in ["Terms", "Privacy", "Unlock", "newsletter"]):
+                                            paragraphs.append(t)
+                                    if paragraphs:
+                                        description = " ".join(paragraphs[:2])
+                            except Exception as e:
+                                pass
+                                
+                        item = {
+                            "startup_name": title,
+                            "description": description,
+                            "source": src,
+                            "source_url": link
+                        }
+                        res = process_startup(item)
+                        if res:
+                            for startup_dict in res:
+                                startup_name = startup_dict.get("startup", {}).get("startup_name", "Unknown")
+                                update_scrape_status(discovered_increment=1, processed_name=startup_name)
+                                add_scrape_log(f"✨ Discovered and enriched: '{startup_name}'")
+                else:
+                    add_scrape_log(f"⚠️ Unknown source '{src}'. Skipping.")
+
+        # Complete
+        add_scrape_log(f"Discovery pipeline finished. Total startups found: {SCRAPE_STATUS['discovered_count']}/{limit}")
+        update_scrape_status(current_step="Idle", active=False)
+        
     except Exception as e:
-        print(f"❌ Scraper route execution failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        err_msg = f"❌ Discovery run encountered critical error: {e}\n{traceback.format_exc()}"
+        add_scrape_log(err_msg)
+        update_scrape_status(current_step="Failed", active=False)
+
+@router.post("/scrape")
+async def scrape(scrape_request: ScrapeRequest = Body(...), background_tasks: BackgroundTasks = None):
+    """Triggers scrapers or web search updates for specified sources in the background."""
+    if SCRAPE_STATUS["active"]:
+        raise HTTPException(status_code=400, detail="A startup discovery run is already active. Please wait for it to complete.")
+        
+    with status_lock:
+        SCRAPE_STATUS["active"] = True
+        SCRAPE_STATUS["total_target"] = scrape_request.limit
+        SCRAPE_STATUS["discovered_count"] = 0
+        SCRAPE_STATUS["current_step"] = "Initiating background workers..."
+        SCRAPE_STATUS["logs"] = []
+        SCRAPE_STATUS["processed_startups"] = []
+        
+    background_tasks.add_task(
+        run_scrape_background,
+        scrape_request.sources,
+        scrape_request.limit,
+        scrape_request.industry,
+        scrape_request.sector,
+        scrape_request.subsector,
+        scrape_request.keywords
+    )
+    
+    return {"status": "started", "message": "Startup discovery pipeline successfully initiated in the background."}
+
+@router.get("/scrape/status")
+async def get_scrape_status():
+    """Returns the current background scraping logs, active state, and discovery counts."""
+    with status_lock:
+        return SCRAPE_STATUS
+
+@router.get("/scrape/sources")
+async def get_scrape_sources():
+    """Returns the list of configured scraper targets (standard + custom RSS feeds)."""
+    config_path = os.path.join(PROJECT_ROOT, "docs", "custom_scrapers_config.json")
+    if not os.path.exists(config_path):
+        return []
+    try:
+        with open(config_path, "r") as f:
+            return json.load(f)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read custom scrapers config: {e}")
+
+@router.post("/scrape/sources")
+async def add_scrape_source(req: Dict[str, Any] = Body(...)):
+    """Validates and appends a new custom RSS/HTML scraping target to config."""
+    name = req.get("name")
+    url = req.get("url")
+    if not name or not url:
+        raise HTTPException(status_code=400, detail="Source name and target URL are required.")
+        
+    # Basic syntax validation
+    url_pattern = re.compile(
+        r'^(https?:\/\/)?'
+        r'([a-z0-9\-]+\.)+[a-z]{2,}'
+        r'(:\d+)?(\/.*)?$', re.IGNORECASE
+    )
+    if not url_pattern.match(url):
+        raise HTTPException(status_code=400, detail=f"Invalid URL format: '{url}'. Please enter a fully qualified HTTP/HTTPS URL.")
+        
+    # Reachability check
+    try:
+        try:
+            from curl_cffi import requests as cffi_requests
+            res = cffi_requests.get(url, impersonate="chrome120", timeout=8)
+        except Exception:
+            res = requests.get(url, timeout=8)
+        if res.status_code >= 400:
+            raise Exception(f"HTTP Status {res.status_code}")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Target URL is unreachable or returned an error: {e}. Please check the URL and try again.")
+        
+    # Save custom source
+    config_path = os.path.join(PROJECT_ROOT, "docs", "custom_scrapers_config.json")
+    try:
+        sources = []
+        if os.path.exists(config_path):
+            with open(config_path, "r") as f:
+                sources = json.load(f)
+                
+        # Check duplicate
+        if any(s["name"].lower() == name.lower() for s in sources):
+            raise HTTPException(status_code=400, detail=f"A discovery source named '{name}' already exists.")
+            
+        sources.append({
+            "name": name,
+            "url": url,
+            "is_custom": True
+        })
+        
+        with open(config_path, "w") as f:
+            json.dump(sources, f, indent=2)
+            
+        return {"status": "success", "message": f"Successfully registered custom source '{name}'."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save custom source: {e}")
 
 
 @router.get("/startups")
@@ -735,6 +1012,248 @@ async def run_sql(req: SQLRequest = Body(...)):
         resp = supabase.table(table).select("*").limit(10).execute()
         return {"rows": resp.data or []}
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/startups/{id}/field")
+async def update_startup_field(id: str, req: FieldUpdateRequest = Body(...)):
+    """Updates a single specific field in the database (startups / analysis) for inline editing."""
+    try:
+        try:
+            int_id = int(id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid startup ID '{id}'. Must be an integer.")
+            
+        field = req.field
+        value = req.value
+        
+        # 1. Update the startups table directly if it is a main column
+        startup_cols = ["website", "founder_name", "founder_linkedin_url", "funding_stage", "funding_amount", "sector", "subsector", "description", "startup_name"]
+        if field in startup_cols:
+            supabase.table("startups").update({field: value}).eq("id", int_id).execute()
+            
+        # 2. Update the nested analysis_json inside startup_analysis
+        analysis_res = supabase.table("startup_analysis").select("*").eq("startup_id", int_id).execute()
+        if analysis_res.data:
+            analysis_rec = analysis_res.data[0]
+            analysis_json = analysis_rec.get("analysis_json") or {}
+            
+            # Map frontend edit fields to JSON structure keys
+            if field == "website":
+                analysis_json["startup_website"] = value
+            elif field == "founders":
+                analysis_json["founders"] = value
+                # Sync first founder's name to startups table
+                if isinstance(value, list) and len(value) > 0:
+                    founder_name = value[0].get("name", "")
+                    founder_linkedin = value[0].get("linkedin_url", "")
+                    supabase.table("startups").update({
+                        "founder_name": founder_name,
+                        "founder_linkedin_url": founder_linkedin
+                    }).eq("id", int_id).execute()
+            elif field == "funding":
+                # Expect value to be dict: {series: str, amount: str, investors: List[str]}
+                analysis_json["funding_stages"] = value
+                # Sync stage/amount columns in startups table
+                supabase.table("startups").update({
+                    "funding_stage": value.get("series", ""),
+                    "funding_amount": value.get("amount", "")
+                }).eq("id", int_id).execute()
+            elif field == "valuation":
+                analysis_json["valuation_metrics"] = value
+            elif field == "description":
+                # Sync business model summary in analysis_json
+                if "summary" not in analysis_json:
+                    analysis_json["summary"] = {}
+                analysis_json["summary"]["business_model"] = value
+                
+            # Update startup_analysis record
+            supabase.table("startup_analysis").update({
+                "analysis_json": analysis_json
+            }).eq("startup_id", int_id).execute()
+            
+        # 3. Synchronize all database columns to propagate edits to dashboard fields
+        from backend.services.supabase_service import save_startup_analysis
+        fresh_analysis_res = supabase.table("startup_analysis").select("analysis_json").eq("startup_id", int_id).execute()
+        if fresh_analysis_res.data:
+            save_startup_analysis(int_id, fresh_analysis_res.data[0]["analysis_json"])
+            
+        return {"status": "success", "message": f"Successfully updated field '{field}'."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/startups/{id}/recheck")
+async def recheck_startup_field(id: str, req: FieldRecheckRequest = Body(...)):
+    """Runs a targeted query and LLM analysis to re-discover a single specific field (website, founders, or funding)."""
+    try:
+        try:
+            int_id = int(id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid startup ID '{id}'. Must be an integer.")
+            
+        field = req.field
+        if field not in ["website", "founders", "funding"]:
+            raise HTTPException(status_code=400, detail=f"Targeted recheck is not supported for field '{field}'.")
+            
+        startup_resp = supabase.table("startups").select("*").eq("id", int_id).execute()
+        if not startup_resp.data:
+            raise HTTPException(status_code=404, detail="Startup not found")
+            
+        startup = startup_resp.data[0]
+        startup_name = startup.get("startup_name", "")
+        # Clean clean brand name
+        clean_name = startup_name.split(" raises ")[0].split(" acquires ")[0].split(" launches ")[0].strip()
+        
+        from backend.utils.search import search_duckduckgo
+        
+        print(f"🔄 Running targeted AI recheck for startup: '{clean_name}' (Field: '{field}')...")
+        
+        # Field-specific execution
+        search_context = ""
+        prompt = ""
+        
+        if field == "website":
+            search_query = f"{clean_name} official website URL"
+            try:
+                search_context = search_duckduckgo(search_query)
+            except Exception as se:
+                search_context = f"Search failed: {se}"
+                
+            prompt = f"""You are a precise data parsing assistant.
+Analyze the search engine snippets below and extract the official corporate homepage URL for the company '{clean_name}'.
+Return ONLY a valid JSON block containing the "startup_website" key. Do not output any notes, commentary, or wrapper text.
+
+JSON Schema:
+{{
+  "startup_website": "https://example.com"
+}}
+
+Search Snippets:
+{search_context}
+
+Begin parsing:
+"""
+
+        elif field == "founders":
+            search_query = f"{clean_name} founders co-founders LinkedIn profiles"
+            try:
+                search_context = search_duckduckgo(search_query)
+            except Exception as se:
+                search_context = f"Search failed: {se}"
+                
+            prompt = f"""You are a precise database parsing assistant.
+Analyze the search snippets below and extract the list of corporate co-founders for the company '{clean_name}'.
+For each founder, extract their full name, role/title, a brief 1-sentence bio, and LinkedIn profile URL (or empty string if not found).
+Return ONLY a valid JSON block containing the "founders" key. Do not output any notes, commentary, or wrapper text.
+
+JSON Schema:
+{{
+  "founders": [
+    {{
+      "name": "Full Name",
+      "role": "CEO & Co-founder",
+      "brief_details": "Brief background info details.",
+      "linkedin_url": "https://www.linkedin.com/in/username"
+    }}
+  ]
+}}
+
+Search Snippets:
+{search_context}
+
+Begin parsing:
+"""
+
+        elif field == "funding":
+            search_query = f"{clean_name} funding rounds series valuation investors"
+            try:
+                search_context = search_duckduckgo(search_query)
+            except Exception as se:
+                search_context = f"Search failed: {se}"
+                
+            prompt = f"""You are a precise database parsing assistant.
+Analyze the search snippets below and extract the capital funding stage details for the company '{clean_name}'.
+Identify the current funding series (e.g. Series A, Series B, Seed, Bootstrapped), the last/total capital raised amount, and the list of lead investors.
+Return ONLY a valid JSON block containing the "funding_stages" key. Do not output any notes, commentary, or wrapper text.
+
+JSON Schema:
+{{
+  "funding_stages": {{
+    "series": "Series A",
+    "amount": "$10M",
+    "investors": ["Investor 1", "Investor 2"]
+  }}
+}}
+
+Search Snippets:
+{search_context}
+
+Begin parsing:
+"""
+
+        # Call local Ollama model
+        from backend.ai.startup_analyzer import clean_llm_response
+        
+        response = requests.post(
+            f"{OLLAMA_BASE_URL}/api/generate",
+            json={
+                "model": OLLAMA_MODEL,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "num_ctx": 4096
+                }
+            },
+            headers={"Content-Type": "application/json"},
+            timeout=30.0
+        )
+        response.raise_for_status()
+        result_text = response.json().get("response", "")
+        cleaned_json = clean_llm_response(result_text)
+        data = json.loads(cleaned_json)
+        
+        # Save results to Database
+        analysis_res = supabase.table("startup_analysis").select("*").eq("startup_id", int_id).execute()
+        if analysis_res.data:
+            analysis_rec = analysis_res.data[0]
+            analysis_json = analysis_rec.get("analysis_json") or {}
+            
+            if field == "website":
+                extracted_val = data.get("startup_website") or ""
+                analysis_json["startup_website"] = extracted_val
+                supabase.table("startups").update({"website": extracted_val}).eq("id", int_id).execute()
+                
+            elif field == "founders":
+                extracted_val = data.get("founders") or []
+                analysis_json["founders"] = extracted_val
+                if isinstance(extracted_val, list) and len(extracted_val) > 0:
+                    founder_name = extracted_val[0].get("name", "")
+                    founder_linkedin = extracted_val[0].get("linkedin_url", "")
+                    supabase.table("startups").update({
+                        "founder_name": founder_name,
+                        "founder_linkedin_url": founder_linkedin
+                    }).eq("id", int_id).execute()
+                    
+            elif field == "funding":
+                extracted_val = data.get("funding_stages") or {}
+                analysis_json["funding_stages"] = extracted_val
+                supabase.table("startups").update({
+                    "funding_stage": extracted_val.get("series", ""),
+                    "funding_amount": extracted_val.get("amount", "")
+                }).eq("id", int_id).execute()
+                
+            supabase.table("startup_analysis").update({"analysis_json": analysis_json}).eq("id", analysis_rec["id"]).execute()
+            
+        from backend.services.supabase_service import save_startup_analysis
+        fresh_analysis_res = supabase.table("startup_analysis").select("analysis_json").eq("startup_id", int_id).execute()
+        if fresh_analysis_res.data:
+            save_startup_analysis(int_id, fresh_analysis_res.data[0]["analysis_json"])
+            
+        return {"status": "success", "field": field, "data": data}
+        
+    except Exception as e:
+        print(f"❌ Targeted recheck failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
