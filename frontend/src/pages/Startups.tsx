@@ -23,8 +23,8 @@ export default function Startups() {
         }
         const data = await response.json();
         setStartups(data);
-      } catch (err) {
-        setError(err.message);
+      } catch (err: any) {
+        setError(err.message || String(err));
       } finally {
         setIsLoading(false);
       }

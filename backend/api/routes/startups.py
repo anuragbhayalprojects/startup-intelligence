@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Body, BackgroundTasks
 from pydantic import BaseModel
 from typing import List, Dict, Any
-from backend.services.supabase_service import supabase, save_startup_analysis
+from backend.services.supabase_service import supabase, save_startup_analysis, get_startup_news, save_funding_rounds
 from backend.ai.startup_analyzer import analyze_startup
 from backend.scrapers.scraper_manager import run_scraper
 import os
@@ -244,7 +244,7 @@ def run_scrape_background(sources: List[str], limit: int, industry: str, sector:
                         if SCRAPE_STATUS["discovered_count"] >= limit:
                             break
                     add_scrape_log(f"Discovering startups from: '{item['startup_name']}'")
-                    res = process_startup(item)
+                    res = process_startup(item, industry, sector, subsector)
                     if res:
                         for startup_dict in res:
                             startup_name = startup_dict.get("startup", {}).get("startup_name", "Unknown")
@@ -261,7 +261,7 @@ def run_scrape_background(sources: List[str], limit: int, industry: str, sector:
                         if SCRAPE_STATUS["discovered_count"] >= limit:
                             break
                     add_scrape_log(f"Discovering startups from: '{item['startup_name']}'")
-                    res = process_startup(item)
+                    res = process_startup(item, industry, sector, subsector)
                     if res:
                         for startup_dict in res:
                             startup_name = startup_dict.get("startup", {}).get("startup_name", "Unknown")
@@ -319,7 +319,7 @@ def run_scrape_background(sources: List[str], limit: int, industry: str, sector:
                         if SCRAPE_STATUS["discovered_count"] >= limit:
                             break
                     add_scrape_log(f"Processing search item: '{art['startup_name']}'")
-                    res = process_startup(art)
+                    res = process_startup(art, industry, sector, subsector)
                     if res:
                         for startup_dict in res:
                             startup_name = startup_dict.get("startup", {}).get("startup_name", "Unknown")
@@ -408,7 +408,7 @@ def run_scrape_background(sources: List[str], limit: int, industry: str, sector:
                             "source": src,
                             "source_url": link
                         }
-                        res = process_startup(item)
+                        res = process_startup(item, industry, sector, subsector)
                         if res:
                             for startup_dict in res:
                                 startup_name = startup_dict.get("startup", {}).get("startup_name", "Unknown")
@@ -635,19 +635,46 @@ async def get_startup_details(id: str):
         startup_resp = supabase.table("startups").select("*").eq("id", int_id).execute()
         if not startup_resp.data:
             raise HTTPException(status_code=404, detail="Startup not found")
-            
+
         startup = startup_resp.data[0]
         analysis_resp = supabase.table("startup_analysis").select("*").eq("startup_id", id).execute()
-        
+
         startup_analyses = []
         if analysis_resp.data:
             for record in analysis_resp.data:
                 startup_analyses.append({
                     "analysis_data": record.get("analysis_json") or {}
                 })
-                
+            # Embed funding rounds directly on the startup object
+            analysis_rec = analysis_resp.data[0]
+            startup["funding_rounds"] = analysis_rec.get("funding_rounds") or []
+            startup["total_funding"] = analysis_rec.get("total_funding") or ""
+            startup["latest_round_stage"] = analysis_rec.get("latest_round_stage") or ""
+            startup["latest_round_date"] = analysis_rec.get("latest_round_date") or ""
+
         startup["startup_analyses"] = startup_analyses
+
+        # Embed recent news history
+        startup["recent_news"] = get_startup_news(int_id)
+
         return startup
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/startup/{id}/news")
+async def get_startup_news_feed(id: str):
+    """Returns the news history feed for a specific startup, ordered most recent first."""
+    try:
+        try:
+            int_id = int(id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid startup ID '{id}'. Must be an integer.")
+
+        news = get_startup_news(int_id)
+        return {"startup_id": int_id, "news": news}
     except HTTPException:
         raise
     except Exception as e:
@@ -693,7 +720,20 @@ async def trigger_startup_analysis(id: str, force: bool = False):
         if not analysis or "error" in analysis:
             raise HTTPException(status_code=500, detail=analysis.get("error", "AI Analysis failed"))
             
-        save_startup_analysis(id, analysis)
+        save_startup_analysis(int_id, analysis)
+        
+        # Sync clean founded_year and website to startups table
+        clean_founded = analysis.get("founded_year")
+        clean_website = analysis.get("startup_website")
+        update_payload = {}
+        # Keep founded_year nullable (can update to None)
+        if "founded_year" in analysis:
+            update_payload["founded_year"] = clean_founded
+        if clean_website:
+            update_payload["website"] = clean_website
+        if update_payload:
+            supabase.table("startups").update(update_payload).eq("id", int_id).execute()
+            
         return {"analysis_data": analysis}
     except HTTPException:
         raise
@@ -1030,7 +1070,7 @@ async def update_startup_field(id: str, req: FieldUpdateRequest = Body(...)):
         value = req.value
         
         # 1. Update the startups table directly if it is a main column
-        startup_cols = ["website", "founder_name", "founder_linkedin_url", "funding_stage", "funding_amount", "sector", "subsector", "description", "startup_name"]
+        startup_cols = ["website", "founder_name", "founder_linkedin_url", "funding_stage", "sector", "subsector", "description", "startup_name"]
         if field in startup_cols:
             supabase.table("startups").update({field: value}).eq("id", int_id).execute()
             
@@ -1054,12 +1094,32 @@ async def update_startup_field(id: str, req: FieldUpdateRequest = Body(...)):
                         "founder_linkedin_url": founder_linkedin
                     }).eq("id", int_id).execute()
             elif field == "funding":
-                # Expect value to be dict: {series: str, amount: str, investors: List[str]}
-                analysis_json["funding_stages"] = value
-                # Sync stage/amount columns in startups table
+                # Run Pass 3 for real-time funding enrichment on manual edit
+                from backend.ai.startup_analyzer import collect_funding_snippets, extract_funding_rounds
+                startup_name = supabase.table("startups").select("startup_name").eq("id", int_id).execute()
+                sname = startup_name.data[0].get("startup_name", "") if startup_name.data else ""
+                if sname:
+                    funding_snippets = collect_funding_snippets(sname)
+                    funding_result = extract_funding_rounds(sname, funding_snippets)
+                    if funding_result:
+                        analysis_json["funding_rounds"] = funding_result.get("rounds", [])
+                        analysis_json["funding_stages"] = {
+                            "series": funding_result.get("latest_stage", value.get("series", "")),
+                            "amount": funding_result.get("total_funding", value.get("amount", "")),
+                            "investors": [
+                                r.get("lead_investor", "") for r in funding_result.get("rounds", []) if r.get("lead_investor")
+                            ]
+                        }
+                        # Persist to dedicated columns
+                        analysis_row = supabase.table("startup_analysis").select("id").eq("startup_id", int_id).execute()
+                        aid = analysis_row.data[0]["id"] if analysis_row.data else None
+                        save_funding_rounds(int_id, funding_result, aid)
+                    else:
+                        # Fallback to manual value if Pass 3 finds nothing
+                        analysis_json["funding_stages"] = value
+                # Sync stage to startups table
                 supabase.table("startups").update({
-                    "funding_stage": value.get("series", ""),
-                    "funding_amount": value.get("amount", "")
+                    "funding_stage": analysis_json.get("funding_stages", {}).get("series", "")
                 }).eq("id", int_id).execute()
             elif field == "valuation":
                 analysis_json["valuation_metrics"] = value
@@ -1238,12 +1298,31 @@ Begin parsing:
                     }).eq("id", int_id).execute()
                     
             elif field == "funding":
-                extracted_val = data.get("funding_stages") or {}
-                analysis_json["funding_stages"] = extracted_val
-                supabase.table("startups").update({
-                    "funding_stage": extracted_val.get("series", ""),
-                    "funding_amount": extracted_val.get("amount", "")
-                }).eq("id", int_id).execute()
+                # Run Pass 3: multi-source search + dedicated LLM extraction
+                from backend.ai.startup_analyzer import collect_funding_snippets, extract_funding_rounds
+                startup_name_res = supabase.table("startups").select("startup_name").eq("id", int_id).execute()
+                sname = startup_name_res.data[0].get("startup_name", "") if startup_name_res.data else ""
+                if sname:
+                    funding_snippets = collect_funding_snippets(sname)
+                    funding_result = extract_funding_rounds(sname, funding_snippets)
+                    if funding_result:
+                        rounds = funding_result.get("rounds", [])
+                        analysis_json["funding_rounds"] = rounds
+                        analysis_json["funding_stages"] = {
+                            "series": funding_result.get("latest_stage", ""),
+                            "amount": funding_result.get("total_funding", ""),
+                            "investors": list(dict.fromkeys(
+                                [r.get("lead_investor", "") for r in rounds if r.get("lead_investor")] +
+                                [inv for r in rounds for inv in r.get("co_investors", [])]
+                            ))
+                        }
+                        # Sync stage
+                        supabase.table("startups").update({
+                            "funding_stage": funding_result.get("latest_stage", "")
+                        }).eq("id", int_id).execute()
+                        # Persist to dedicated columns
+                        save_funding_rounds(int_id, funding_result, analysis_rec.get("id"))
+                        data = {"funding_stages": analysis_json["funding_stages"], "funding_rounds": rounds}
                 
             supabase.table("startup_analysis").update({"analysis_json": analysis_json}).eq("id", analysis_rec["id"]).execute()
             

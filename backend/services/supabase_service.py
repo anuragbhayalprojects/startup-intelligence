@@ -147,7 +147,7 @@ def save_startup_analysis(startup_id, analysis_json):
     try:
         s_res = supabase.table("startups").select("startup_name").eq("id", startup_id).execute()
         if s_res.data:
-            startup_name = s_res.data[0].get("startup_name", "")
+            startup_name = s_res.data[0].get("startup_name") or ""
     except Exception as ne:
         logging.warning(f"Failed to fetch startup name: {ne}")
 
@@ -186,9 +186,30 @@ def save_startup_analysis(startup_id, analysis_json):
     feasibility_str = str(fit.get("integration_feasibility", "Medium")).lower()
     feasibility_score = feasibility_map.get(feasibility_str, 50)
     
-    # Extract primary ICICI entity
+    # Extract and normalize ICICI entities to prevent general entities (e.g. Government of India)
     use_cases = bfsi.get("use_cases", [])
-    primary_entity = use_cases[0].get("icici_entity", "ICICI Bank") if use_cases else "ICICI Bank"
+    valid_entities = {"ICICI Bank", "ICICI Lombard", "ICICI Securities", "ICICI Prudential AMC", "ICICI Prudential Life", "ICICI HFC"}
+    
+    normalized_use_cases = []
+    primary_entity = "Not Relevant to any of the ICICI Group Companies"
+    
+    if use_cases and isinstance(use_cases, list):
+        for uc in use_cases:
+            if not isinstance(uc, dict):
+                continue
+            entity = str(uc.get("icici_entity") or "").strip()
+            matched_entity = next((ve for ve in valid_entities if ve.lower() == entity.lower()), None)
+            if matched_entity:
+                uc["icici_entity"] = matched_entity
+                normalized_use_cases.append(uc)
+            else:
+                uc["icici_entity"] = "Not Relevant to any of the ICICI Group Companies"
+                normalized_use_cases.append(uc)
+        bfsi["use_cases"] = normalized_use_cases
+        if normalized_use_cases:
+            primary_entity = normalized_use_cases[0]["icici_entity"]
+    else:
+        primary_entity = "Not Relevant to any of the ICICI Group Companies"
     
     def to_int(val, default=0):
         try:
@@ -289,10 +310,10 @@ def save_startup_analysis(startup_id, analysis_json):
     if website and "example.com" not in website:
         startup_updates["website"] = website
         
-    founded_yr = analysis_json.get("founded_year")
-    if founded_yr:
+    if "founded_year" in analysis_json:
+        founded_yr = analysis_json.get("founded_year")
         try:
-            startup_updates["founded_year"] = int(founded_yr)
+            startup_updates["founded_year"] = int(founded_yr) if founded_yr else None
         except Exception:
             pass
 
@@ -337,3 +358,97 @@ def save_startup_analysis(startup_id, analysis_json):
         print(f"⚠️ Failed to sync outreach messages in startup_assignments for ID {startup_id}: {e}")
 
     return response.data
+
+
+# --- Startup News History ---
+
+def save_startup_news(startup_id: int, headline: str, summary: str, source: str = "", source_url: str = "", published_at: str = None):
+    """
+    Saves a news event for a startup into the startup_news table.
+    Called after every ingestion pass (new startup or cache hit) so that
+    each article appearance is logged with a startup-specific summary.
+    """
+    try:
+        data = {
+            "startup_id": startup_id,
+            "headline": headline or "",
+            "summary": summary or "",
+            "source": source or "",
+            "source_url": source_url or "",
+        }
+        if published_at:
+            data["published_at"] = published_at
+        response = supabase.table("startup_news").insert(data).execute()
+        return response.data
+    except Exception as e:
+        logging.warning(f"Failed to save startup news for startup_id {startup_id}: {e}")
+        return None
+
+
+def get_startup_news(startup_id: int) -> list:
+    """
+    Fetches the news history for a startup from the startup_news table,
+    ordered by most recent first. Returns a list of news row dicts.
+    """
+    try:
+        response = (
+            supabase
+            .table("startup_news")
+            .select("id, headline, summary, source, source_url, published_at")
+            .eq("startup_id", startup_id)
+            .order("published_at", desc=True)
+            .limit(20)
+            .execute()
+        )
+        return response.data or []
+    except Exception as e:
+        logging.warning(f"Failed to fetch startup news for startup_id {startup_id}: {e}")
+        return []
+
+
+# --- Funding Rounds ---
+
+def save_funding_rounds(startup_id: int, funding_data: dict, analysis_id: int = None):
+    """
+    Saves structured funding round data into the startup_analysis table.
+    funding_data: {rounds: [...], total_funding: str, latest_stage: str, latest_date: str}
+    Updates by analysis_id if provided, otherwise by startup_id.
+    """
+    from datetime import datetime, timezone
+    try:
+        rounds = funding_data.get("rounds", [])
+        latest_stage = funding_data.get("latest_stage", "")
+        # Derive latest_stage from rounds[0] if not explicitly set
+        if not latest_stage and rounds:
+            latest_stage = rounds[0].get("stage", "")
+
+        update_payload = {
+            "funding_rounds": rounds,
+            "total_funding": funding_data.get("total_funding", ""),
+            "latest_round_stage": latest_stage,
+            "latest_round_date": funding_data.get("latest_date", ""),
+            "last_funding_enriched_at": datetime.now(timezone.utc).isoformat()
+        }
+
+        if analysis_id:
+            response = (
+                supabase
+                .table("startup_analysis")
+                .update(update_payload)
+                .eq("id", analysis_id)
+                .execute()
+            )
+        else:
+            response = (
+                supabase
+                .table("startup_analysis")
+                .update(update_payload)
+                .eq("startup_id", startup_id)
+                .execute()
+            )
+
+        print(f"💰 Saved {len(rounds)} funding round(s) to startup_analysis for startup_id {startup_id}")
+        return response.data
+    except Exception as e:
+        logging.warning(f"Failed to save funding rounds for startup_id {startup_id}: {e}")
+        return None

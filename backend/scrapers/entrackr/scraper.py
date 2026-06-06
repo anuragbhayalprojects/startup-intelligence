@@ -1,14 +1,28 @@
-try:
-    from curl_cffi import requests
-except ImportError:
-    import requests
-import feedparser
-from bs4 import BeautifulSoup
+import sys
+import os
 import logging
 import time
 import random
+import feedparser
+import dateutil.parser
+from bs4 import BeautifulSoup
+
+# Align sys.path for standalone script execution
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
+
+from backend.scrapers.common.http_client import get_session, safe_request
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("scrapers.entrackr")
+
+def parse_published_date(date_str: str) -> str:
+    if not date_str:
+        return None
+    try:
+        return dateutil.parser.parse(date_str).isoformat()
+    except Exception:
+        return None
+
 
 def scrape_entrackr(num_startups: int = 10):
     """
@@ -25,27 +39,19 @@ def scrape_entrackr(num_startups: int = 10):
     rss_url = "https://entrackr.com/rss"
     homepage_url = "https://entrackr.com"
     
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9"
-    }
-
+    # Initialize connection pooling session
+    session = get_session()
+    
     # 1. Attempt RSS Feed parsing
-    print(f"📡 [Entrackr Scraper] Attempting RSS Feed: {rss_url}...")
+    logger.info(f"📡 [Entrackr Scraper] Attempting RSS Feed: {rss_url}...")
     rss_success = False
     try:
-        kwargs = {"headers": headers, "timeout": 15}
-        try:
-            response = requests.get(rss_url, impersonate="chrome120", **kwargs)
-        except TypeError:
-            response = requests.get(rss_url, **kwargs)
-            
+        response = safe_request(session, rss_url, timeout=15)
         if response.status_code == 200:
             feed = feedparser.parse(response.text)
             if feed.entries:
                 rss_success = True
-                print(f"✅ [Entrackr Scraper] Successfully parsed {len(feed.entries)} entries from RSS feed.")
+                logger.info(f"✅ [Entrackr Scraper] Successfully parsed {len(feed.entries)} entries from RSS feed.")
                 
                 for entry in feed.entries:
                     title = entry.get("title", "")
@@ -57,17 +63,12 @@ def scrape_entrackr(num_startups: int = 10):
                     # Fetch description
                     description = "N/A"
                     # Try to fetch article page for first 2 paragraphs
-                    delay = random.uniform(1.0, 3.0)
-                    print(f"⏳ [Entrackr Scraper] Jitter delay: {delay:.2f} seconds before article fetch...")
+                    delay = random.uniform(1.0, 2.5)
+                    logger.info(f"⏳ [Entrackr Scraper] Jitter delay: {delay:.2f} seconds before article fetch...")
                     time.sleep(delay)
                     
                     try:
-                        art_kwargs = {"headers": headers, "timeout": 5}
-                        try:
-                            art_response = requests.get(article_url, impersonate="chrome120", **art_kwargs)
-                        except TypeError:
-                            art_response = requests.get(article_url, **art_kwargs)
-                            
+                        art_response = safe_request(session, article_url, timeout=5)
                         if art_response.status_code == 200:
                             art_soup = BeautifulSoup(art_response.text, "html.parser")
                             paragraphs = []
@@ -75,16 +76,17 @@ def scrape_entrackr(num_startups: int = 10):
                                 text = p.get_text(strip=True)
                                 if len(text) < 45:
                                     continue
-                                if any(phrase in text for phrase in ["Terms of Use", "Privacy Policy", "consent to the processing", "By clicking the button"]):
+                                if any(phrase in text for phrase in ["Terms of Use", "Privacy Policy", "consent to the processing", "By clicking the button", "Follow us"]):
                                     continue
                                 paragraphs.append(text)
                             if paragraphs:
                                 description = " ".join(paragraphs[:2])
                     except Exception as e:
-                        logging.warning(f"Failed to fetch details for {article_url}, falling back to RSS summary: {e}")
+                        logger.warning(f"Failed to fetch details for {article_url}, falling back to RSS summary: {e}")
+                        
+                    if description == "N/A":
                         # Fallback to RSS summary/description
                         description = entry.get("summary") or entry.get("description") or "N/A"
-                        # Strip HTML if summary has it
                         if description != "N/A":
                             description = BeautifulSoup(description, "html.parser").get_text(strip=True)
                             
@@ -93,6 +95,7 @@ def scrape_entrackr(num_startups: int = 10):
                         "source_url": article_url,
                         "description": description,
                         "source": "Entrackr",
+                        "published_at": parse_published_date(entry.get("published")),
                         "city": "India",
                         "country": "India",
                         "hq_city": "India",
@@ -102,50 +105,50 @@ def scrape_entrackr(num_startups: int = 10):
                     if len(startups) >= num_startups:
                         break
     except Exception as e:
-        logging.error(f"RSS parser failed for Entrackr: {e}")
+        logger.error(f"RSS parser failed for Entrackr: {e}")
 
     # 2. Fallback: HTML scraping if RSS failed or returned nothing
     if not rss_success or not startups:
-        print("🔄 [Entrackr Scraper] Falling back to HTML Scraping...")
+        logger.warning("🔄 [Entrackr Scraper] RSS sweep returned no data. Falling back to HTML Scraping...")
         try:
-            kwargs = {"headers": headers, "timeout": 15}
-            try:
-                response = requests.get(homepage_url, impersonate="chrome120", **kwargs)
-            except TypeError:
-                response = requests.get(homepage_url, **kwargs)
-                
+            response = safe_request(session, homepage_url, timeout=15)
             response.raise_for_status()
             soup = BeautifulSoup(response.text, "html.parser")
             seen_urls = set()
             
+            candidates = []
+            
+            # Heuristic 1: h2 tags inside tags that represent clickable posts
             for h2 in soup.find_all("h2"):
-                parent = h2.parent
-                classes = parent.get("class", []) if parent else []
-                if "clickable" not in classes:
-                    continue
-                href = parent.get("href")
-                if not href:
-                    continue
-                article_url = homepage_url + href if href.startswith("/") else href
-                
+                title_text = h2.get_text(strip=True)
+                # Look for wrapping anchor or link child
+                link_el = h2.find("a") or h2.find_parent("a")
+                if link_el and link_el.get("href") and len(title_text) > 10:
+                    candidates.append((title_text, link_el.get("href")))
+                    
+            # Heuristic 2: General links to news/funding articles on the page
+            for a in soup.find_all("a", href=True):
+                url = a["href"]
+                title_text = a.get_text(strip=True)
+                # Entrackr usually has year/month in URL structure, e.g. /2026/06/
+                if any(kw in url for kw in ["/news/", "/funding/"]) or (len(url.split("/")) >= 4 and any(str(yr) in url for yr in [2024, 2025, 2026])):
+                    if len(title_text) > 12:
+                        candidates.append((title_text, url))
+                        
+            # Filter and deduplicate candidates
+            for title, url in candidates:
+                article_url = url if url.startswith("http") else homepage_url + (url if url.startswith("/") else "/" + url)
                 if article_url in seen_urls:
-                    continue
-                title = h2.get_text(strip=True)
-                if len(title) <= 10:
                     continue
                 seen_urls.add(article_url)
                 
                 description = "N/A"
-                delay = random.uniform(1.0, 3.0)
+                delay = random.uniform(1.0, 2.5)
+                logger.info(f"⏳ [Entrackr HTML Fallback] Jitter delay: {delay:.2f} seconds before article fetch...")
                 time.sleep(delay)
                 
                 try:
-                    art_kwargs = {"headers": headers, "timeout": 5}
-                    try:
-                        art_response = requests.get(article_url, impersonate="chrome120", **art_kwargs)
-                    except TypeError:
-                        art_response = requests.get(article_url, **art_kwargs)
-                        
+                    art_response = safe_request(session, article_url, timeout=5)
                     if art_response.status_code == 200:
                         art_soup = BeautifulSoup(art_response.text, "html.parser")
                         paragraphs = []
@@ -153,13 +156,13 @@ def scrape_entrackr(num_startups: int = 10):
                             text = p.get_text(strip=True)
                             if len(text) < 45:
                                 continue
-                            if any(phrase in text for phrase in ["Terms of Use", "Privacy Policy", "consent to the processing", "By clicking the button"]):
+                            if any(phrase in text for phrase in ["Terms of Use", "Privacy Policy", "consent to the processing", "By clicking the button", "Follow us"]):
                                 continue
                             paragraphs.append(text)
                         if paragraphs:
                             description = " ".join(paragraphs[:2])
                 except Exception as e:
-                    logging.warning(f"Failed to fetch description for {article_url}: {e}")
+                    logger.warning(f"Failed to fetch description for {article_url}: {e}")
                     
                 startups.append({
                     "startup_name": title,
@@ -175,11 +178,16 @@ def scrape_entrackr(num_startups: int = 10):
                 if len(startups) >= num_startups:
                     break
         except Exception as e:
-            logging.error(f"HTML fallback scraper failed for Entrackr: {e}")
+            logger.error(f"HTML fallback scraper failed for Entrackr: {e}")
 
+    # Close connection pool resources
+    session.close()
     return startups
 
 if __name__ == "__main__":
     data = scrape_entrackr(2)
     for startup in data:
-        print(startup)
+        print("\n--- Startup Found ---")
+        print("Name/Headline:", startup["startup_name"])
+        print("URL:", startup["source_url"])
+        print("Snippet:", startup["description"][:120], "...")

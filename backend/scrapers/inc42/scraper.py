@@ -1,14 +1,28 @@
-try:
-    from curl_cffi import requests
-except ImportError:
-    import requests
-import feedparser
-from bs4 import BeautifulSoup
+import sys
+import os
 import logging
 import time
 import random
+import feedparser
+import dateutil.parser
+from bs4 import BeautifulSoup
+
+# Align sys.path for standalone script execution
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
+
+from backend.scrapers.common.http_client import get_session, safe_request
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("scrapers.inc42")
+
+def parse_published_date(date_str: str) -> str:
+    if not date_str:
+        return None
+    try:
+        return dateutil.parser.parse(date_str).isoformat()
+    except Exception:
+        return None
+
 
 def scrape_inc42(num_startups: int = 10):
     """
@@ -25,27 +39,19 @@ def scrape_inc42(num_startups: int = 10):
     rss_url = "https://inc42.com/feed/"
     homepage_url = "https://inc42.com"
     
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9"
-    }
-
+    # Initialize connection pooling session
+    session = get_session()
+    
     # 1. Attempt RSS Feed parsing
-    print(f"📡 [Inc42 Scraper] Attempting RSS Feed: {rss_url}...")
+    logger.info(f"📡 [Inc42 Scraper] Attempting RSS Feed: {rss_url}...")
     rss_success = False
     try:
-        kwargs = {"headers": headers, "timeout": 15}
-        try:
-            response = requests.get(rss_url, impersonate="chrome120", **kwargs)
-        except TypeError:
-            response = requests.get(rss_url, **kwargs)
-            
+        response = safe_request(session, rss_url, timeout=15)
         if response.status_code == 200:
             feed = feedparser.parse(response.text)
             if feed.entries:
                 rss_success = True
-                print(f"✅ [Inc42 Scraper] Successfully parsed {len(feed.entries)} entries from RSS feed.")
+                logger.info(f"✅ [Inc42 Scraper] Successfully parsed {len(feed.entries)} entries from RSS feed.")
                 
                 for entry in feed.entries:
                     title = entry.get("title", "")
@@ -57,36 +63,33 @@ def scrape_inc42(num_startups: int = 10):
                     # Fetch description
                     description = "N/A"
                     # Try to fetch article page for first 2 paragraphs
-                    delay = random.uniform(1.0, 3.0)
-                    print(f"⏳ [Inc42 Scraper] Jitter delay: {delay:.2f} seconds before article fetch...")
+                    delay = random.uniform(1.0, 2.5)
+                    logger.info(f"⏳ [Inc42 Scraper] Jitter delay: {delay:.2f} seconds before article fetch...")
                     time.sleep(delay)
                     
                     try:
-                        art_kwargs = {"headers": headers, "timeout": 5}
-                        try:
-                            art_response = requests.get(article_url, impersonate="chrome120", **art_kwargs)
-                        except TypeError:
-                            art_response = requests.get(article_url, **art_kwargs)
-                            
+                        art_response = safe_request(session, article_url, timeout=5)
                         if art_response.status_code == 200:
                             art_soup = BeautifulSoup(art_response.text, "html.parser")
                             paragraphs = []
                             for p in art_soup.find_all("p"):
-                                if p.get("class"):
+                                # Skip utility or widget paragraphs
+                                if p.get("class") and any(c in p.get("class") for c in ["wp-block-post-excerpt__excerpt", "widget-title"]):
                                     continue
                                 text = p.get_text(strip=True)
                                 if len(text) < 65:
                                     continue
-                                if any(phrase in text for phrase in ["Unlock", "newsletter", "Tired Of", "Terms of Use", "Privacy Policy"]):
+                                if any(phrase in text for phrase in ["Unlock", "newsletter", "Tired Of", "Terms of Use", "Privacy Policy", "Follow us on"]):
                                     continue
                                 paragraphs.append(text)
                             if paragraphs:
                                 description = " ".join(paragraphs[:2])
                     except Exception as e:
-                        logging.warning(f"Failed to fetch details for {article_url}, falling back to RSS summary: {e}")
+                        logger.warning(f"Failed to fetch details for {article_url}, falling back to RSS summary: {e}")
+                    
+                    if description == "N/A":
                         # Fallback to RSS summary/description
                         description = entry.get("summary") or entry.get("description") or "N/A"
-                        # Strip HTML if summary has it
                         if description != "N/A":
                             description = BeautifulSoup(description, "html.parser").get_text(strip=True)
                             
@@ -95,6 +98,7 @@ def scrape_inc42(num_startups: int = 10):
                         "source_url": article_url,
                         "description": description,
                         "source": "Inc42",
+                        "published_at": parse_published_date(entry.get("published")),
                         "city": "India",
                         "country": "India",
                         "hq_city": "India",
@@ -104,67 +108,64 @@ def scrape_inc42(num_startups: int = 10):
                     if len(startups) >= num_startups:
                         break
     except Exception as e:
-        logging.error(f"RSS parser failed for Inc42: {e}")
+        logger.error(f"RSS parser failed for Inc42: {e}")
 
     # 2. Fallback: HTML scraping if RSS failed or returned nothing
     if not rss_success or not startups:
-        print("🔄 [Inc42 Scraper] Falling back to HTML Scraping...")
+        logger.warning("🔄 [Inc42 Scraper] RSS sweep returned no data. Falling back to HTML Scraping...")
         try:
-            kwargs = {"headers": headers, "timeout": 15}
-            try:
-                response = requests.get(homepage_url, impersonate="chrome120", **kwargs)
-            except TypeError:
-                response = requests.get(homepage_url, **kwargs)
-                
+            response = safe_request(session, homepage_url, timeout=15)
             response.raise_for_status()
             soup = BeautifulSoup(response.text, "html.parser")
             seen_urls = set()
             
-            for h2 in soup.find_all("h2"):
-                classes = h2.get("class", [])
-                if "entry-title" not in classes:
-                    continue
-                link_element = h2.find("a") or h2.find_parent("a")
-                if not link_element:
-                    continue
-                article_url = link_element.get("href")
-                if not article_url:
-                    continue
-                
+            # Diagnostic check: collect multiple title/link matching heuristics
+            candidates = []
+            
+            # Heuristic 1: h2/h1/h3 tags containing entry-title or containing anchors
+            for h in soup.find_all(["h1", "h2", "h3", "h4"]):
+                title_text = h.get_text(strip=True)
+                link_el = h.find("a") or h.find_parent("a")
+                if link_el and link_el.get("href") and len(title_text) > 12:
+                    candidates.append((title_text, link_el.get("href")))
+                    
+            # Heuristic 2: custom card element links
+            for a in soup.find_all("a", href=True):
+                url = a["href"]
+                title_text = a.get_text(strip=True)
+                # Check for standard Inc42 article path indicators
+                if "/features/" in url or "/buzz/" in url or "/funding/" in url or "/news/" in url:
+                    if len(title_text) > 15:
+                        candidates.append((title_text, url))
+                        
+            # Filter and deduplicate candidates
+            for title, url in candidates:
+                article_url = url if url.startswith("http") else homepage_url + url
                 if article_url in seen_urls:
-                    continue
-                title = h2.get_text(strip=True)
-                if len(title) <= 12:
                     continue
                 seen_urls.add(article_url)
                 
                 description = "N/A"
-                delay = random.uniform(1.0, 3.0)
+                delay = random.uniform(1.0, 2.5)
+                logger.info(f"⏳ [Inc42 HTML Fallback] Jitter delay: {delay:.2f} seconds before article fetch...")
                 time.sleep(delay)
                 
                 try:
-                    art_kwargs = {"headers": headers, "timeout": 5}
-                    try:
-                        art_response = requests.get(article_url, impersonate="chrome120", **art_kwargs)
-                    except TypeError:
-                        art_response = requests.get(article_url, **art_kwargs)
-                        
+                    art_response = safe_request(session, article_url, timeout=5)
                     if art_response.status_code == 200:
                         art_soup = BeautifulSoup(art_response.text, "html.parser")
                         paragraphs = []
                         for p in art_soup.find_all("p"):
-                            if p.get("class"):
-                                continue
                             text = p.get_text(strip=True)
                             if len(text) < 65:
                                 continue
-                            if any(phrase in text for phrase in ["Unlock", "newsletter", "Tired Of", "Terms of Use", "Privacy Policy"]):
+                            if any(phrase in text for phrase in ["Unlock", "newsletter", "Tired Of", "Terms of Use", "Privacy Policy", "Follow us on"]):
                                 continue
                             paragraphs.append(text)
                         if paragraphs:
                             description = " ".join(paragraphs[:2])
                 except Exception as e:
-                    logging.warning(f"Failed to fetch description for {article_url}: {e}")
+                    logger.warning(f"Failed to fetch description for {article_url}: {e}")
                     
                 startups.append({
                     "startup_name": title,
@@ -180,11 +181,16 @@ def scrape_inc42(num_startups: int = 10):
                 if len(startups) >= num_startups:
                     break
         except Exception as e:
-            logging.error(f"HTML fallback scraper failed for Inc42: {e}")
+            logger.error(f"HTML fallback scraper failed for Inc42: {e}")
 
+    # Close the session to release connection pool resources
+    session.close()
     return startups
 
 if __name__ == "__main__":
     data = scrape_inc42(2)
     for startup in data:
-        print(startup)
+        print("\n--- Startup Found ---")
+        print("Name/Headline:", startup["startup_name"])
+        print("URL:", startup["source_url"])
+        print("Snippet:", startup["description"][:120], "...")

@@ -32,8 +32,8 @@ export default function Workflow() {
 
       <SectionCard title="Active Jobs" description="Real-time pipeline activity">
         <div className="space-y-3">
-          {workflowJobs.map((j) => {
-            const Icon = icons[j.status];
+            {workflowJobs.map((j) => {
+            const Icon = icons[j.status as keyof typeof icons] || AlertTriangle;
             return (
               <div key={j.id} className="rounded-md border border-border p-4">
                 <div className="flex items-center gap-3">

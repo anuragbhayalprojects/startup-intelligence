@@ -1,4 +1,4 @@
-import type { Startup, Assignment, Source, WorkflowJob } from "../types";
+import type { Startup, Assignment, Source, WorkflowJob } from "../types/index";
 
 export const startups: Startup[] = [
   {

@@ -125,7 +125,7 @@ export default function Assignments({
   const startEdit = (as: Assignment) => {
     setEditingId(as.id);
     setEditStatus(as.status);
-    setEditNotes(as.notes);
+    setEditNotes(as.notes || "");
   };
 
   const saveEdit = async (id: string) => {

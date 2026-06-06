@@ -264,7 +264,12 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
   // Entity Relevance & Mappings
   let rawEntityRelevance = s.entity_relevance || "";
   if (analysis && analysis.bfsi_relevance?.use_cases?.[0]) {
-    rawEntityRelevance = analysis.bfsi_relevance.use_cases[0].potential_impact;
+    const firstEntity = analysis.bfsi_relevance.use_cases[0].icici_entity;
+    if (firstEntity === "Not Relevant to any of the ICICI Group Companies") {
+      rawEntityRelevance = "Not Relevant to any of the ICICI Group Companies";
+    } else {
+      rawEntityRelevance = analysis.bfsi_relevance.use_cases[0].potential_impact;
+    }
   }
   if (
     !rawEntityRelevance || 
@@ -283,6 +288,7 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
           entity && 
           entity !== "None" && 
           entity !== "Relevant ICICI entity" && 
+          entity !== "Not Relevant to any of the ICICI Group Companies" &&
           ucDesc && 
           !ucDesc.includes("Describe a specific") &&
           !ucDesc.includes("automation fit")
@@ -315,6 +321,12 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
     description: s.description || "No description provided.",
     website: rawWebsite,
     created_at: s.created_at || new Date().toISOString(),
+
+    // Pass 3 Funding Rounds & Summary Mapping
+    funding_rounds: rawAnalysisRecord?.funding_rounds || s.funding_rounds || [],
+    total_funding: rawAnalysisRecord?.total_funding || s.total_funding || "",
+    latest_round_stage: rawAnalysisRecord?.latest_round_stage || s.latest_round_stage || "",
+    latest_round_date: rawAnalysisRecord?.latest_round_date || s.latest_round_date || "",
 
     // Analytical tags derived from live analysis or seed maps
     priority_score: rawPriorityScore,

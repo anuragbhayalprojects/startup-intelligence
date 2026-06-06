@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   X,
   Globe,
@@ -92,6 +92,34 @@ export default function DetailModal({
   // AI analysis loader
   const [analyzing, setAnalyzing] = useState(false);
 
+  // Recent news history state
+  const [recentNews, setRecentNews] = useState<any[]>([]);
+  const [newsLoading, setNewsLoading] = useState(false);
+
+  const rawApiUrl = (import.meta as any).env?.VITE_API_URL || "http://localhost:8000/api";
+  const API_URL = rawApiUrl.endsWith("/")
+    ? (rawApiUrl.endsWith("/api/") ? rawApiUrl.slice(0, -1) : rawApiUrl + "api")
+    : (rawApiUrl.endsWith("/api") ? rawApiUrl : rawApiUrl + "/api");
+
+  // Fetch recent news when modal opens (use embedded news if already present)
+  useEffect(() => {
+    if (startup.recent_news && Array.isArray(startup.recent_news) && startup.recent_news.length > 0) {
+      setRecentNews(startup.recent_news);
+      return;
+    }
+    if (!startup.id) return;
+    setNewsLoading(true);
+    fetch(`${API_URL}/startup/${startup.id}/news`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data && Array.isArray(data.news)) {
+          setRecentNews(data.news);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setNewsLoading(false));
+  }, [startup.id]);
+
   const rawAnalysisRecord = (startup.startup_analyses && startup.startup_analyses.length > 0)
     ? startup.startup_analyses[0]
     : (startup.startup_analysis && startup.startup_analysis.length > 0)
@@ -99,7 +127,7 @@ export default function DetailModal({
     : null;
 
   const analysis = rawAnalysisRecord
-    ? ((rawAnalysisRecord.analysis_data || rawAnalysisRecord.analysis_json) as any)
+    ? (((rawAnalysisRecord as any).analysis_data || (rawAnalysisRecord as any).analysis_json) as any)
     : null;
 
   // Rich details resolver with fallback for preloaded mock data
@@ -107,7 +135,7 @@ export default function DetailModal({
     // If analysis contains the live enrichment data, return it
     if (analysis && (analysis.founders || analysis.funding_stages || analysis.valuation_metrics)) {
       return {
-        founded_year: analysis.founded_year || startup.founded_year || 2018,
+        founded_year: analysis.founded_year || startup.founded_year || undefined,
         founders: (analysis.founders && analysis.founders.length > 0)
           ? analysis.founders
           : (startup.founder_name
@@ -411,7 +439,7 @@ export default function DetailModal({
         <div className="flex-1 overflow-y-auto p-6 space-y-6" id="detail-scroller">
           
           {/* AI enrichment banner if pending */}
-          {startup.priority_score <= 50 && onAnalyze && (
+          {(startup.priority_score ?? 100) <= 50 && onAnalyze && (
             <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center justify-between gap-4">
               <div className="space-y-0.5 text-left">
                 <h5 className="text-xs font-bold text-amber-800 flex items-center gap-1">
@@ -465,26 +493,70 @@ export default function DetailModal({
             </p>
           </div>
 
-          {/* News Article Summary Block */}
-          {startup.description && startup.description.trim() !== "" && (
-            <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm space-y-3 text-left animate-fade-in">
-              <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-2 flex items-center justify-between">
-                <span>Recent News & Updates</span>
-                {startup.source_url && (
-                  <a
-                    href={startup.source_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-slate-400 hover:text-blue-600 text-[10px] font-bold tracking-normal normal-case flex items-center gap-1 cursor-pointer"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    Source: {startup.source || "News Link"} <ExternalLink size={10} />
-                  </a>
-                )}
-              </h4>
+          {/* News History Feed */}
+          <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm space-y-3 text-left">
+            <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-2 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Calendar size={13} className="text-amber-500" />
+                Recent News & Updates
+              </span>
+              {startup.source_url && (
+                <a
+                  href={startup.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-slate-400 hover:text-blue-600 text-[10px] font-bold tracking-normal normal-case flex items-center gap-1 cursor-pointer"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Latest: {startup.source || "Source"} <ExternalLink size={10} />
+                </a>
+              )}
+            </h4>
+
+            {newsLoading ? (
+              <p className="text-slate-400 text-xs italic py-2">Loading news history...</p>
+            ) : recentNews.length > 0 ? (
+              <div className="space-y-3">
+                {recentNews.map((item: any, idx: number) => {
+                  const dateStr = item.published_at
+                    ? new Date(item.published_at).toLocaleDateString("en-IN", {
+                        day: "numeric", month: "short", year: "numeric"
+                      })
+                    : "";
+                  return (
+                    <div
+                      key={item.id || idx}
+                      className="p-3 bg-slate-50 border border-slate-150 rounded-lg space-y-1.5 hover:border-amber-200 transition-all"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-[11px] font-bold text-slate-700 leading-snug flex-1">{item.headline}</p>
+                        <span className="text-[10px] text-slate-400 font-mono whitespace-nowrap">{dateStr}</span>
+                      </div>
+                      {item.summary && (
+                        <p className="text-xs text-slate-600 leading-relaxed">{item.summary}</p>
+                      )}
+                      {item.source_url && (
+                        <a
+                          href={item.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[10px] text-blue-500 hover:text-blue-700 font-semibold"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {item.source || "Read more"} <ExternalLink size={9} />
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : startup.description && startup.description.trim() !== "" ? (
+              // Fallback: show raw description if no news history yet
               <p className="text-slate-650 text-xs leading-relaxed">{startup.description}</p>
-            </div>
-          )}
+            ) : (
+              <p className="text-slate-400 text-xs italic">No news history available yet. News events will appear here after the next discovery run.</p>
+            )}
+          </div>
 
           {/* Taxonomy & Classification Mapping */}
           <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm space-y-4 text-left">
@@ -780,21 +852,29 @@ export default function DetailModal({
                 </div>
               </div>
 
-              {/* Funding Stage & Capital Raised Card */}
+              {/* Funding Rounds & Investors — collapsible table */}
               <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm space-y-4">
+                {/* Header */}
                 <div className="flex justify-between items-center border-b border-slate-100 pb-2.5">
                   <h5 className="font-bold text-slate-900 text-xs uppercase tracking-wide flex items-center gap-1.5">
                     <DollarSign size={14} className="text-emerald-500" />
-                    Funding Rounds & Investors
+                    Funding Rounds &amp; Investors
                   </h5>
                   <div className="flex items-center gap-2">
+                    {/* Total raised badge */}
+                    {(startup.total_funding || details?.funding_stages?.amount) && (
+                      <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-bold font-mono">
+                        {startup.total_funding || details?.funding_stages?.amount}
+                      </span>
+                    )}
+                    {/* Latest stage badge */}
                     <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-bold uppercase tracking-wide">
-                      {details?.funding_stages?.series || "Unknown"}
+                      {startup.latest_round_stage || details?.funding_stages?.series || "Unknown"}
                     </span>
-                    <button 
+                    <button
                       onClick={() => setEditingField(editingField === "funding" ? null : "funding")}
                       className="text-slate-450 hover:text-blue-600 transition-colors p-1"
-                      title="Edit funding details"
+                      title="Edit / Re-check funding"
                     >
                       <Pencil size={11} />
                     </button>
@@ -803,9 +883,12 @@ export default function DetailModal({
 
                 {editingField === "funding" ? (
                   <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-3 mt-1 animate-fade-in text-left">
+                    <p className="text-[10px] text-slate-500 italic">
+                      Clicking <strong>AI Re-check</strong> will run a dedicated multi-source funding search (Inc42, Tracxn, Entrackr, Crunchbase …) and populate the rounds table automatically.
+                    </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[10px] font-bold text-slate-450 uppercase mb-1 block">Series / Stage</label>
+                        <label className="text-[10px] font-bold text-slate-450 uppercase mb-1 block">Series / Stage (fallback)</label>
                         <input
                           type="text"
                           value={fundingSeriesInput}
@@ -815,7 +898,7 @@ export default function DetailModal({
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] font-bold text-slate-450 uppercase mb-1 block">Capital Raised Amount</label>
+                        <label className="text-[10px] font-bold text-slate-450 uppercase mb-1 block">Capital Raised (fallback)</label>
                         <input
                           type="text"
                           value={fundingAmountInput}
@@ -824,16 +907,6 @@ export default function DetailModal({
                           className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2 outline-none focus:ring-1 focus:ring-blue-500 transition-all font-mono"
                         />
                       </div>
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-450 uppercase mb-1 block">Investors (comma separated)</label>
-                      <input
-                        type="text"
-                        value={fundingInvestorsInput}
-                        onChange={(e) => setFundingInvestorsInput(e.target.value)}
-                        placeholder="Investor 1, Investor 2"
-                        className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2 outline-none focus:ring-1 focus:ring-blue-500 transition-all"
-                      />
                     </div>
                     {editError && <p className="text-[10px] font-semibold text-red-650">{editError}</p>}
                     <div className="flex justify-end gap-2 text-xs pt-1">
@@ -863,42 +936,87 @@ export default function DetailModal({
                       </button>
                     </div>
                   </div>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-3 bg-emerald-50/40 rounded-lg border border-emerald-100/50 text-left">
-                        <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Total Capital Raised</p>
-                        <p className="text-base font-black text-emerald-650 mt-1 flex items-baseline gap-0.5">
-                          <span className="text-xs font-bold">$</span>
-                          {details?.funding_stages?.amount ? String(details.funding_stages.amount).replace("$", "") : "Unknown"}
-                        </p>
-                      </div>
-                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-left">
-                        <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Investment Status</p>
-                        <p className="text-xs font-bold text-slate-700 mt-1.5 truncate">
-                          {details?.funding_stages?.series?.includes("Bootstrapped") ? "Organic Operations" : "Strategic Fit Validated"}
-                        </p>
-                      </div>
-                    </div>
+                ) : (() => {
+                  // Use rich rounds array if available, else fall back to flat display
+                  const rounds: any[] = startup.funding_rounds || [];
 
-                    {/* Key Investors */}
-                    <div className="space-y-2 text-left">
-                      <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Key Capital Supporters</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {(details?.funding_stages?.investors || []).length > 0 ? (
-                          (details?.funding_stages?.investors || []).map((inv: string, idx: number) => (
-                            <span key={idx} className="bg-slate-50 hover:bg-slate-100 text-slate-700 px-2 py-1 rounded text-[10.5px] font-medium border border-slate-200/50 transition-colors">
-                              {inv}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-slate-400 text-xs italic font-medium">No cap table investors reported (Bootstrapped or Self-Funded).</span>
-                        )}
+                  if (rounds.length > 0) {
+                    return (
+                      <div className="text-left space-y-1">
+                        {/* Summary row */}
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                          <div className="p-2.5 bg-emerald-50/40 rounded-lg border border-emerald-100/50 text-left">
+                            <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Total Capital Raised</p>
+                            <p className="text-base font-black text-emerald-650 mt-0.5 font-mono">
+                              {startup.total_funding || "—"}
+                            </p>
+                          </div>
+                          <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100 text-left">
+                            <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Rounds Found</p>
+                            <p className="text-base font-black text-slate-700 mt-0.5">{rounds.length}</p>
+                          </div>
+                        </div>
+
+                        {/* Rounds table */}
+                        <div className="overflow-x-auto rounded-lg border border-slate-150">
+                          <table className="w-full text-left text-[11px]">
+                            <thead>
+                              <tr className="bg-slate-50 border-b border-slate-200">
+                                <th className="px-3 py-2 font-bold text-slate-500 uppercase tracking-wider text-[9.5px]">Stage</th>
+                                <th className="px-3 py-2 font-bold text-slate-500 uppercase tracking-wider text-[9.5px]">Amount</th>
+                                <th className="px-3 py-2 font-bold text-slate-500 uppercase tracking-wider text-[9.5px]">Date</th>
+                                <th className="px-3 py-2 font-bold text-slate-500 uppercase tracking-wider text-[9.5px]">Lead Investor</th>
+                                <th className="px-3 py-2 font-bold text-slate-500 uppercase tracking-wider text-[9.5px]">Co-investors</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rounds.map((round: any, idx: number) => (
+                                <FundingRoundRow key={idx} round={round} />
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
-                    </div>
-                  </>
-                )}
+                    );
+                  }
+
+                  // Fallback: flat display
+                  return (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="p-3 bg-emerald-50/40 rounded-lg border border-emerald-100/50 text-left">
+                          <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Total Capital Raised</p>
+                          <p className="text-base font-black text-emerald-650 mt-1 flex items-baseline gap-0.5">
+                            <span className="text-xs font-bold">$</span>
+                            {details?.funding_stages?.amount ? String(details.funding_stages.amount).replace("$", "") : "Unknown"}
+                          </p>
+                        </div>
+                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-left">
+                          <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Investment Status</p>
+                          <p className="text-xs font-bold text-slate-700 mt-1.5 truncate">
+                            {details?.funding_stages?.series?.includes("Bootstrapped") ? "Organic Operations" : "Strategic Fit Validated"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="space-y-2 text-left">
+                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Key Capital Supporters</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(details?.funding_stages?.investors || []).length > 0 ? (
+                            (details?.funding_stages?.investors || []).map((inv: string, idx: number) => (
+                              <span key={idx} className="bg-slate-50 hover:bg-slate-100 text-slate-700 px-2 py-1 rounded text-[10.5px] font-medium border border-slate-200/50 transition-colors">
+                                {inv}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-slate-400 text-xs italic font-medium">No investors found. Click the pencil icon to run AI Re-check.</span>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
+
 
               {/* Financials & Valuation Multiples Card */}
               <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm space-y-4">
@@ -1258,5 +1376,65 @@ export default function DetailModal({
         </div>
       </div>
     </div>
+  );
+}
+
+// --- FundingRoundRow: collapsible co-investors ---
+function FundingRoundRow({ round }: { round: any }) {
+  const [expanded, setExpanded] = React.useState(false);
+  const coInvestors: string[] = round.co_investors || [];
+
+  return (
+    <>
+      <tr className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
+        {/* Stage */}
+        <td className="px-3 py-2.5">
+          <span className="inline-block text-[10px] font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded uppercase tracking-wide whitespace-nowrap">
+            {round.stage || "—"}
+          </span>
+        </td>
+        {/* Amount */}
+        <td className="px-3 py-2.5 font-mono font-bold text-slate-800 text-[11px] whitespace-nowrap">
+          {round.amount || "—"}
+        </td>
+        {/* Date */}
+        <td className="px-3 py-2.5 text-slate-500 text-[10.5px] whitespace-nowrap">
+          {round.date || "—"}
+        </td>
+        {/* Lead Investor */}
+        <td className="px-3 py-2.5 text-slate-700 font-semibold text-[10.5px]">
+          {round.lead_investor || <span className="text-slate-350 italic font-normal">Undisclosed</span>}
+        </td>
+        {/* Co-investors toggle */}
+        <td className="px-3 py-2.5">
+          {coInvestors.length > 0 ? (
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 transition-colors"
+            >
+              {expanded ? "▼" : "▶"} {coInvestors.length} investor{coInvestors.length !== 1 ? "s" : ""}
+            </button>
+          ) : (
+            <span className="text-slate-350 text-[10px]">—</span>
+          )}
+        </td>
+      </tr>
+      {expanded && coInvestors.length > 0 && (
+        <tr className="bg-blue-50/30 border-b border-slate-100">
+          <td colSpan={5} className="px-4 py-2.5">
+            <div className="flex flex-wrap gap-1.5">
+              {coInvestors.map((inv, i) => (
+                <span
+                  key={i}
+                  className="bg-white border border-blue-100 text-slate-700 px-2 py-0.5 rounded text-[10px] font-medium"
+                >
+                  {inv}
+                </span>
+              ))}
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
   );
 }

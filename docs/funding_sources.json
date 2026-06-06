@@ -1,0 +1,17 @@
+{
+  "sources": [
+    { "name": "Inc42 Funding",  "domain": "inc42.com",       "priority": 1, "note": "Leading Indian startup funding news" },
+    { "name": "Tracxn",         "domain": "tracxn.com",      "priority": 2, "note": "Startup database with verified funding rounds" },
+    { "name": "Entrackr",       "domain": "entrackr.com",    "priority": 3, "note": "Indian funding tracker and deal alerts" },
+    { "name": "Crunchbase",     "domain": "crunchbase.com",  "priority": 4, "note": "Global startup funding database" },
+    { "name": "YourStory",      "domain": "yourstory.com",   "priority": 5, "note": "Indian startup media with deal coverage" },
+    { "name": "VCCEdge",        "domain": "vccedge.com",     "priority": 6, "note": "India PE/VC deal tracker" },
+    { "name": "PitchBook",      "domain": "pitchbook.com",   "priority": 7, "note": "Global private market data" }
+  ],
+  "fallback_query_keywords": [
+    "funding round", "raised", "investors", "valuation", "crore", "million", "series"
+  ],
+  "staleness_days": 60,
+  "max_snippets_chars": 2000,
+  "query_timeout_seconds": 12
+}

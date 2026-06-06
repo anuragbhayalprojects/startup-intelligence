@@ -3,13 +3,150 @@ import os
 import json
 from datetime import datetime, timezone
 import dateutil.parser
-from backend.ai.startup_analyzer import analyze_startup, discover_startup_names
+from backend.ai.startup_analyzer import (
+    analyze_startup,
+    discover_startup_names,
+    generate_news_summary,
+    collect_funding_snippets,
+    extract_funding_rounds
+)
 from backend.services.supabase_service import (
     upsert_startup,
     save_startup_analysis,
+    save_funding_rounds,
     check_existing_startup,
+    save_startup_news,
+    get_startup_news,
     supabase
 )
+
+def are_headlines_describing_same_event(headline1: str, headline2: str) -> bool:
+    """
+    Asks the local Ollama model if two headlines describe the exact same corporate event.
+    """
+    import requests
+    base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    model = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
+    
+    if not base_url:
+        return False
+        
+    prompt = f"""You are a precise semantic news deduplication assistant.
+    Your job is to determine if two headlines from different sources are reporting on the exact same corporate event (such as a funding round, launch, acquisition, or leadership change for a startup).
+    
+    Note:
+    1. Different sources may describe the same event with different word order or focus (e.g. source A emphasizes the lead investor: "Panthera Growth leads...", while source B emphasizes the startup: "Innefu Labs raises...").
+    2. The monetary amount (e.g., "$30 Mn", "$30 million") and the company names matching is a very strong indicator of the same funding event.
+    
+    Headline 1: "{headline1}"
+    Headline 2: "{headline2}"
+    
+    Based on the rules, are these two headlines describing the same corporate event?
+    Respond with only a single word: YES or NO. Do not explain."""
+    try:
+        response = requests.post(
+            f"{base_url}/api/generate",
+            json={
+                "model": model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {"num_ctx": 512, "temperature": 0.0}
+            },
+            headers={"Content-Type": "application/json"},
+            timeout=5.0
+        )
+        response.raise_for_status()
+        result = response.json().get("response", "").strip().lower()
+        return "yes" in result
+    except Exception:
+        return False
+
+def are_news_events_describing_same_story(headline1: str, desc1: str, headline2: str, desc2: str) -> bool:
+    """
+    Asks the local Ollama model if two news events (headlines and descriptions) describe the exact same event or story.
+    """
+    import requests
+    base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    model = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
+    
+    if not base_url:
+        return False
+        
+    prompt = f"""You are a precise semantic news deduplication assistant.
+Your job is to determine if two news events (each having a headline and a description/summary) from different sources are reporting on the exact same corporate event or story (such as a funding round, launch, acquisition, policy update, or leadership change for a startup).
+
+Note:
+1. Different sources may describe the same event with different word order or focus (e.g. source A emphasizes the lead investor: "Panthera Growth leads...", while source B emphasizes the startup: "Innefu Labs raises...").
+2. The description/summary provides context. If both headlines and descriptions are talking about the exact same underlying event (e.g., the same $30M funding round, or the same product launch), they are duplicates.
+3. If they describe completely different events (e.g. one is a funding round from 2024, and the other is a news article about a GST fine or partnership in 2026), they are NOT duplicates.
+
+News Event 1:
+Headline: "{headline1}"
+Context/Description: "{desc1}"
+
+News Event 2:
+Headline: "{headline2}"
+Context/Description: "{desc2}"
+
+Based on the rules, do these two news events describe the same corporate event or story?
+Respond with only a single word: YES or NO. Do not explain."""
+    try:
+        response = requests.post(
+            f"{base_url}/api/generate",
+            json={
+                "model": model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {"num_ctx": 1024, "temperature": 0.0}
+            },
+            headers={"Content-Type": "application/json"},
+            timeout=8.0
+        )
+        response.raise_for_status()
+        result = response.json().get("response", "").strip().lower()
+        return "yes" in result
+    except Exception:
+        return False
+
+def is_news_duplicate(new_headline: str, new_description: str, existing_news: list) -> bool:
+    """
+    Determines if a new headline/description is a duplicate of any existing news using a hybrid approach:
+    1. Fast Jaccard and Overlap token coefficient checks.
+    2. Deep LLM semantic double-check on moderate match candidates, incorporating description context.
+    """
+    if not existing_news:
+        return False
+        
+    def clean_tokens(text):
+        text = re.sub(r'[^a-z0-9\s]', '', text.lower())
+        return set(text.split())
+        
+    new_tokens = clean_tokens(new_headline)
+    if not new_tokens:
+        return False
+        
+    for news in existing_news:
+        exist_headline = news.get("headline", "")
+        exist_desc = news.get("summary") or news.get("description") or ""
+        exist_tokens = clean_tokens(exist_headline)
+        if not exist_tokens:
+            continue
+            
+        intersection = new_tokens.intersection(exist_tokens)
+        union = new_tokens.union(exist_tokens)
+        jaccard = len(intersection) / len(union) if union else 0.0
+        overlap = len(intersection) / min(len(new_tokens), len(exist_tokens)) if min(len(new_tokens), len(exist_tokens)) else 0.0
+        
+        # High-confidence heuristic match
+        if jaccard > 0.75 or overlap > 0.90:
+            return True
+            
+        # Moderate similarity candidate: ask LLM
+        if jaccard > 0.20 or overlap > 0.35:
+            if are_news_events_describing_same_story(new_headline, new_description, exist_headline, exist_desc):
+                return True
+                
+    return False
 
 def pipeline_log(message):
     print(message)
@@ -31,7 +168,7 @@ def clean_string(text):
     text = re.sub(r'\b(\w+)-(owned|backed|funded|incubated|acquired|led|run)\b', r'\1 \2', text, flags=re.IGNORECASE)
     
     # 1. Split at common action verbs, financial descriptors, or noise in headlines (Expanded)
-    verbs_pattern = r'\b(acquires|acquiring|acquisition|raises|raising|launches|launching|posts|secures|securing|crosses|signs|partners|to\s+invest|to|is|re-enters|enters|announces|backing|backs|rolls|gets|got|funding|deploys|commits|unveils|debuts|be|are|was|were|has|have|had|premiumisation|buyback|revenue|profit|shares|capital|investment|opportunities|valuation|valued\s+at|value|pre-money|round|esop|registrations|report|weekly|monthly|annually|results|performance|earnings|stocks|stock|share|options|option|units|unit|equity|debt|rallies|seeks|plans|hit|hits|gst|soup|scores|score|goes|go|wins|win|grabs|grab|leads|lead|led\s+by|eyes|eye|targets|target|bids|bid|prepares|prepare|aims|aim|buys|buy|sells|sell|makes|make|mark|marks|down|up|closes|closed|invests\s+in|invests|funded|funds|partners\s+with|owned|backed|incubated|run)\b'
+    verbs_pattern = r'\b(acquires|acquiring|acquisition|raises|raising|launches|launching|posts|secures|securing|crosses|signs|partners|to\s+invest|to|is|re-enters|enters|announces|backing|backs|rolls|gets|got|funding|deploys|commits|unveils|debuts|be|are|was|were|has|have|had|premiumisation|buyback|revenue|profit|shares|capital|investment|opportunities|valuation|valued\s+at|value|pre-money|round|esop|registrations|report|weekly|monthly|annually|results|performance|earnings|stocks|stock|share|options|option|units|unit|equity|debt|rallies|seeks|plans|hit|hits|gst|soup|scores|score|goes|go|wins|win|grabs|grab|leads|lead|led\s+by|eyes|eye|targets|target|bids|bid|prepares|prepare|aims|aim|buys|buy|sells|sell|makes|make|mark|marks|down|up|closes|closed|invests\s+in|invests|funded|funds|partners\s+with|owned|backed|incubated|run|settles|settled|settle|settling|violates|violation|violations|fined|fine|slaps|slapped|sues|sued|reverses|reversed|reverse|soars|soar|soared|proposes|proposed|propose|bans|banned|ban)\b'
     
     # Split text at the first occurrence of any action verbs
     match = re.split(verbs_pattern, text, maxsplit=1, flags=re.IGNORECASE)
@@ -78,6 +215,10 @@ def get_clean_startup_name(headline, extracted_name):
             return True
         name_lower = name.lower().strip()
         
+        # Filter out very short names
+        if len(name_lower) < 3:
+            return True
+            
         # Split into individual lowercase tokens
         tokens = re.findall(r'\b\w+\b', name_lower)
         
@@ -85,7 +226,8 @@ def get_clean_startup_name(headline, extracted_name):
         investor_names = {
             "vanguard", "prosus", "softbank", "tiger global", "peak xv", "sequoia", 
             "westbridge", "temasek", "accel", "lightspeed", "elevation", "matrix partners", 
-            "kalaari", "nexus", "chiratae", "google", "apple", "microsoft", "amazon", "meta"
+            "kalaari", "nexus", "chiratae", "google", "apple", "microsoft", "amazon", "meta",
+            "together", "together fund", "friale"
         }
         if any(inv in tokens for inv in investor_names):
             return True
@@ -219,10 +361,16 @@ def search_website_duckduckgo(clean_name):
                             "facebook.com", "youtube.com", "instagram.com", "news", "blog", 
                             "inc42.com", "entrackr.com", "techcrunch.com"
                         ]
+                        path_parts = [p for p in real_url.replace("https://", "").replace("http://", "").split("/") if p]
+                        is_deep = len(path_parts) > 1
+                        has_news = any(k in real_url_lower for k in ["/news/", "/article/", "/press/", "/raises-", "-raises-", "-funding", "/funding/", "/blog/", "/feed/", "/portfolio/", "/deals/", "/funding-round", "/category/"])
+                        has_date = any(p.isdigit() and len(p) == 4 for p in path_parts)
+                        
                         if not any(domain in real_url_lower for domain in exclude_domains):
-                            if verify_website(real_url):
-                                pipeline_log(f"✅ Found active official website via search: {real_url}")
-                                return real_url
+                            if not (is_deep and (has_news or has_date or len(real_url) > 50)):
+                                if verify_website(real_url):
+                                    pipeline_log(f"✅ Found active official website via search: {real_url}")
+                                    return real_url
     except Exception as e:
         pipeline_log(f"⚠️ Search for website failed: {e}")
     return None
@@ -233,11 +381,23 @@ def get_clean_website(clean_name, extracted_website):
     Uses AI extracted website as primary, with a robust mapped lookup fallback.
     """
     # 1. Try AI-extracted website first
-    if extracted_website and "error" not in extracted_website and "google.com" not in extracted_website and len(extracted_website) <= 40:
-        if not any(char in extracted_website for char in ["₹", "$", "%", "&", "?", "'", "’", "`", " ", "’"]):
-            extracted_website = extracted_website.strip()
-            if verify_website(extracted_website):
-                return extracted_website
+    if extracted_website and "error" not in extracted_website and len(extracted_website) <= 100:
+        bad_domains = ["google.com", "inc42.com", "entrackr.com", "techcrunch.com", "yourstory.com", "vccircle.com", "moneycontrol.com", "indiatimes.com", "livemint.com", "linkedin.com", "twitter.com", "facebook.com", "youtube.com", "wikipedia.org", "medium.com"]
+        extracted_website_lower = extracted_website.lower()
+        if not any(bd in extracted_website_lower for bd in bad_domains):
+            if not any(char in extracted_website for char in ["₹", "$", "%", "&", "?", "'", "’", "`", " ", "’"]):
+                extracted_website = extracted_website.strip()
+                path_parts = [p for p in extracted_website.replace("https://", "").replace("http://", "").split("/") if p]
+                is_deep = len(path_parts) > 1
+                has_news = any(k in extracted_website_lower for k in ["/news/", "/article/", "/press/", "/raises-", "-raises-", "-funding", "/funding/", "/blog/", "/feed/", "/portfolio/", "/deals/", "/funding-round", "/category/"])
+                has_date = any(p.isdigit() and len(p) == 4 for p in path_parts)
+                
+                if is_deep and (has_news or has_date or len(extracted_website) > 50):
+                    # Discard this website as it is likely a news article link rather than the official home page
+                    pass
+                else:
+                    if verify_website(extracted_website):
+                        return extracted_website
         
     # 2. Known exact mappings for standard startups
     known_domains = {
@@ -298,7 +458,7 @@ def get_clean_website(clean_name, extracted_website):
         
     return ""
 
-def process_startup(startup):
+def process_startup(startup, industry_filter: str = "", sector_filter: str = "", subsector_filter: str = ""):
     """
     Two-Pass AI Pipeline processor:
     Pass 1: Discover all startup names mentioned in the news headline & body.
@@ -314,15 +474,11 @@ def process_startup(startup):
     # Step 1: Run Pass 1 (Name Discovery) to extract all featured startup names
     discovered_names = discover_startup_names(original_headline, original_description)
     
-    # Only fallback to headline cleaning if discovery actually failed (returned None)
-    if discovered_names is None:
+    # Trigger Python heuristics fallback if discovery failed (None) or returned empty ([])
+    if not discovered_names:
         fallback_name = get_clean_startup_name(original_headline, None)
         if fallback_name:
             discovered_names = [fallback_name]
-    elif not discovered_names:
-        # LLM successfully ran and determined there were no startup names
-        pipeline_log(f"Skipping generic/industry news article (no startup name extracted by AI): '{original_headline}'")
-        return None
             
     if not discovered_names:
         pipeline_log(f"Skipping generic/industry news article (no startup name extracted): '{original_headline}'")
@@ -371,19 +527,121 @@ def process_startup(startup):
                     now = datetime.now(timezone.utc)
                     age = now - created_at
                     if age.days < 30:
-                        pipeline_log(f"✅ Cache hit: '{clean_name}' already exists with a fresh analysis (created {age.days} days ago). Skipping re-analysis.")
+                        # Check global filters on cache hit first
+                        match_ind = existing_startup.get("industry", "")
+                        match_sec = existing_startup.get("sector", "")
+                        match_sub = existing_startup.get("subsector", "")
+                        
+                        if industry_filter and (not match_ind or industry_filter.strip().lower() not in match_ind.strip().lower()):
+                            pipeline_log(f"⚠️ Skipping cache hit '{clean_name}': industry '{match_ind}' does not match filter '{industry_filter}'")
+                            continue
+                        if sector_filter and (not match_sec or sector_filter.strip().lower() not in match_sec.strip().lower()):
+                            pipeline_log(f"⚠️ Skipping cache hit '{clean_name}': sector '{match_sec}' does not match filter '{sector_filter}'")
+                            continue
+                        if subsector_filter and (not match_sub or subsector_filter.strip().lower() not in match_sub.strip().lower()):
+                            pipeline_log(f"⚠️ Skipping cache hit '{clean_name}': subsector '{match_sub}' does not match filter '{subsector_filter}'")
+                            continue
+                            
+                        existing_news = get_startup_news(startup_id) or []
+                        news_summary = None
+                        if is_news_duplicate(original_headline, original_description, existing_news):
+                            pipeline_log(f"⏭️ Skipping duplicate news event for '{clean_name}': '{original_headline}'")
+                        else:
+                            pipeline_log(f"✅ Cache hit: '{clean_name}' already exists with a fresh analysis (created {age.days} days ago). Saving new news event.")
+                            news_summary = generate_news_summary(clean_name, original_headline, original_description)
+
+                            # Save news snapshot even for cache hits — so news history accumulates
+                            try:
+                                save_startup_news(
+                                    startup_id=startup_id,
+                                    headline=original_headline,
+                                    summary=news_summary,
+                                    source=startup.get("source", ""),
+                                    source_url=startup.get("source_url", ""),
+                                    published_at=startup.get("published_at")
+                                )
+                                pipeline_log(f"📰 Saved news event for cache hit '{clean_name}'.")
+                            except Exception as e:
+                                pipeline_log(f"⚠️ Failed to save news event for cache hit '{clean_name}': {e}")
+
+                        # Update description with the startup-specific summary
+                        if news_summary:
+                            try:
+                                supabase.table("startups").update({"description": news_summary}).eq("id", startup_id).execute()
+                                existing_startup["description"] = news_summary
+                            except Exception as e:
+                                pipeline_log(f"⚠️ Failed to update description for cache hit '{clean_name}': {e}")
+
+                        # Check if funding data is stale (>60 days) — run Pass 3 if needed
+                        funding_analysis_rec = analysis_resp.data[0] if analysis_resp.data else {}
+                        last_funding_at_str = funding_analysis_rec.get("last_funding_enriched_at")
+                        funding_stale = True
+                        if last_funding_at_str:
+                            try:
+                                last_funding_at = dateutil.parser.isoparse(last_funding_at_str)
+                                if last_funding_at.tzinfo is None:
+                                    last_funding_at = last_funding_at.replace(tzinfo=timezone.utc)
+                                funding_age_days = (datetime.now(timezone.utc) - last_funding_at).days
+                                funding_stale = funding_age_days > 60
+                            except Exception:
+                                funding_stale = True
+                        # Also stale if funding_rounds column is null or empty
+                        existing_rounds = funding_analysis_rec.get("funding_rounds")
+                        if not existing_rounds:
+                            funding_stale = True
+
+                        if funding_stale:
+                            pipeline_log(f"💰 Funding data stale for '{clean_name}'. Running Pass 3 targeted enrichment...")
+                            try:
+                                funding_snippets = collect_funding_snippets(clean_name)
+                                funding_data = extract_funding_rounds(clean_name, funding_snippets)
+                                if funding_data:
+                                    analysis_id = funding_analysis_rec.get("id")
+                                    save_funding_rounds(startup_id, funding_data, analysis_id)
+                                    pipeline_log(f"💰 Funding rounds updated for '{clean_name}'.")
+                            except Exception as fe:
+                                pipeline_log(f"⚠️ Pass 3 funding update failed for '{clean_name}': {fe}")
+
                         processed_results.append({
                             "startup": existing_startup,
                             "analysis": record.get("analysis_json") or {}
                         })
                         continue
         
-        # Step 2: Run Pass 2 (Rich Data Enrichment using targeted search)
-        pipeline_log("Step 2: Running AI Pass 2 detailed enrichment...")
+        # Step 2a: Generate a startup-specific news summary (fixes shared-description bug)
+        pipeline_log(f"Step 2a: Generating startup-specific news summary for '{clean_name}'...")
+        news_summary = generate_news_summary(clean_name, original_headline, original_description)
+        startup_item["description"] = news_summary  # Overwrite with targeted summary
+        pipeline_log(f"📰 News summary: {news_summary[:120]}...")
+
+        # Step 2b: Run Pass 2 (Rich Data Enrichment using targeted search)
+        pipeline_log("Step 2b: Running AI Pass 2 detailed enrichment...")
         analysis = analyze_startup(startup_item)
         
         if not analysis or "error" in analysis:
             pipeline_log(f"❌ AI Pass 2 analysis failed for '{clean_name}'. Error: {analysis.get('error') if analysis else 'No response'}")
+            continue
+            
+        # Get normalized taxonomy details
+        raw_industry = analysis.get("classification", {}).get("industry")
+        raw_sector = analysis.get("classification", {}).get("sector") or analysis.get("classification", {}).get("primary_sector") or "Unknown"
+        raw_subsector = analysis.get("classification", {}).get("subsector") or "Unknown"
+        
+        from backend.services.supabase_service import normalize_taxonomy
+        try:
+            industry, sector, subsector = normalize_taxonomy(clean_name, raw_industry, raw_sector, raw_subsector)
+        except Exception:
+            industry, sector, subsector = raw_industry, raw_sector, raw_subsector
+            
+        # Post-enrichment filter check
+        if industry_filter and (not industry or industry_filter.strip().lower() not in industry.strip().lower()):
+            pipeline_log(f"⚠️ Skipping '{clean_name}': industry '{industry}' does not match filter '{industry_filter}'")
+            continue
+        if sector_filter and (not sector or sector_filter.strip().lower() not in sector.strip().lower()):
+            pipeline_log(f"⚠️ Skipping '{clean_name}': sector '{sector}' does not match filter '{sector_filter}'")
+            continue
+        if subsector_filter and (not subsector or subsector_filter.strip().lower() not in subsector.strip().lower()):
+            pipeline_log(f"⚠️ Skipping '{clean_name}': subsector '{subsector}' does not match filter '{subsector_filter}'")
             continue
             
         # Get verified website domain
@@ -398,15 +656,52 @@ def process_startup(startup):
         
         if response and len(response) > 0:
             startup_id = response[0]["id"]
-            
+
             # Step 4: Save strategic enrichment analysis parameters
             pipeline_log("Step 4: Saving startup AI analysis parameters to Supabase...")
             analysis_response = save_startup_analysis(startup_id, analysis)
-            
+
+            # Step 6: Save funding rounds to dedicated columns in startup_analysis
+            if analysis.get("funding_rounds") is not None:
+                pipeline_log("Step 6: Saving funding rounds to Supabase...")
+                try:
+                    # Get the just-inserted analysis row id
+                    analysis_row = supabase.table("startup_analysis").select("id").eq("startup_id", startup_id).execute()
+                    analysis_id = analysis_row.data[0]["id"] if analysis_row.data else None
+                    funding_data = {
+                        "rounds": analysis.get("funding_rounds", []),
+                        "total_funding": analysis.get("total_funding", ""),
+                        "latest_stage": analysis.get("latest_stage", ""),
+                        "latest_date": analysis.get("latest_funding_date", "")
+                    }
+                    save_funding_rounds(startup_id, funding_data, analysis_id)
+                    pipeline_log(f"💰 Funding rounds saved for '{clean_name}'.")
+                except Exception as fe:
+                    pipeline_log(f"⚠️ Failed to save funding rounds for '{clean_name}': {fe}")
+
+            # Step 5: Save news event to startup_news history table
+            pipeline_log("Step 5: Saving news event to startup_news history...")
+            try:
+                existing_news = get_startup_news(startup_id) or []
+                if is_news_duplicate(original_headline, original_description, existing_news):
+                    pipeline_log(f"⏭️ Skipping duplicate news event for new startup '{clean_name}': '{original_headline}'")
+                else:
+                    save_startup_news(
+                        startup_id=startup_id,
+                        headline=original_headline,
+                        summary=news_summary,
+                        source=startup.get("source", ""),
+                        source_url=startup.get("source_url", ""),
+                        published_at=startup.get("published_at")
+                    )
+                    pipeline_log(f"📰 News event saved for '{clean_name}'.")
+            except Exception as e:
+                pipeline_log(f"⚠️ Failed to save news event for '{clean_name}': {e}")
+
             pipeline_log(f"✅ Successfully processed startup: {clean_name}")
             processed_results.append({
                 "startup": response[0],
                 "analysis": analysis_response
             })
-            
+
     return processed_results if processed_results else None

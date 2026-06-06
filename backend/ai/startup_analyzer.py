@@ -13,6 +13,8 @@ except ImportError:
     OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
 
 PROMPT_PATH = os.path.join(os.path.dirname(__file__), "../prompts/detailed_analysis_prompt.txt")
+FUNDING_PROMPT_PATH = os.path.join(os.path.dirname(__file__), "../prompts/funding_extraction_prompt.txt")
+FUNDING_SOURCES_PATH = os.path.join(os.path.dirname(__file__), "../../docs/funding_sources.json")
 
 # --- Utility Functions ---
 
@@ -114,7 +116,178 @@ def discover_startup_names(headline: str, description: str) -> list:
         
     return None
 
-# --- Pass 2: Data Enrichment & Core Analysis Function ---
+# --- News Summary: Startup-Specific News Snippet Generation ---
+
+def generate_news_summary(startup_name: str, headline: str, description: str) -> str:
+    """
+    Generates a 2-3 sentence news summary specifically about the named startup
+    from the given article headline and description.
+    Used before Pass 2 to give each startup an isolated, grounded description.
+    Returns a plain-text summary string, or an empty string on failure.
+    """
+    if not OLLAMA_BASE_URL:
+        return description  # Fallback: use raw description if Ollama is unavailable
+
+    prompt_path = os.path.join(os.path.dirname(__file__), "../prompts/news_summary_prompt.txt")
+    try:
+        with open(prompt_path, "r") as f:
+            prompt_template = Template(f.read())
+        prompt = prompt_template.render(
+            startup_name=startup_name,
+            headline=headline,
+            description=description
+        )
+    except Exception as e:
+        print(f"⚠️ [News Summary] Failed to load news summary template: {e}")
+        return description
+
+    try:
+        response = requests.post(
+            f"{OLLAMA_BASE_URL}/api/generate",
+            json={
+                "model": OLLAMA_MODEL,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "num_ctx": 2048,
+                    "num_predict": 150   # Keep output short — 2-3 sentences only
+                }
+            },
+            headers={"Content-Type": "application/json"},
+            timeout=20.0
+        )
+        response.raise_for_status()
+        summary = response.json().get("response", "").strip()
+        if summary and len(summary) > 20:
+            print(f"📰 [News Summary] Generated for '{startup_name}': {summary[:100]}...")
+            return summary
+    except Exception as e:
+        print(f"⚠️ [News Summary] Generation failed for '{startup_name}': {e}")
+
+    return description  # Fallback to raw description on any failure
+
+
+# --- Pass 3: Dedicated Funding Enrichment ---
+
+def _load_funding_sources() -> dict:
+    """Loads the funding_sources.json config. Returns empty dict on failure."""
+    try:
+        with open(FUNDING_SOURCES_PATH, "r") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"⚠️ [Pass 3] Failed to load funding_sources.json: {e}")
+        return {}
+
+
+def build_funding_queries(startup_name: str, website: str = "") -> list:
+    """
+    Builds multiple tiered DDG search queries for funding data,
+    ordered by source priority from funding_sources.json.
+    Returns a list of query strings.
+    """
+    config = _load_funding_sources()
+    sources = sorted(config.get("sources", []), key=lambda s: s.get("priority", 99))
+    keywords = config.get("fallback_query_keywords", ["funding", "investors", "raised"])
+
+    queries = []
+    # Tier 1: India-first sources in pairs
+    for i in range(0, len(sources), 2):
+        pair = sources[i:i+2]
+        site_filter = " OR ".join(f"site:{s['domain']}" for s in pair)
+        queries.append(f'"{startup_name}" funding raised investors ({site_filter})')
+
+    # Tier 2: Generic fallback
+    kw_str = " ".join(keywords[:4])
+    queries.append(f'"{startup_name}" {kw_str}')
+
+    return queries
+
+
+def collect_funding_snippets(startup_name: str, website: str = "") -> str:
+    """
+    Runs tiered DDG queries and aggregates funding search snippets.
+    Stops early when sufficient context is collected (max_snippets_chars from config).
+    Returns combined plain-text snippets.
+    """
+    config = _load_funding_sources()
+    max_chars = config.get("max_snippets_chars", 2000)
+    timeout = config.get("query_timeout_seconds", 12)
+
+    queries = build_funding_queries(startup_name, website)
+    all_snippets = []
+    total_chars = 0
+
+    for query in queries:
+        if total_chars >= max_chars:
+            break
+        try:
+            print(f"💰 [Pass 3] Funding search: '{query[:80]}...'")
+            snippets = search_duckduckgo(query)
+            if snippets:
+                all_snippets.append(snippets)
+                total_chars += len(snippets)
+        except Exception as e:
+            print(f"⚠️ [Pass 3] Funding query failed: {e}")
+            continue
+
+    combined = "\n\n".join(all_snippets)
+    print(f"💰 [Pass 3] Collected {len(combined)} chars of funding context for '{startup_name}'")
+    return combined
+
+
+def extract_funding_rounds(startup_name: str, funding_snippets: str) -> dict:
+    """
+    Pass 3: Runs a dedicated lightweight LLM call to extract structured
+    funding round data from the collected search snippets.
+    Returns a dict: {rounds: [...], total_funding: str, latest_stage: str, latest_date: str}
+    """
+    if not OLLAMA_BASE_URL:
+        return {}
+    if not funding_snippets or len(funding_snippets.strip()) < 50:
+        print(f"⚠️ [Pass 3] Insufficient funding snippets for '{startup_name}'. Skipping LLM call.")
+        return {}
+
+    try:
+        with open(FUNDING_PROMPT_PATH, "r") as f:
+            prompt_template = Template(f.read())
+        prompt = prompt_template.render(
+            startup_name=startup_name,
+            funding_search_context=funding_snippets
+        )
+    except Exception as e:
+        print(f"⚠️ [Pass 3] Failed to load funding extraction template: {e}")
+        return {}
+
+    try:
+        response = requests.post(
+            f"{OLLAMA_BASE_URL}/api/generate",
+            json={
+                "model": OLLAMA_MODEL,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "num_ctx": 3000,
+                    "num_predict": 450
+                }
+            },
+            headers={"Content-Type": "application/json"},
+            timeout=30.0
+        )
+        response.raise_for_status()
+        result_text = response.json().get("response", "")
+        cleaned = clean_llm_response(result_text)
+        data = json.loads(cleaned)
+        rounds = data.get("rounds", [])
+        print(f"💰 [Pass 3] Extracted {len(rounds)} funding round(s) for '{startup_name}'")
+        return data
+    except json.JSONDecodeError:
+        print(f"⚠️ [Pass 3] Failed to parse funding JSON for '{startup_name}'")
+        return {}
+    except Exception as e:
+        print(f"⚠️ [Pass 3] Funding extraction failed for '{startup_name}': {e}")
+        return {}
+
+
 
 def build_filtered_query(startup_name: str, topic: str, website: str = "") -> str:
     """Builds a search query filtered by priority sources and website domain."""
@@ -125,15 +298,16 @@ def build_filtered_query(startup_name: str, topic: str, website: str = "") -> st
         if domain:
             site_filters.append(f"site:{domain}")
             
-    filter_str = " OR ".join(site_filters)
-    query = f"{startup_name} {topic}"
-    if filter_str:
-        query += f" ({filter_str})"
     if website:
-        # Extract clean domain
+        # Extract clean domain and insert it as the first site restrict filter
         clean_domain = website.replace("https://", "").replace("http://", "").replace("www.", "").split("/")[0]
         if clean_domain:
-            query += f" {clean_domain}"
+            site_filters.insert(0, f"site:{clean_domain}")
+            
+    filter_str = " OR ".join(site_filters)
+    query = f'"{startup_name}" {topic}'
+    if filter_str:
+        query += f" ({filter_str})"
     return query
 
 def analyze_startup(startup):
@@ -168,6 +342,9 @@ def analyze_startup(startup):
     print(f"🔍 [Phase 2] Searching for founders: '{founders_query}'")
     try:
         founders_snippets = search_duckduckgo(founders_query)
+        if not founders_snippets or "No search results" in founders_snippets or "Could not perform web search" in founders_snippets:
+            print(f"🔄 [Phase 2] Broad search fallback for founders of: '{clean_name}'")
+            founders_snippets = search_duckduckgo(f'"{clean_name}" founders OR co-founders')
     except Exception as e:
         print(f"⚠️ Founders search failed: {e}")
         founders_snippets = ""
@@ -177,6 +354,9 @@ def analyze_startup(startup):
     print(f"🔍 [Phase 3] Searching for funding: '{funding_query}'")
     try:
         funding_snippets = search_duckduckgo(funding_query)
+        if not funding_snippets or "No search results" in funding_snippets or "Could not perform web search" in funding_snippets:
+            print(f"🔄 [Phase 3] Broad search fallback for funding of: '{clean_name}'")
+            funding_snippets = search_duckduckgo(f'"{clean_name}" funding round valuation investors')
     except Exception as e:
         print(f"⚠️ Funding search failed: {e}")
         funding_snippets = ""
@@ -240,11 +420,42 @@ def analyze_startup(startup):
             analysis_result["founded_year"] = tracxn_profile["founded_year"]
             if tracxn_profile["founders"]:
                 analysis_result["founders"] = tracxn_profile["founders"]
-            if "funding_stages" not in analysis_result:
-                analysis_result["funding_stages"] = {}
-            analysis_result["funding_stages"]["series"] = tracxn_profile["funding_stage"]
-            analysis_result["funding_stages"]["amount"] = tracxn_profile["funding_amount"]
-            
+
+        # --- Pass 3: Dedicated Funding Enrichment ---
+        print(f"\n💰 [Pass 3] Starting dedicated funding enrichment for '{clean_name}'...")
+        funding_snippets = collect_funding_snippets(clean_name, website)
+        funding_data = extract_funding_rounds(clean_name, funding_snippets)
+
+        if funding_data and funding_data.get("rounds"):
+            # Merge rich funding data into the analysis result
+            analysis_result["funding_rounds"] = funding_data.get("rounds", [])
+            analysis_result["total_funding"] = funding_data.get("total_funding", "")
+            analysis_result["latest_stage"] = funding_data.get("latest_stage", "")
+            analysis_result["latest_funding_date"] = funding_data.get("latest_date", "")
+            # Keep backward-compat funding_stages using Pass 3 data
+            rounds = funding_data["rounds"]
+            latest = rounds[0] if rounds else {}
+            all_investors = []
+            for r in rounds:
+                if r.get("lead_investor"):
+                    all_investors.append(r["lead_investor"])
+                all_investors.extend(r.get("co_investors", []))
+            analysis_result["funding_stages"] = {
+                "series": latest.get("stage", ""),
+                "amount": funding_data.get("total_funding", ""),
+                "investors": list(dict.fromkeys(all_investors))  # deduplicated
+            }
+            print(f"💰 [Pass 3] Merged {len(rounds)} round(s) into analysis for '{clean_name}'")
+        elif tracxn_profile:
+            # Fallback: use Tracxn flat data if Pass 3 found nothing
+            analysis_result.setdefault("funding_stages", {})
+            analysis_result["funding_stages"]["series"] = tracxn_profile.get("funding_stage", "")
+            analysis_result["funding_stages"]["amount"] = tracxn_profile.get("funding_amount", "")
+            analysis_result["funding_rounds"] = []
+            print(f"💰 [Pass 3] No rounds found — using Tracxn flat data as fallback.")
+        else:
+            analysis_result["funding_rounds"] = []
+
         return analysis_result
 
     except json.JSONDecodeError as e:

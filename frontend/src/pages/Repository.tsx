@@ -299,9 +299,12 @@ HansaCredit,Prepaid payroll card issuance layer for building SME credit buffers.
           name: "",
           website: "",
           description: "",
+          industry: "Financial Services",
           sector: "LendingTech",
+          subsector: "Unknown",
           funding_stage: "Seed",
-          funding_amount: "$1M"
+          funding_amount: "$1M",
+          business_models: []
         });
       }
     } catch (err: any) {

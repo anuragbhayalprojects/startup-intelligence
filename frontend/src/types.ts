@@ -42,12 +42,39 @@ export interface Startup {
 
   // Live database PostgreSQL relational joins
   startup_analyses?: { id?: number; analysis_data: StartupAnalysis }[];
+  startup_analysis?: { analysis_json?: StartupAnalysis; analysis_data?: StartupAnalysis }[];
+
+  // News history feed — populated from startup_news table
+  recent_news?: {
+    id: number;
+    headline: string;
+    summary?: string;
+    source?: string;
+    source_url?: string;
+    published_at?: string;
+  }[];
+
+  // Funding rounds — populated from startup_analysis Pass 3 enrichment
+  funding_rounds?: {
+    stage: string;
+    amount: string;
+    date: string;
+    lead_investor: string;
+    co_investors: string[];
+  }[];
+  total_funding?: string;
+  latest_round_stage?: string;
+  latest_round_date?: string;
 
   // Master Taxonomy attributes
   industry?: string;
   business_models?: string[];
   industry_relevance?: string[];
   tags?: string[];
+
+  // Founder info (synced from analysis)
+  founder_name?: string;
+  founder_linkedin_url?: string;
 }
 
 export interface StartupAnalysis {

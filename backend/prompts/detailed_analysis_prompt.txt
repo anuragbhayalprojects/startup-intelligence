@@ -20,7 +20,7 @@ Your analysis must cover the following areas and follow the JSON structure preci
 {
   "extracted_startup_name": "The clean, real brand name of the startup (e.g. 'Digit Insurance', 'Perfios', 'Zerodha').",
   "startup_website": "The official website URL (e.g., 'https://godigit.com', 'https://perfios.com').",
-  "founded_year": 2019,
+  "founded_year": null,
   "summary": {
     "one_liner": "A brief, compelling one-sentence summary of what the company does/its core business. Do NOT summarize the news article, funding round, acquisitions, or recent financial events. Focus strictly on the startup's permanent business function (e.g., 'A digital general insurance aggregator providing cloud-based claims settlement').",
     "business_model": "A detailed 4-5 sentence paragraph describing the startup's core business model, value propositions, and operational offerings.",
@@ -36,22 +36,17 @@ Your analysis must cover the following areas and follow the JSON structure preci
   ],
   "linkedin_reachout_message": "A personalized 2-3 sentence LinkedIn outreach request message to the founder(s) proposing a strategic sandbox pilot collaboration with ICICI Bank.",
   "email_reachout_message": "A separate professional email outreach proposal writeup (including subject line and body) to the founder(s) proposing an integration or pilot with ICICI Bank.",
-  "funding_stages": {
-    "series": "Current funding round (e.g., Series B, Series D, Seed, Bootstrapped). If not available, leave empty string.",
-    "amount": "Total funding amount or last raised round capital (e.g., $420M, $12M). If not available, leave empty string.",
-    "investors": ["Investor 1", "Investor 2", "Investor 3"]
-  },
   "valuation_metrics": {
     "revenue": "Estimated or actual annual revenue. If not available, leave empty string or null.",
     "ebitda_multiple": "Revenue or EBITDA multiple details. If not available, leave empty string or null.",
-    "other_metrics": "Any other key metric. If not available, leave empty string or null."
+    "other_metrics": "Any other key metric (e.g. GMV, AUM, loan book size). If not available, leave empty string or null."
   },
   "bfsi_relevance": {
     "is_relevant": true,
     "relevance_score": 96,
     "use_cases": [
       {
-        "icici_entity": "Relevant ICICI entity (e.g., ICICI Bank, ICICI Lombard, ICICI Securities, ICICI Prudential AMC, ICICI Prudential Life, ICICI HFC)",
+        "icici_entity": "Must be EXACTLY one of: 'ICICI Bank', 'ICICI Lombard', 'ICICI Securities', 'ICICI Prudential AMC', 'ICICI Prudential Life', 'ICICI HFC'. If not relevant to any, use 'Not Relevant to any of the ICICI Group Companies'.",
         "use_case": "Describe a specific, practical use case.",
         "potential_impact": "Explain the potential impact."
       }
@@ -80,7 +75,7 @@ Your analysis must cover the following areas and follow the JSON structure preci
 **Instructions & Taxonomy Constraints:**
 
 1. **Strictly adhere to the JSON format.** Do not include any conversational wrapping outside of the JSON block (e.g. start directly with ```json and end with ```).
-2. **Use the retrieved web search results** to fill in the founders' details, founding year, funding round/investors, and valuation/financial metrics accurately.
+2. **Use the retrieved web search results** to fill in the founders' details, founding year, and valuation/financial metrics accurately. Funding round details are handled separately — do NOT fill the funding_stages field.
 3. **Master Taxonomy Classification Rules (STRICT CONTROLS):**
    - You MUST classify the startup into the hierarchical tree shown in "Allowed Master Taxonomy Schema" above.
    - **classification.industry** must EXACTLY match the "name" of one of the industries in the tree. E.g., if a startup is coworking like Awfis, its industry is `Real Estate & Construction`. If a startup is a travel booking site like EaseMyTrip, its industry is `Consumer Internet`.
@@ -99,6 +94,11 @@ Your analysis must cover the following areas and follow the JSON structure preci
 **CRITICAL VALUE RESOLUTION CONTROLS:**
 - Do NOT use mock/placeholder defaults for funding stage/amount or relevance fields. If the funding amount or stage is not available in the search context or article, set it to an empty string or null. Do NOT output "$1.5M" or "Seed" as default unless confirmed by the context.
 - Similarly, do NOT default the relevance to ICICI or use cases to placeholder templates. If there is no specific relevance to any ICICI entity or BFSI sector, mark "is_relevant" as false and leave use_cases empty.
+
+**CRITICAL ICICI RELEVANCE & FOUNDED YEAR CONTROLS:**
+- The value for `icici_entity` inside `use_cases` MUST be strictly chosen from this exact list of ICICI Group Companies: `['ICICI Bank', 'ICICI Lombard', 'ICICI Securities', 'ICICI Prudential AMC', 'ICICI Prudential Life', 'ICICI HFC']`. 
+- If the startup is not relevant to any of the above ICICI Group Companies, you MUST set `icici_entity` to `"Not Relevant to any of the ICICI Group Companies"`, or set `is_relevant` to false and leave `use_cases` empty. Under no circumstances should you output any non-ICICI entity (such as "Government of India", external companies, or other organizations).
+- You MUST extract the actual founded year of the startup from the search context. If the founded year is not explicitly mentioned or cannot be inferred from the search results, set "founded_year" to null. Do NOT use copyright years (e.g. '© 2019'), regulatory/registration dates (e.g. SEBI/GST/ISO registrations from 2018 or 2019), or random years in the text context as the founded year. Under no circumstances should you default this to "2019" or "2018" or any other placeholder.
 
 Begin analysis.
 

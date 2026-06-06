@@ -9,6 +9,7 @@ const API_URL = rawApiUrl.endsWith("/")
   : (rawApiUrl.endsWith("/api") ? rawApiUrl : rawApiUrl + "/api");
 
 const INDUSTRIES = [
+  "All Industries",
   "Financial Services",
   "Artificial Intelligence",
   "Enterprise Software",
@@ -47,10 +48,14 @@ export default function Scraping({
   onStartScrape
 }: ScrapingProps) {
   // Configured Sources
-  const [sources, setSources] = useState<any[]>([]);
+  const [sources, setSources] = useState<any[]>([
+    { name: "Inc42", url: "https://inc42.com/feed/", is_custom: false },
+    { name: "Entrackr", url: "https://entrackr.com/rss", is_custom: false },
+    { name: "PitchBook", url: "https://pitchbook.com", is_custom: true }
+  ]);
   const [selectedSources, setSelectedSources] = useState<string[]>(["Inc42"]);
   const [limit, setLimit] = useState(5);
-  const [industry, setIndustry] = useState("Financial Services");
+  const [industry, setIndustry] = useState("All Industries");
   const [sector, setSector] = useState("");
   const [subsector, setSubsector] = useState("");
   const [keywords, setKeywords] = useState("");
@@ -73,16 +78,18 @@ export default function Scraping({
   const fetchSources = async () => {
     try {
       const response = await fetch(`${API_URL}/scrape/sources`);
-      if (response.ok) {
-        const data = await response.json();
-        setSources(data);
+      if (!response.ok) {
+        throw new Error("Failed to fetch discovery sources list");
       }
+      const data = await response.json();
+      setSources(data);
     } catch (err) {
       console.warn("Could not fetch discovery sources list:", err);
       // fallback static options if backend is offline
       setSources([
         { name: "Inc42", url: "https://inc42.com/feed/", is_custom: false },
-        { name: "Entrackr", url: "https://entrackr.com/rss", is_custom: false }
+        { name: "Entrackr", url: "https://entrackr.com/rss", is_custom: false },
+        { name: "PitchBook", url: "https://pitchbook.com", is_custom: true }
       ]);
     }
   };
@@ -115,9 +122,9 @@ export default function Scraping({
     setSuccess(null);
 
     const filters = {
-      industry: selectedSources.includes("Custom Web Search") ? industry : "",
-      sector: selectedSources.includes("Custom Web Search") ? sector : "",
-      subsector: selectedSources.includes("Custom Web Search") ? subsector : "",
+      industry: industry === "All Industries" ? "" : industry,
+      sector: sector,
+      subsector: subsector,
       keywords: selectedSources.includes("Custom Web Search") ? keywords : ""
     };
 
@@ -349,54 +356,57 @@ export default function Scraping({
                 </span>
               </div>
 
-              {/* Custom Search Query parameters panel */}
-              {isCustomActive && (
-                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-4 animate-fade-in">
-                  <div className="flex items-center gap-2 border-b border-slate-200 pb-2 mb-2">
-                    <Filter size={14} className="text-amber-500" />
-                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                      Custom Web Search Criteria
-                    </h4>
+              {/* Global Ingestion Filters - always visible */}
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-4">
+                <div className="flex items-center gap-2 border-b border-slate-200 pb-2 mb-2">
+                  <Filter size={14} className="text-amber-500" />
+                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                    Global Ingestion Filters
+                  </h4>
+                  <span className="text-[10px] text-slate-400 font-medium ml-auto">
+                    Applied to all sources
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Industry Filter</label>
+                    <select 
+                      value={industry} 
+                      onChange={(e) => setIndustry(e.target.value)}
+                      disabled={scrapingActive}
+                      className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:ring-1 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
+                    >
+                      {INDUSTRIES.map(ind => (
+                        <option key={ind} value={ind}>{ind}</option>
+                      ))}
+                    </select>
                   </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Sector Filter (e.g. InsurTech)</label>
+                    <input 
+                      type="text" 
+                      value={sector}
+                      onChange={(e) => setSector(e.target.value)}
+                      disabled={scrapingActive}
+                      placeholder="Leave blank to match any sector"
+                      className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:ring-1 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Sub Sector Filter (e.g. Claims Automation)</label>
+                    <input 
+                      type="text" 
+                      value={subsector}
+                      onChange={(e) => setSubsector(e.target.value)}
+                      disabled={scrapingActive}
+                      placeholder="Leave blank to match any sub-sector"
+                      className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:ring-1 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
+                    />
+                  </div>
+                  {isCustomActive && (
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1">Target Industry</label>
-                      <select 
-                        value={industry} 
-                        onChange={(e) => setIndustry(e.target.value)}
-                        disabled={scrapingActive}
-                        className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:ring-1 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
-                      >
-                        {INDUSTRIES.map(ind => (
-                          <option key={ind} value={ind}>{ind}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1">Sector (e.g. InsurTech)</label>
-                      <input 
-                        type="text" 
-                        value={sector}
-                        onChange={(e) => setSector(e.target.value)}
-                        disabled={scrapingActive}
-                        placeholder="e.g. InsurTech, WealthTech"
-                        className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:ring-1 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1">Sub Sector (e.g. Claims Automation)</label>
-                      <input 
-                        type="text" 
-                        value={subsector}
-                        onChange={(e) => setSubsector(e.target.value)}
-                        disabled={scrapingActive}
-                        placeholder="e.g. Claims Automation"
-                        className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:ring-1 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1">Custom Keywords</label>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Custom Web Search Keywords</label>
                       <input 
                         type="text" 
                         value={keywords}
@@ -406,9 +416,9 @@ export default function Scraping({
                         className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:ring-1 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
                       />
                     </div>
-                  </div>
+                  )}
                 </div>
-              )}
+              </div>
 
               {/* Scrape trigger action button */}
               <div className="flex justify-end pt-2 border-t border-slate-100">
