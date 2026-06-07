@@ -1,0 +1,103 @@
+import os
+import json
+from backend.agents.base import BaseAgent
+from backend.models.startup_state import StartupState
+from backend.agents.utils import call_ollama, get_rag_context
+
+class MarketIntelligenceAgent(BaseAgent):
+    def run(self, state: StartupState) -> StartupState:
+        # Check relevance gate
+        if state.relevance.get("score", 0) < 50:
+            self.log_audit(state, "Skipping Market Intelligence Extraction (Relevance score < 50 gate applied)")
+            return state
+
+        self.log_audit(state, "Starting Market Intelligence Extraction...")
+
+        try:
+            # 1. Get RAG context for market intelligence
+            rag_context = get_rag_context(
+                state.startup_name + " market intelligence products competitors valuation", 
+                category_filter="Knowledge", 
+                top_k=2
+            )
+
+            prompt = f"""You are the ICICI Market Intelligence Extractor.
+Your job is to extract detailed product lists, competitors, valuations, and investment details for the startup '{state.startup_name}'.
+
+RAG Reference Context:
+{rag_context}
+
+Startup Details:
+Sector: {state.startup_features.sector}
+Subsector: {state.startup_features.subsector}
+Enriched Raw Details: {state.article_data.get('enriched_raw', {})}
+Description: {state.article_data.get('description', '')}
+
+Based on these details, retrieve or estimate market details.
+CRITICAL DATA QUALITY RULES:
+- Never fabricate/hallucinate financial figures or investors. If you do not find concrete evidence for valuation or revenue multiples, output "Not Publicly Available" or "Insufficient Data" or "N/A" for those specific fields.
+- For competitors, identify 1-3 actual companies that compete in the same sector. If none, list standard comparable players.
+- For products, list 1-3 specific products or solutions offered by the company.
+
+Return ONLY a valid JSON object matching the schema below. Do not add notes, wrappers, or explanations.
+
+JSON Schema:
+{{
+  "products": [
+    {{
+      "product_name": "Name of product",
+      "category": "Product category (e.g. KYC, Fraud Analytics)",
+      "description": "Brief description of the product functionality",
+      "target_customer": "Target audience (e.g. Retail Bank, Insurance Co)",
+      "deployment_model": "SaaS or On-Premise"
+    }}
+  ],
+  "competitors": [
+    {{
+      "company_name": "Name of competitor company",
+      "category": "Competitor segment (e.g. Alternative Scoring)",
+      "positioning": "How they position themselves relative to target company"
+    }}
+  ],
+  "valuation": {{
+    "estimated_valuation": "e.g. $150M or Not Publicly Available",
+    "valuation_methodology": "e.g. VC Funding multiple or Insufficient Data",
+    "revenue_multiple": "e.g. 10x EV/Revenue or N/A",
+    "comparable_companies": ["CompCompany1", "CompCompany2"]
+  }},
+  "investors": [
+    {{
+      "investor_name": "Name of venture fund or angel",
+      "round": "Stage of investment (e.g. Series A)",
+      "date": "Year or month/year of round"
+    }}
+  ],
+  "strategic_positioning": "A brief 1-2 sentence summary of where this startup sits in the industry value chain."
+}}
+"""
+            extraction = call_ollama(prompt, json_format=True)
+
+            # Store results in the state's market_intelligence field
+            state.market_intelligence = {
+                "products": extraction.get("products", []),
+                "competitors": extraction.get("competitors", []),
+                "valuation": extraction.get("valuation", {}),
+                "investors": extraction.get("investors", []),
+                "strategic_positioning": extraction.get("strategic_positioning", "")
+            }
+
+            self.log_audit(
+                state,
+                f"Successfully extracted market intelligence details.",
+                metadata={
+                    "products_count": len(state.market_intelligence["products"]),
+                    "competitors_count": len(state.market_intelligence["competitors"]),
+                    "has_valuation": "Not Publicly" not in str(state.market_intelligence["valuation"].get("estimated_valuation"))
+                }
+            )
+
+        except Exception as e:
+            state.errors.append(f"MarketIntelligenceAgent failed: {str(e)}")
+            self.log_audit(state, f"MarketIntelligenceAgent failed: {str(e)}", metadata={"error": True})
+
+        return state

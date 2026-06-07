@@ -32,3 +32,10 @@ models/
 # IDE
 .vscode/
 .idea/
+
+# Graphify generated output (code graph cache — regenerated on demand)
+graphify-out/
+backend/graphify-out/
+
+# Scratch / one-off debug scripts (not production code)
+scratch/

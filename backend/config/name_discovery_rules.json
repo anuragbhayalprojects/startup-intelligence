@@ -1,0 +1,41 @@
+{
+  "generic_placeholders": [
+    "n/a", "none", "various", "various startups", "indian startups", "industry", 
+    "generic", "not applicable", "various companies", "multiple startups", "unknown",
+    "real money", "gaming", "after months", "months of", "indian startup",
+    "haryana", "delhi", "karnataka", "maharashtra", "bengaluru", "mumbai", "india",
+    "punjab", "gujarat", "tamil nadu", "kerala", "coalition", "consortium",
+    "association", "alliance", "d2c", "direct-to-consumer", "b2b", "sme",
+    "startup", "startups", "government", "various names", "digital commerce coalition"
+  ],
+  "replacements": {
+    "upi": "NPCI",
+    "scriipbox": "Scripbox",
+    "physicswallah": "PhysicsWallah",
+    "physics wallah": "PhysicsWallah"
+  },
+  "investor_names": [
+    "vanguard", "prosus", "softbank", "tiger global", "peak xv", "sequoia", 
+    "westbridge", "temasek", "accel", "lightspeed", "elevation", "matrix partners", 
+    "kalaari", "nexus", "chiratae", "google", "apple", "microsoft", "amazon", "meta",
+    "together", "together fund", "friale"
+  ],
+  "bad_terms": [
+    "coalition", "consortium", "association", "alliance", "government", "ministry", "commission", "state"
+  ],
+  "locations": [
+    "haryana", "delhi", "karnataka", "maharashtra", "bengaluru", "mumbai", "india", "punjab", "gujarat", "tamil nadu", "kerala"
+  ],
+  "generic_words": [
+    "n/a", "none", "various", "generic", "unknown", "industry", "platform", "platforms",
+    "startup", "startups", "company", "companies", "firm", "firms", "player", "players",
+    "d2c", "b2b", "sme", "smes", "msme", "msmes", "funding", "round", "various names"
+  ],
+  "product_split_terms": [
+    "claims", "fraud", "guard", "launches", "launch", "introduces", "rolls",
+    "suite", "system", "platform", "service", "solution", "solutions", "app",
+    "tool", "module", "engine", "assistant", "agent", "hub", "portal",
+    "agentic", "workflow", "copilot", "intelligence", "analytics", "insights",
+    "for", "by", "pro", "plus", "max", "go", "lite"
+  ]
+}

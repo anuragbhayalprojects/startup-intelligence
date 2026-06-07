@@ -14,12 +14,18 @@ EXTRACTION RULES:
 2. COMPOUND RELATIONSHIPS: If the text contains "X-owned Y", "X-backed Y", "X-funded Y", "X acquires Y", "X partners with Y", "X invests in Y", "X-led Y" — you MUST extract BOTH "X" and "Y" as separate items. Example: "PhonePe-owned Indus Appstore" → extract ["PhonePe", "Indus Appstore"].
 3. A well-known global or large company IF the article is specifically about a new product launch, startup-style venture, or new India-specific operation they are directly running.
 4. Startup fundraising / funding round announcements (e.g. "Company X raises $10M", "Company Y gets funding") — you MUST extract "Company X" or "Company Y".
+5. PRODUCT AND FEATURE LAUNCHES: If the text describes a product launch or feature addition (e.g., "[Startup] launches [Product]", "[Startup] introduces [Service]", "[Startup] rolls out [Feature]"), you MUST extract ONLY the parent startup/company name. Strictly exclude the name of the product or service launched.
+   Examples:
+   - "SecurePay launches Claims Fraud Guard for health insurers" -> Extract ONLY ["SecurePay"] (Excludes the product: "Claims Fraud Guard").
+   - "Riko AI introduces Agentic workflow suite" -> Extract ONLY ["Riko AI"] (Excludes product: "Agentic workflow suite").
+   - "BharatPe rolls out Zero-Commission UPI payments" -> Extract ONLY ["BharatPe"] (Excludes service: "Zero-Commission UPI payments").
 
 **EXCLUDE — Do NOT extract these unless they are the operating subject of the article:**
 - Pure venture capital or private equity investors: Peak XV Partners, SoftBank, Tiger Global, Vanguard, Prosus, Sequoia Capital, Accel, Lightspeed, Matrix Partners, Nexus Venture, Kalaari Capital, Elevation Capital, General Catalyst, DST Global, QIA, etc.
 - Global non-Indian tech giants acting only as investors or acquirers: Google, Microsoft, Amazon, Apple, Meta, Netflix, Uber, Nvidia — exclude unless they are the primary operating startup subject.
 - Government bodies, ministries, or regulatory authorities: RBI, SEBI, NPCI, Ministry of Finance, DPIIT, TRAI, State governments, Haryana, Delhi, Karnataka, etc.
 - Industry coalitions, consortia, or generic terms: "digital commerce coalition", "D2C brands", "Indian startups", "B2B platforms", "startup ecosystem".
+- New launch product names, services names, or feature tags themselves.
 
 **RETURN EMPTY ARRAY — Return [] when:**
 - The article is a macro market report, weekly general funding roundup (unless listing specific named operating startups), policy announcement, or general industry analysis with no specific operating startup as the subject.

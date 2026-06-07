@@ -1,0 +1,39 @@
+{
+  "decision_matrix": [
+    {
+      "strategic_fit": "Low",
+      "deployability": "Low",
+      "action": "Ignore"
+    },
+    {
+      "strategic_fit": "Medium",
+      "deployability": "Low",
+      "action": "Monitor"
+    },
+    {
+      "strategic_fit": "Medium",
+      "deployability": "Medium",
+      "action": "Founder Meeting"
+    },
+    {
+      "strategic_fit": "High",
+      "deployability": "Medium",
+      "action": "Business Introduction"
+    },
+    {
+      "strategic_fit": "High",
+      "deployability": "High",
+      "action": "POC"
+    },
+    {
+      "strategic_fit": "Very High",
+      "deployability": "High",
+      "action": "Strategic Investment Review"
+    },
+    {
+      "strategic_fit": "Exceptional",
+      "deployability": "High",
+      "action": "Strategic Investment Review"
+    }
+  ]
+}

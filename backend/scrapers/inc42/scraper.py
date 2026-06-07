@@ -83,7 +83,7 @@ def scrape_inc42(num_startups: int = 10):
                                     continue
                                 paragraphs.append(text)
                             if paragraphs:
-                                description = " ".join(paragraphs[:2])
+                                description = " ".join(paragraphs[:6])
                     except Exception as e:
                         logger.warning(f"Failed to fetch details for {article_url}, falling back to RSS summary: {e}")
                     
@@ -163,7 +163,7 @@ def scrape_inc42(num_startups: int = 10):
                                 continue
                             paragraphs.append(text)
                         if paragraphs:
-                            description = " ".join(paragraphs[:2])
+                            description = " ".join(paragraphs[:6])
                 except Exception as e:
                     logger.warning(f"Failed to fetch description for {article_url}: {e}")
                     

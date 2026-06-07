@@ -175,10 +175,19 @@ class AssignmentCreateRequest(BaseModel):
     assigned_to_fpr1: str
     assigned_to_fpr2: str = ""
     notes: str = ""
+    icici_entity: str = "ICICI Bank"
+    business_team: str = ""
 
 class AssignmentUpdateRequest(BaseModel):
-    status: str
+    status: str = None
     notes: str = None
+    engagement_stage: str = None
+    assigned_to_fpr1: str = None
+    assigned_to_fpr2: str = None
+    business_team: str = None
+    icici_entity: str = None
+    assignment_score_manual_override: int = None
+    assignment_score_override_reason: str = None
 
 class InteractionCreateRequest(BaseModel):
     startup_id: int
@@ -715,30 +724,35 @@ async def trigger_startup_analysis(id: str, force: bool = False):
                     return {"analysis_data": record.get("analysis_json")}
         
         print(f"Triggering manual AI analysis for startup: {startup.get('startup_name')}")
-        analysis = analyze_startup(startup)
+        raw_startup = {
+            "startup_name": startup.get("startup_name", ""),
+            "description": startup.get("description", ""),
+            "source": startup.get("source", "Manual Check"),
+            "source_url": startup.get("source_url", "")
+        }
         
-        if not analysis or "error" in analysis:
-            raise HTTPException(status_code=500, detail=analysis.get("error", "AI Analysis failed"))
+        try:
+            from backend.workflows.agent_orchestrator import AgentOrchestrator
+            orchestrator = AgentOrchestrator()
+            state = orchestrator.run_pipeline(raw_startup)
+            # Re-associate startup ID if manual check created a new one or matched existing
+            if state.startup_id:
+                int_id = state.startup_id
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Multi-Agent pipeline run failed: {e}")
             
-        save_startup_analysis(int_id, analysis)
-        
-        # Sync clean founded_year and website to startups table
-        clean_founded = analysis.get("founded_year")
-        clean_website = analysis.get("startup_website")
-        update_payload = {}
-        # Keep founded_year nullable (can update to None)
-        if "founded_year" in analysis:
-            update_payload["founded_year"] = clean_founded
-        if clean_website:
-            update_payload["website"] = clean_website
-        if update_payload:
-            supabase.table("startups").update(update_payload).eq("id", int_id).execute()
+        # Retrieve final saved analysis from DB
+        a_res = supabase.table("startup_analysis").select("analysis_json").eq("startup_id", int_id).execute()
+        if not a_res.data:
+            raise HTTPException(status_code=500, detail="Failed to retrieve completed analysis from database.")
             
-        return {"analysis_data": analysis}
+        analysis_data = a_res.data[0].get("analysis_json")
+        return {"analysis_data": analysis_data}
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 
 # --- Assignments ---
@@ -747,6 +761,8 @@ async def trigger_startup_analysis(id: str, force: bool = False):
 async def create_assignment(req: AssignmentCreateRequest = Body(...)):
     """Routes a pilot assignment task to a corporate business vertical."""
     try:
+        from backend.services.scoring_service import ScoringService
+
         # Fetch startup_name from startups table
         startup_name = ""
         s_res = supabase.table("startups").select("startup_name").eq("id", req.startup_id).execute()
@@ -756,25 +772,65 @@ async def create_assignment(req: AssignmentCreateRequest = Body(...)):
         # Fetch reachout messages from startup_analysis if exists
         linkedin_msg = None
         email_msg = None
-        ans_res = supabase.table("startup_analysis").select("analysis_json").eq("startup_id", req.startup_id).execute()
-        if ans_res.data and ans_res.data[0].get("analysis_json"):
-            analysis = ans_res.data[0]["analysis_json"]
-            linkedin_msg = format_outreach_message(analysis.get("linkedin_reachout_message"))
-            email_msg = format_outreach_message(analysis.get("email_reachout_message"))
+        entity_relevance_score = 50
+        business_problem_match_score = 40
+        rec_score = 50
+        conf_score = 50
+        
+        ans_res = supabase.table("startup_analysis").select("*").eq("startup_id", req.startup_id).execute()
+        if ans_res.data:
+            row_data = ans_res.data[0]
+            analysis = row_data.get("analysis_json") or {}
+            linkedin_msg = analysis.get("linkedin_reachout_message")
+            email_msg = analysis.get("email_reachout_message")
+            
+            # Extract scores for default assignment_score calculation
+            entity_relevance = analysis.get("entity_relevance") or {}
+            entity_relevance_score = entity_relevance.get(req.icici_entity or "ICICI Bank", 50)
+            
+            use_cases = analysis.get("bfsi_relevance", {}).get("use_cases", [])
+            entity_prob_count = sum(1 for uc in use_cases if str(uc.get("icici_entity")).lower() == str(req.icici_entity).lower())
+            
+            if entity_prob_count == 0:
+                business_problem_match_score = 0
+            elif entity_prob_count == 1:
+                business_problem_match_score = 40
+            elif entity_prob_count == 2:
+                business_problem_match_score = 70
+            else:
+                business_problem_match_score = 100
+                
+            rec_score = row_data.get("recommendation_score") or analysis.get("recommendation_score") or 50
+            conf_score = row_data.get("confidence_score") or analysis.get("confidence_score") or 50
+            
+            assignment_score = int(round(
+                entity_relevance_score * 0.40 +
+                business_problem_match_score * 0.30 +
+                rec_score * 0.20 +
+                conf_score * 0.10
+            ))
+        else:
+            assignment_score = 50
 
         # Set status to Assigned to FPR1
         status = f"Assigned to {req.assigned_to_fpr1}" if req.assigned_to_fpr1 else "pending"
+        band = ScoringService.map_assignment_band(assignment_score)
 
         ins = {
             "startup_id": req.startup_id,
             "startup_name": startup_name,
             "assigned_to_fpr1": req.assigned_to_fpr1,
             "assigned_to_fpr2": req.assigned_to_fpr2,
-            "icici_entity": "ICICI Bank",
+            "icici_entity": req.icici_entity,
+            "business_team": req.business_team,
+            "engagement_stage": "New",
+            "assignment_score": assignment_score,
+            "assignment_band": band,
             "linkedin_reachout_message": linkedin_msg,
             "email_reachout_message": email_msg,
             "assignment_status": status,
-            "notes": req.notes
+            "notes": req.notes,
+            "last_followup_date": datetime.now().isoformat()
         }
         resp = supabase.table("startup_assignments").insert(ins).execute()
         return {"status": "success", "data": resp.data}
@@ -786,14 +842,84 @@ async def create_assignment(req: AssignmentCreateRequest = Body(...)):
 async def update_assignment(id: str, req: AssignmentUpdateRequest = Body(...)):
     """Updates the status and notes of a routed department task."""
     try:
-        upd = {"assignment_status": req.status}
+        from backend.services.scoring_service import ScoringService
+
+        if not id.isdigit():
+            return {"status": "success", "notes": "Simulated preset local assignment updated."}
+
+        # Fetch existing assignment
+        asg_res = supabase.table("startup_assignments").select("*").eq("id", int(id)).execute()
+        if not asg_res.data:
+            raise HTTPException(status_code=404, detail="Assignment not found.")
+            
+        existing = asg_res.data[0]
+        
+        upd = {}
+        if req.status is not None:
+            upd["assignment_status"] = req.status
         if req.notes is not None:
             upd["notes"] = req.notes
-            
-        if id.isdigit():
-            resp = supabase.table("startup_assignments").update(upd).eq("id", int(id)).execute()
-            return {"status": "success", "data": resp.data}
-        return {"status": "success", "notes": "Simulated preset local assignment updated."}
+        if req.engagement_stage is not None:
+            upd["engagement_stage"] = req.engagement_stage
+        if req.assigned_to_fpr1 is not None:
+            upd["assigned_to_fpr1"] = req.assigned_to_fpr1
+            upd["assignment_status"] = f"Assigned to {req.assigned_to_fpr1}" if req.assigned_to_fpr1 else "pending"
+        if req.assigned_to_fpr2 is not None:
+            upd["assigned_to_fpr2"] = req.assigned_to_fpr2
+        if req.business_team is not None:
+            upd["business_team"] = req.business_team
+        if req.icici_entity is not None:
+            upd["icici_entity"] = req.icici_entity
+
+        # Handle score override
+        if req.assignment_score_manual_override is not None:
+            upd["assignment_score_manual_override"] = req.assignment_score_manual_override
+            upd["assignment_score"] = req.assignment_score_manual_override
+            upd["assignment_band"] = ScoringService.map_assignment_band(req.assignment_score_manual_override)
+            if req.assignment_score_override_reason is not None:
+                upd["assignment_score_override_reason"] = req.assignment_score_override_reason
+        elif req.icici_entity is not None:
+            # Recompute standard default score if the entity is changed and no active override exists
+            if not existing.get("assignment_score_manual_override"):
+                startup_id = existing["startup_id"]
+                target_entity = req.icici_entity or existing.get("icici_entity") or "ICICI Bank"
+                
+                ans_res = supabase.table("startup_analysis").select("*").eq("startup_id", startup_id).execute()
+                if ans_res.data:
+                    row_data = ans_res.data[0]
+                    analysis = row_data.get("analysis_json") or {}
+                    
+                    entity_relevance = analysis.get("entity_relevance") or {}
+                    entity_relevance_score = entity_relevance.get(target_entity, 50)
+                    
+                    use_cases = analysis.get("bfsi_relevance", {}).get("use_cases", [])
+                    entity_prob_count = sum(1 for uc in use_cases if str(uc.get("icici_entity")).lower() == str(target_entity).lower())
+                    
+                    if entity_prob_count == 0:
+                        business_problem_match_score = 0
+                    elif entity_prob_count == 1:
+                        business_problem_match_score = 40
+                    elif entity_prob_count == 2:
+                        business_problem_match_score = 70
+                    else:
+                        business_problem_match_score = 100
+                        
+                    rec_score = row_data.get("recommendation_score") or analysis.get("recommendation_score") or 50
+                    conf_score = row_data.get("confidence_score") or analysis.get("confidence_score") or 50
+                    
+                    computed_score = int(round(
+                        entity_relevance_score * 0.40 +
+                        business_problem_match_score * 0.30 +
+                        rec_score * 0.20 +
+                        conf_score * 0.10
+                    ))
+                    upd["assignment_score"] = computed_score
+                    upd["assignment_band"] = ScoringService.map_assignment_band(computed_score)
+
+        upd["last_followup_date"] = datetime.now().isoformat()
+        
+        resp = supabase.table("startup_assignments").update(upd).eq("id", int(id)).execute()
+        return {"status": "success", "data": resp.data}
     except Exception as e:
         raise HTTPException(status_code=550, detail=str(e))
 

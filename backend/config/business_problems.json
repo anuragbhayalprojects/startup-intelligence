@@ -1,0 +1,367 @@
+{
+  "problems": [
+    {
+      "problem_id": "Acquisition_Cost",
+      "problem_name": "Rising acquisition costs",
+      "entity": "ICICI Bank",
+      "business_team": "Retail Banking",
+      "keywords": [
+        "acquisition",
+        "onboarding cost",
+        "customer conversion",
+        "CAC"
+      ],
+      "priority": "High",
+      "startup_categories": [
+        "Digital Banking",
+        "Neobanking",
+        "RegTech",
+        "Document AI"
+      ]
+    },
+    {
+      "problem_id": "Digital_Onboarding_Friction",
+      "problem_name": "Digital onboarding friction",
+      "entity": "ICICI Bank",
+      "business_team": "Retail Banking",
+      "keywords": [
+        "onboarding",
+        "KYC",
+        "e-KYC",
+        "friction",
+        "drop-off"
+      ],
+      "priority": "High",
+      "startup_categories": [
+        "RegTech",
+        "Document AI",
+        "Identity Security"
+      ]
+    },
+    {
+      "problem_id": "Credit_Risk_Assessment",
+      "problem_name": "Credit risk assessment",
+      "entity": "ICICI Bank",
+      "business_team": "Lending",
+      "keywords": [
+        "credit risk",
+        "risk assessment",
+        "underwriting",
+        "credit score",
+        "scoring"
+      ],
+      "priority": "High",
+      "startup_categories": [
+        "Lending",
+        "Alternative Data",
+        "Data Analytics"
+      ]
+    },
+    {
+      "problem_id": "Lending_Fraud",
+      "problem_name": "Fraudulent lending applications",
+      "entity": "ICICI Bank",
+      "business_team": "Lending",
+      "keywords": [
+        "fraud",
+        "identity theft",
+        "fake docs",
+        "impersonation"
+      ],
+      "priority": "High",
+      "startup_categories": [
+        "Fraud Detection",
+        "Cybersecurity",
+        "RegTech"
+      ]
+    },
+    {
+      "problem_id": "Collection_Inefficiency",
+      "problem_name": "Collection inefficiencies",
+      "entity": "ICICI Bank",
+      "business_team": "Lending",
+      "keywords": [
+        "collections",
+        "delinquency",
+        "recovery",
+        "dunning",
+        "repayment"
+      ],
+      "priority": "Medium",
+      "startup_categories": [
+        "Collections",
+        "Agentic AI",
+        "Data Analytics"
+      ]
+    },
+    {
+      "problem_id": "Payment_Reconciliation",
+      "problem_name": "Payment reconciliation",
+      "entity": "ICICI Bank",
+      "business_team": "Payments",
+      "keywords": [
+        "reconciliation",
+        "settlement",
+        "payment flow",
+        "ledger"
+      ],
+      "priority": "Medium",
+      "startup_categories": [
+        "Payments",
+        "UPI Infrastructure",
+        "TaxTech"
+      ]
+    },
+    {
+      "problem_id": "Information_Security",
+      "problem_name": "Cyber threats and Data leakage",
+      "entity": "ICICI Bank",
+      "business_team": "Information Security",
+      "keywords": [
+        "cybersecurity",
+        "threat detection",
+        "data leak",
+        "malware",
+        "phishing",
+        "zero trust"
+      ],
+      "priority": "High",
+      "startup_categories": [
+        "Cybersecurity",
+        "AI Infrastructure"
+      ]
+    },
+    {
+      "problem_id": "Claims_Fraud",
+      "problem_name": "Claims leakage and fraud",
+      "entity": "ICICI Lombard",
+      "business_team": "Claims",
+      "keywords": [
+        "claims fraud",
+        "insurance leak",
+        "fake claims",
+        "fraudulent claims"
+      ],
+      "priority": "High",
+      "startup_categories": [
+        "Claims Automation",
+        "Fraud Detection",
+        "Risk Analytics"
+      ]
+    },
+    {
+      "problem_id": "Claims_Processing_Speed",
+      "problem_name": "Slow claims processing and customer dissatisfaction",
+      "entity": "ICICI Lombard",
+      "business_team": "Claims",
+      "keywords": [
+        "claims processing",
+        "payout",
+        "settle claim",
+        "customer satisfaction"
+      ],
+      "priority": "High",
+      "startup_categories": [
+        "Claims Automation",
+        "Document AI",
+        "Generative AI"
+      ]
+    },
+    {
+      "problem_id": "Underwriting_Accuracy",
+      "problem_name": "Risk assessment accuracy and pricing optimization",
+      "entity": "ICICI Lombard",
+      "business_team": "Underwriting",
+      "keywords": [
+        "underwriting",
+        "pricing",
+        "risk model",
+        "actuarial",
+        "loss ratio"
+      ],
+      "priority": "High",
+      "startup_categories": [
+        "Risk Analytics",
+        "Data Analytics",
+        "Alternative Data"
+      ]
+    },
+    {
+      "problem_id": "Lombard_Distribution",
+      "problem_name": "Customer acquisition and agent productivity",
+      "entity": "ICICI Lombard",
+      "business_team": "Distribution",
+      "keywords": [
+        "agent productivity",
+        "acquisition",
+        "distribution",
+        "leads"
+      ],
+      "priority": "Medium",
+      "startup_categories": [
+        "Insurance Distribution",
+        "Agentic AI"
+      ]
+    },
+    {
+      "problem_id": "Investor_Acquisition_Securities",
+      "problem_name": "Low investor participation and high CAC",
+      "entity": "ICICI Securities",
+      "business_team": "Investor Acquisition",
+      "keywords": [
+        "investor acquisition",
+        "trading conversion",
+        "brokerage onboarding"
+      ],
+      "priority": "High",
+      "startup_categories": [
+        "Stock Broking",
+        "WealthTech",
+        "Investment Platforms"
+      ]
+    },
+    {
+      "problem_id": "Advisory_Scalability",
+      "problem_name": "Limited advisor scalability and generic recommendations",
+      "entity": "ICICI Securities",
+      "business_team": "Wealth Advisory",
+      "keywords": [
+        "personalized advisory",
+        "portfolio management",
+        "wealth advisor",
+        "robo advisory"
+      ],
+      "priority": "High",
+      "startup_categories": [
+        "WealthTech",
+        "Generative AI",
+        "Capital Markets Tech"
+      ]
+    },
+    {
+      "problem_id": "User_Dormancy",
+      "problem_name": "Dormant users and low trading activity",
+      "entity": "ICICI Securities",
+      "business_team": "Investor Engagement",
+      "keywords": [
+        "dormancy",
+        "trading activity",
+        "retention",
+        "user engagement"
+      ],
+      "priority": "Medium",
+      "startup_categories": [
+        "Investment Platforms",
+        "Agentic AI",
+        "Financial Wellness"
+      ]
+    },
+    {
+      "problem_id": "Mortgage_Acquisition",
+      "problem_name": "Lead generation and customer conversion for home loans",
+      "entity": "ICICI Home Finance",
+      "business_team": "Mortgage Acquisition",
+      "keywords": [
+        "mortgage",
+        "home loan",
+        "lead generation",
+        "loan funnel"
+      ],
+      "priority": "High",
+      "startup_categories": [
+        "Mortgage Tech",
+        "PropTech",
+        "Lending"
+      ]
+    },
+    {
+      "problem_id": "HFC_Underwriting",
+      "problem_name": "Credit assessment quality and underwriting delays",
+      "entity": "ICICI Home Finance",
+      "business_team": "Credit Assessment",
+      "keywords": [
+        "property valuation",
+        "credit quality",
+        "underwriting delay",
+        "loan processing"
+      ],
+      "priority": "High",
+      "startup_categories": [
+        "Mortgage Tech",
+        "Alternative Data",
+        "Document AI"
+      ]
+    },
+    {
+      "problem_id": "Life_Distribution",
+      "problem_name": "Agent productivity and conversion rates",
+      "entity": "ICICI Prudential Life",
+      "business_team": "Distribution",
+      "keywords": [
+        "agent productivity",
+        "policy sale",
+        "lead conversion",
+        "bancassurance"
+      ],
+      "priority": "High",
+      "startup_categories": [
+        "Insurance Distribution",
+        "Agentic AI",
+        "Generative AI"
+      ]
+    },
+    {
+      "problem_id": "Policy_Lapse_Persistency",
+      "problem_name": "Policy lapses and customer disengagement",
+      "entity": "ICICI Prudential Life",
+      "business_team": "Persistency",
+      "keywords": [
+        "policy lapse",
+        "persistency",
+        "renewal",
+        "retention"
+      ],
+      "priority": "High",
+      "startup_categories": [
+        "Risk Analytics",
+        "Data Analytics",
+        "Agentic AI"
+      ]
+    },
+    {
+      "problem_id": "AMC_Investor_Acquisition",
+      "problem_name": "Limited new investors and digital acquisition challenges",
+      "entity": "ICICI Prudential AMC",
+      "business_team": "Investor Acquisition",
+      "keywords": [
+        "mutual fund onboarding",
+        "SIP growth",
+        "AUM",
+        "digital acquisition"
+      ],
+      "priority": "High",
+      "startup_categories": [
+        "WealthTech",
+        "Investment Platforms",
+        "RegTech"
+      ]
+    },
+    {
+      "problem_id": "SIP_Discontinuation",
+      "problem_name": "SIP discontinuation and investor inactivity",
+      "entity": "ICICI Prudential AMC",
+      "business_team": "Investor Retention",
+      "keywords": [
+        "SIP lapse",
+        "investor churn",
+        "mutual fund redemption"
+      ],
+      "priority": "High",
+      "startup_categories": [
+        "Data Analytics",
+        "Agentic AI",
+        "Financial Wellness"
+      ]
+    }
+  ]
+}

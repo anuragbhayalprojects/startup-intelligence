@@ -75,6 +75,52 @@ export interface Startup {
   // Founder info (synced from analysis)
   founder_name?: string;
   founder_linkedin_url?: string;
+
+  // Upgraded multi-agent workspace columns
+  startup_status?: string;
+  headquarters?: string;
+  startup_stage?: string;
+  relevance_score?: number;
+  signal_score?: number;
+  deployability_score?: number;
+  recommendation_score?: number;
+  confidence_score?: number;
+  recommended_action?: string;
+  priority_band?: string;
+  matched_entities?: string[];
+  matched_business_teams?: string[];
+  matched_business_problems?: string[];
+  positive_signals?: string[];
+  negative_signals?: string[];
+  audit_summary?: any;
+  knowledge_version?: string;
+  analysis_version?: string;
+  market_intelligence?: {
+    products?: {
+      product_name: string;
+      category: string;
+      description: string;
+      target_customer: string;
+      deployment_model: string;
+    }[];
+    competitors?: {
+      company_name: string;
+      category: string;
+      positioning: string;
+    }[];
+    valuation?: {
+      estimated_valuation?: string;
+      valuation_methodology?: string;
+      revenue_multiple?: string;
+      comparable_companies?: string[];
+    };
+    investors?: {
+      investor_name: string;
+      round: string;
+      date: string;
+    }[];
+    strategic_positioning?: string;
+  };
 }
 
 export interface StartupAnalysis {
@@ -158,6 +204,16 @@ export interface Assignment {
   assigned_at?: string;  // support live DB
   status: "Pending Review" | "Active Engagement" | "On Hold" | "Completed" | string;
   notes?: string;        // support live DB
+  icici_entity?: string; // support live DB entity routing
+  
+  // Upgraded routing fields
+  business_team?: string;
+  engagement_stage?: string;
+  assignment_score?: number;
+  assignment_band?: string;
+  assignment_score_manual_override?: number;
+  assignment_score_override_reason?: string;
+  last_followup_date?: string;
 }
 
 export interface StartupCategory {

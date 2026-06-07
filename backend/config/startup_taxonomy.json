@@ -1,0 +1,384 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-06-02",
+  "industry_relevance": [
+    "BFSI",
+    "Enterprise",
+    "SMB",
+    "Retail",
+    "Healthcare",
+    "Education",
+    "Government",
+    "Defense",
+    "Manufacturing",
+    "Telecom",
+    "Energy",
+    "Logistics",
+    "Real Estate",
+    "Consumer",
+    "Agriculture",
+    "Cross-Industry"
+  ],
+  "business_models": [
+    "B2B",
+    "B2C",
+    "B2B2C",
+    "D2C",
+    "Marketplace",
+    "SaaS",
+    "Subscription",
+    "Transaction-Based",
+    "Usage-Based",
+    "Advertising",
+    "Enterprise License"
+  ],
+  "industries": [
+    {
+      "name": "Financial Services",
+      "sectors": {
+        "FinTech": [
+          "Digital Banking",
+          "Neobanking",
+          "Lending",
+          "Consumer Lending",
+          "MSME Lending",
+          "Mortgage Tech",
+          "WealthTech",
+          "InvestmentTech",
+          "Stock Broking",
+          "Payments",
+          "UPI Infrastructure",
+          "Cross-border Payments",
+          "Embedded Finance",
+          "RegTech",
+          "TreasuryTech",
+          "TaxTech",
+          "Credit Infrastructure",
+          "Collections",
+          "Fraud Detection"
+        ],
+        "InsurTech": [
+          "Digital Insurance",
+          "Embedded Insurance",
+          "Claims Automation",
+          "Insurance Distribution",
+          "Insurance Infrastructure",
+          "Risk Analytics"
+        ],
+        "Capital Markets Tech": [
+          "Trading Infrastructure",
+          "Market Data",
+          "Investment Platforms",
+          "Wealth Infrastructure",
+          "Alternative Investments"
+        ]
+      }
+    },
+    {
+      "name": "Artificial Intelligence",
+      "sectors": {
+        "Generative AI": [
+          "Text Generation",
+          "Image Generation",
+          "Video Generation",
+          "Multimodal AI"
+        ],
+        "Agentic AI": [
+          "Customer Service Agents",
+          "Sales Agents",
+          "Coding Agents",
+          "Workflow Agents",
+          "Knowledge Agents"
+        ],
+        "AI Infrastructure": [
+          "LLM Platforms",
+          "Vector Databases",
+          "Model Hosting",
+          "AI Observability",
+          "AI Security"
+        ],
+        "AI Applications": [
+          "AI Healthcare",
+          "AI FinTech",
+          "AI HRTech",
+          "AI LegalTech",
+          "AI SalesTech",
+          "AI MarketingTech"
+        ]
+      }
+    },
+    {
+      "name": "Enterprise Software",
+      "sectors": {
+        "SaaS": [
+          "CRM",
+          "ERP",
+          "Accounting",
+          "Billing",
+          "Procurement",
+          "Compliance",
+          "Workflow Automation",
+          "Project Management"
+        ],
+        "Productivity": [
+          "Collaboration",
+          "Team Communication",
+          "Knowledge Management",
+          "Documentation"
+        ],
+        "Future of Work": [
+          "Workforce Productivity",
+          "Remote Work",
+          "Gig Economy",
+          "Freelance Platforms"
+        ]
+      }
+    },
+    {
+      "name": "Cybersecurity",
+      "sectors": {
+        "Cybersecurity": [
+          "Identity Security",
+          "Endpoint Security",
+          "Cloud Security",
+          "Application Security",
+          "Threat Intelligence",
+          "Fraud Prevention",
+          "Governance Risk Compliance",
+          "Data Security",
+          "Network Security",
+          "Zero Trust"
+        ]
+      }
+    },
+    {
+      "name": "Healthcare & Life Sciences",
+      "sectors": {
+        "HealthTech": [
+          "Telemedicine",
+          "Diagnostics",
+          "Hospital Management",
+          "Healthcare SaaS",
+          "Mental Health",
+          "Women's Health",
+          "Wellness",
+          "Healthcare AI"
+        ],
+        "MedTech": [
+          "Medical Devices",
+          "Remote Monitoring",
+          "Digital Therapeutics"
+        ],
+        "Biotechnology": [
+          "Genomics",
+          "Drug Discovery",
+          "Synthetic Biology",
+          "Bioinformatics"
+        ]
+      }
+    },
+    {
+      "name": "Education",
+      "sectors": {
+        "EdTech": [
+          "K12",
+          "Higher Education",
+          "Test Preparation",
+          "Upskilling",
+          "Vocational Training",
+          "Language Learning"
+        ],
+        "Corporate Learning": [
+          "LMS",
+          "Employee Training",
+          "Leadership Development"
+        ]
+      }
+    },
+    {
+      "name": "Commerce & Retail",
+      "sectors": {
+        "E-commerce": [
+          "Marketplaces",
+          "B2B Commerce",
+          "Social Commerce",
+          "Quick Commerce",
+          "Cross-border Commerce"
+        ],
+        "RetailTech": [
+          "POS",
+          "Inventory Management",
+          "Retail Analytics",
+          "Loyalty Platforms"
+        ],
+        "D2C Brands": [
+          "Fashion",
+          "Beauty",
+          "Personal Care",
+          "Home & Living",
+          "Pet Care"
+        ]
+      }
+    },
+    {
+      "name": "Consumer Internet",
+      "sectors": {
+        "Social Platforms": [
+          "Social Networks",
+          "Communities",
+          "Dating Platforms"
+        ],
+        "Creator Economy": [
+          "Creator Tools",
+          "Influencer Platforms",
+          "Content Monetization"
+        ],
+        "Gaming": [
+          "Mobile Gaming",
+          "Esports",
+          "Gaming Infrastructure"
+        ],
+        "TravelTech": [
+          "Booking Platforms",
+          "Corporate Travel",
+          "Hospitality Tech"
+        ]
+      }
+    },
+    {
+      "name": "Real Estate & Construction",
+      "sectors": {
+        "PropTech": [
+          "Property Marketplace",
+          "Brokerage Tech",
+          "Rental Platforms",
+          "Property Management"
+        ],
+        "ConstructionTech": [
+          "Smart Buildings",
+          "Facility Management",
+          "Construction Automation"
+        ]
+      }
+    },
+    {
+      "name": "Transportation & Logistics",
+      "sectors": {
+        "LogisticsTech": [
+          "FreightTech",
+          "WarehouseTech",
+          "Supply Chain Visibility",
+          "Fleet Management"
+        ],
+        "Mobility": [
+          "EV Platforms",
+          "EV Charging",
+          "Shared Mobility",
+          "Connected Vehicles"
+        ]
+      }
+    },
+    {
+      "name": "Manufacturing & Industrial",
+      "sectors": {
+        "ManufacturingTech": [
+          "Industry 4.0",
+          "Smart Factory",
+          "Industrial IoT",
+          "Robotics"
+        ]
+      }
+    },
+    {
+      "name": "Energy & Sustainability",
+      "sectors": {
+        "ClimateTech": [
+          "Carbon Management",
+          "ESG",
+          "Circular Economy",
+          "Waste Management"
+        ],
+        "EnergyTech": [
+          "Solar",
+          "Wind",
+          "Energy Storage",
+          "Grid Technology"
+        ]
+      }
+    },
+    {
+      "name": "Agriculture & Food",
+      "sectors": {
+        "Agritech": [
+          "Precision Agriculture",
+          "Farm Management",
+          "Agri Finance",
+          "Farm Inputs"
+        ],
+        "FoodTech": [
+          "Food Delivery",
+          "Cloud Kitchens",
+          "Restaurant SaaS"
+        ]
+      }
+    },
+    {
+      "name": "Telecom & Connectivity",
+      "sectors": {
+        "Telecom Infrastructure": [
+          "Connectivity Platforms",
+          "5G Infrastructure",
+          "Network Intelligence"
+        ],
+        "IoT": [
+          "Industrial IoT",
+          "Smart Cities",
+          "Connected Devices"
+        ]
+      }
+    },
+    {
+      "name": "Government & Defense",
+      "sectors": {
+        "GovTech": [
+          "Digital Governance",
+          "Citizen Services",
+          "Smart Cities"
+        ],
+        "DefenseTech": [
+          "Surveillance",
+          "Battlefield Systems",
+          "Defense AI"
+        ]
+      }
+    },
+    {
+      "name": "DeepTech",
+      "sectors": {
+        "SpaceTech": [
+          "Satellites",
+          "Launch Systems",
+          "Earth Observation"
+        ],
+        "Robotics": [
+          "Industrial Robotics",
+          "Service Robotics",
+          "Autonomous Systems"
+        ],
+        "Quantum Computing": [
+          "Quantum Hardware",
+          "Quantum Software"
+        ],
+        "Semiconductor": [
+          "Chip Design",
+          "Semiconductor Manufacturing"
+        ],
+        "Drones": [
+          "Commercial Drones",
+          "Defense Drones",
+          "Drone Analytics"
+        ]
+      }
+    }
+  ]
+}

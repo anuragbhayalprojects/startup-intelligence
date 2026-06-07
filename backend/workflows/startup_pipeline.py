@@ -1,6 +1,7 @@
 import re
 import os
 import json
+from pathlib import Path
 from datetime import datetime, timezone
 import dateutil.parser
 from backend.ai.startup_analyzer import (
@@ -19,6 +20,31 @@ from backend.services.supabase_service import (
     get_startup_news,
     supabase
 )
+
+
+# ---------------------------------------------------------------------------
+# External Rules Configuration Loader
+# ---------------------------------------------------------------------------
+_NAME_RULES_CACHE: dict | None = None
+
+def load_name_discovery_rules() -> dict:
+    """
+    Loads name discovery rules from backend/config/name_discovery_rules.json.
+    Results are cached in-process to avoid repeated file I/O.
+    """
+    global _NAME_RULES_CACHE
+    if _NAME_RULES_CACHE is not None:
+        return _NAME_RULES_CACHE
+    config_path = Path(__file__).resolve().parent.parent / "config" / "name_discovery_rules.json"
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            _NAME_RULES_CACHE = json.load(f)
+    except Exception as e:
+        # Graceful fallback to empty config — hardcoded defaults inside functions still apply
+        print(f"⚠️ [Pipeline] Could not load name_discovery_rules.json: {e}")
+        _NAME_RULES_CACHE = {}
+    return _NAME_RULES_CACHE
+
 
 def are_headlines_describing_same_event(headline1: str, headline2: str) -> bool:
     """
@@ -192,77 +218,132 @@ def clean_string(text):
 
 def get_clean_startup_name(headline, extracted_name):
     """
-    Cleans the news headline to extract only the actual startup name.
-    Uses AI extracted name as primary, with a robust case-insensitive fallback.
+    Cleans the news headline to extract only the actual startup brand name.
+    Uses AI extracted name as primary, with a robust heuristic fallback.
+
+    Filtering rules are loaded dynamically from:
+        backend/config/name_discovery_rules.json
+
+    Key heuristics:
+    - Splits multi-word (3+ word) extracted names at product descriptor terms
+      to isolate the core brand name (e.g. "SecurePay Claims Fraud Guard" -> "SecurePay").
+    - Rejects names matching investor names, locations, bad terms, or generic placeholders.
+    - Applies known brand replacements (e.g. "scriipbox" -> "Scripbox").
     """
-    generic_placeholders = [
-        "n/a", "none", "various", "various startups", "indian startups", "industry", 
+    # Load rules from external config (cached after first call)
+    rules = load_name_discovery_rules()
+
+    generic_placeholders: list = rules.get("generic_placeholders", [
+        "n/a", "none", "various", "various startups", "indian startups", "industry",
         "generic", "not applicable", "various companies", "multiple startups", "unknown",
         "real money", "gaming", "after months", "months of", "indian startup",
         "haryana", "delhi", "karnataka", "maharashtra", "bengaluru", "mumbai", "india",
         "punjab", "gujarat", "tamil nadu", "kerala", "coalition", "consortium",
         "association", "alliance", "d2c", "direct-to-consumer", "b2b", "sme",
         "startup", "startups", "government", "various names", "digital commerce coalition"
-    ]
-    
-    replacements = {
+    ])
+
+    replacements: dict = rules.get("replacements", {
         "upi": "NPCI",
-        "scriipbox": "Scripbox"
-    }
+        "scriipbox": "Scripbox",
+        "physicswallah": "PhysicsWallah",
+        "physics wallah": "PhysicsWallah"
+    })
+
+    investor_names: set = set(rules.get("investor_names", [
+        "vanguard", "prosus", "softbank", "tiger global", "peak xv", "sequoia",
+        "westbridge", "temasek", "accel", "lightspeed", "elevation", "matrix partners",
+        "kalaari", "nexus", "chiratae", "google", "apple", "microsoft", "amazon", "meta",
+        "together", "together fund", "friale"
+    ]))
+
+    bad_terms: set = set(rules.get("bad_terms", [
+        "coalition", "consortium", "association", "alliance", "government", "ministry", "commission", "state"
+    ]))
+
+    locations: set = set(rules.get("locations", [
+        "haryana", "delhi", "karnataka", "maharashtra", "bengaluru", "mumbai", "india",
+        "punjab", "gujarat", "tamil nadu", "kerala"
+    ]))
+
+    generic_words: set = set(rules.get("generic_words", [
+        "n/a", "none", "various", "generic", "unknown", "industry", "platform", "platforms",
+        "startup", "startups", "company", "companies", "firm", "firms", "player", "players",
+        "d2c", "b2b", "sme", "smes", "msme", "msmes", "funding", "round", "various names"
+    ]))
+
+    # Product/service descriptor terms used for brand-name truncation heuristic.
+    # If an extracted name is ≥3 words and any of these terms appear after the
+    # first word, we truncate at the first occurrence to isolate the brand.
+    product_split_terms: list = rules.get("product_split_terms", [
+        "claims", "fraud", "guard", "launches", "launch", "introduces", "rolls",
+        "suite", "system", "platform", "service", "solution", "solutions", "app",
+        "tool", "module", "engine", "assistant", "agent", "hub", "portal",
+        "for", "by", "pro", "plus", "max", "go", "lite"
+    ])
+
+    def _truncate_at_product_term(name: str) -> str:
+        """
+        If name has ≥3 words, scan tokens from position 1 onwards.
+        When a product-descriptor token is found, return only tokens before it.
+        e.g. "SecurePay Claims Fraud Guard" -> "SecurePay"
+             "Riko AI Agentic Suite"        -> "Riko AI"
+        """
+        words = name.split()
+        if len(words) < 3:
+            return name
+        for i, word in enumerate(words[1:], start=1):  # Start scanning from 2nd word
+            if word.lower() in product_split_terms:
+                truncated = " ".join(words[:i])
+                if truncated:
+                    return truncated
+        return name
 
     def is_invalid_startup_name(name):
         if not name:
             return True
         name_lower = name.lower().strip()
-        
+
         # Filter out very short names
         if len(name_lower) < 3:
             return True
-            
+
         # Split into individual lowercase tokens
         tokens = re.findall(r'\b\w+\b', name_lower)
-        
-        # Check for investor/tech giant names
-        investor_names = {
-            "vanguard", "prosus", "softbank", "tiger global", "peak xv", "sequoia", 
-            "westbridge", "temasek", "accel", "lightspeed", "elevation", "matrix partners", 
-            "kalaari", "nexus", "chiratae", "google", "apple", "microsoft", "amazon", "meta",
-            "together", "together fund", "friale"
-        }
+
+        # Check for investor / tech giant names
         if any(inv in tokens for inv in investor_names):
             return True
-        
-        # 1. Check for combined names or roundups containing "and", "or", "&", or ","
+
+        # 1. Combined names or roundups containing "and", "or", "&", or ","
         if "and" in tokens or "or" in tokens or "&" in name_lower or "," in name_lower:
             return True
-            
-        # 2. Check if the name matches or contains any of the forbidden terms
-        bad_terms = {"coalition", "consortium", "association", "alliance", "government", "ministry", "commission", "state"}
+
+        # 2. Forbidden organisational terms
         if any(t in tokens for t in bad_terms) or any(t in name_lower for t in bad_terms):
             return True
-            
-        # 3. Check for geographic/location names
-        locations = {"haryana", "delhi", "karnataka", "maharashtra", "bengaluru", "mumbai", "india", "punjab", "gujarat", "tamil nadu", "kerala"}
+
+        # 3. Geographic / location names
         if any(loc in tokens for loc in locations):
             return True
-            
-        # 4. Check for generic industry terms / placeholders
-        generic_words = {
-            "n/a", "none", "various", "generic", "unknown", "industry", "platform", "platforms", 
-            "startup", "startups", "company", "companies", "firm", "firms", "player", "players",
-            "d2c", "b2b", "sme", "smes", "msme", "msmes", "funding", "round", "various names"
-        }
+
+        # 4. Generic industry terms / placeholders (token-level)
         if any(w in tokens for w in generic_words):
             return True
-            
-        # 5. Check the whole name against generic placeholders
-        if name_lower in generic_placeholders:
+
+        # 5. Whole-name check against generic placeholders list
+        if name_lower in [p.lower() for p in generic_placeholders]:
             return True
-            
+
         return False
 
+    # -----------------------------------------------------------------------
     # 1. Try AI-extracted name first
+    # -----------------------------------------------------------------------
     if extracted_name:
+        # Apply product-term truncation BEFORE validity check
+        extracted_name = _truncate_at_product_term(extracted_name.strip())
+
         clean_name_stripped = extracted_name.lower().strip()
         if not is_invalid_startup_name(clean_name_stripped):
             cleaned_ai = clean_string(extracted_name)
@@ -274,22 +355,24 @@ def get_clean_startup_name(headline, extracted_name):
                             return replacements[ai_key]
                         return cleaned_ai
 
-    # 2. Case-Insensitive Heuristics fallback
+    # -----------------------------------------------------------------------
+    # 2. Heuristic fallback: derive brand name from raw headline
+    # -----------------------------------------------------------------------
     cleaned_fallback = clean_string(headline)
-    
+
     words = cleaned_fallback.split()
     if len(words) > 2:
         cleaned_fallback = " ".join(words[:2])
-        
+
     if is_invalid_startup_name(cleaned_fallback):
         return None
-        
+
     final_name = cleaned_fallback.strip()
-    
+
     final_key = final_name.lower().strip()
     if final_key in replacements:
         return replacements[final_key]
-        
+
     return final_name
 
 def verify_website(url):
@@ -614,26 +697,26 @@ def process_startup(startup, industry_filter: str = "", sector_filter: str = "",
         startup_item["description"] = news_summary  # Overwrite with targeted summary
         pipeline_log(f"📰 News summary: {news_summary[:120]}...")
 
-        # Step 2b: Run Pass 2 (Rich Data Enrichment using targeted search)
-        pipeline_log("Step 2b: Running AI Pass 2 detailed enrichment...")
-        analysis = analyze_startup(startup_item)
-        
-        if not analysis or "error" in analysis:
-            pipeline_log(f"❌ AI Pass 2 analysis failed for '{clean_name}'. Error: {analysis.get('error') if analysis else 'No response'}")
-            continue
-            
-        # Get normalized taxonomy details
-        raw_industry = analysis.get("classification", {}).get("industry")
-        raw_sector = analysis.get("classification", {}).get("sector") or analysis.get("classification", {}).get("primary_sector") or "Unknown"
-        raw_subsector = analysis.get("classification", {}).get("subsector") or "Unknown"
-        
-        from backend.services.supabase_service import normalize_taxonomy
+        # Step 2b: Run Sequential Multi-Agent Orchestration Pipeline
+        pipeline_log("Step 2b: Running Sequential Multi-Agent Orchestrator...")
         try:
-            industry, sector, subsector = normalize_taxonomy(clean_name, raw_industry, raw_sector, raw_subsector)
-        except Exception:
-            industry, sector, subsector = raw_industry, raw_sector, raw_subsector
-            
-        # Post-enrichment filter check
+            from backend.workflows.agent_orchestrator import AgentOrchestrator
+            orchestrator = AgentOrchestrator()
+            state = orchestrator.run_pipeline(startup_item)
+            startup_id = state.startup_id
+        except Exception as e:
+            pipeline_log(f"❌ Multi-Agent Orchestrator failed for '{clean_name}'. Error: {e}")
+            continue
+
+        if not startup_id:
+            pipeline_log(f"❌ Failed to persist startup '{clean_name}'.")
+            continue
+
+        # Post-enrichment filter check (read from state)
+        industry = "Financial Services"
+        sector = state.startup_features.sector
+        subsector = state.startup_features.subsector
+
         if industry_filter and (not industry or industry_filter.strip().lower() not in industry.strip().lower()):
             pipeline_log(f"⚠️ Skipping '{clean_name}': industry '{industry}' does not match filter '{industry_filter}'")
             continue
@@ -643,65 +726,41 @@ def process_startup(startup, industry_filter: str = "", sector_filter: str = "",
         if subsector_filter and (not subsector or subsector_filter.strip().lower() not in subsector.strip().lower()):
             pipeline_log(f"⚠️ Skipping '{clean_name}': subsector '{subsector}' does not match filter '{subsector_filter}'")
             continue
-            
-        # Get verified website domain
-        website = get_clean_website(clean_name, analysis.get("startup_website"))
-        startup_item["website"] = website
+
+        # Step 3: Save news event to startup_news history table
+        pipeline_log("Step 3: Saving news event to startup_news history...")
+        try:
+            existing_news = get_startup_news(startup_id) or []
+            if is_news_duplicate(original_headline, original_description, existing_news):
+                pipeline_log(f"⏭️ Skipping duplicate news event for new startup '{clean_name}': '{original_headline}'")
+            else:
+                save_startup_news(
+                    startup_id=startup_id,
+                    headline=original_headline,
+                    summary=news_summary,
+                    source=startup.get("source", ""),
+                    source_url=startup.get("source_url", ""),
+                    published_at=startup.get("published_at")
+                )
+                pipeline_log(f"📰 News event saved for '{clean_name}'.")
+        except Exception as e:
+            pipeline_log(f"⚠️ Failed to save news event for '{clean_name}': {e}")
+
+        # Auto-assign FPRs
+        try:
+            from backend.api.routes.startups import assign_fprs_for_startup
+            assign_fprs_for_startup(startup_id)
+        except Exception as ae:
+            pipeline_log(f"⚠️ Failed to auto-assign FPRs for '{clean_name}': {ae}")
+
+        pipeline_log(f"✅ Successfully processed startup: {clean_name}")
         
-        pipeline_log(f"Extracted website domain: '{website}'")
-        
-        # Step 3: Upsert basic startup details
-        pipeline_log("Step 3: Saving startup metadata to Supabase...")
-        response = upsert_startup(startup_item)
-        
-        if response and len(response) > 0:
-            startup_id = response[0]["id"]
-
-            # Step 4: Save strategic enrichment analysis parameters
-            pipeline_log("Step 4: Saving startup AI analysis parameters to Supabase...")
-            analysis_response = save_startup_analysis(startup_id, analysis)
-
-            # Step 6: Save funding rounds to dedicated columns in startup_analysis
-            if analysis.get("funding_rounds") is not None:
-                pipeline_log("Step 6: Saving funding rounds to Supabase...")
-                try:
-                    # Get the just-inserted analysis row id
-                    analysis_row = supabase.table("startup_analysis").select("id").eq("startup_id", startup_id).execute()
-                    analysis_id = analysis_row.data[0]["id"] if analysis_row.data else None
-                    funding_data = {
-                        "rounds": analysis.get("funding_rounds", []),
-                        "total_funding": analysis.get("total_funding", ""),
-                        "latest_stage": analysis.get("latest_stage", ""),
-                        "latest_date": analysis.get("latest_funding_date", "")
-                    }
-                    save_funding_rounds(startup_id, funding_data, analysis_id)
-                    pipeline_log(f"💰 Funding rounds saved for '{clean_name}'.")
-                except Exception as fe:
-                    pipeline_log(f"⚠️ Failed to save funding rounds for '{clean_name}': {fe}")
-
-            # Step 5: Save news event to startup_news history table
-            pipeline_log("Step 5: Saving news event to startup_news history...")
-            try:
-                existing_news = get_startup_news(startup_id) or []
-                if is_news_duplicate(original_headline, original_description, existing_news):
-                    pipeline_log(f"⏭️ Skipping duplicate news event for new startup '{clean_name}': '{original_headline}'")
-                else:
-                    save_startup_news(
-                        startup_id=startup_id,
-                        headline=original_headline,
-                        summary=news_summary,
-                        source=startup.get("source", ""),
-                        source_url=startup.get("source_url", ""),
-                        published_at=startup.get("published_at")
-                    )
-                    pipeline_log(f"📰 News event saved for '{clean_name}'.")
-            except Exception as e:
-                pipeline_log(f"⚠️ Failed to save news event for '{clean_name}': {e}")
-
-            pipeline_log(f"✅ Successfully processed startup: {clean_name}")
-            processed_results.append({
-                "startup": response[0],
-                "analysis": analysis_response
-            })
+        # Retrieve final saved rows to match returning type signature
+        s_res = supabase.table("startups").select("*").eq("id", startup_id).execute()
+        a_res = supabase.table("startup_analysis").select("*").eq("startup_id", startup_id).execute()
+        processed_results.append({
+            "startup": s_res.data[0] if s_res.data else {},
+            "analysis": a_res.data[0].get("analysis_json") if a_res.data else {}
+        })
 
     return processed_results if processed_results else None

@@ -1,0 +1,162 @@
+{
+  "GenAI Copilots": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "Cybersecurity": {
+    "Bank": 10,
+    "Lombard": 10,
+    "Securities": 10,
+    "HFC": 9,
+    "Pru Life": 10,
+    "AMC": 9
+  },
+  "Fraud Detection": {
+    "Bank": 10,
+    "Lombard": 9,
+    "Securities": 8,
+    "HFC": 8,
+    "Pru Life": 7,
+    "AMC": 6
+  },
+  "Claims Automation": {
+    "Bank": 2,
+    "Lombard": 10,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 8,
+    "AMC": 1
+  },
+  "WealthTech": {
+    "Bank": 5,
+    "Lombard": 2,
+    "Securities": 10,
+    "HFC": 1,
+    "Pru Life": 7,
+    "AMC": 10
+  },
+  "RetirementTech": {
+    "Bank": 2,
+    "Lombard": 1,
+    "Securities": 6,
+    "HFC": 1,
+    "Pru Life": 10,
+    "AMC": 9
+  },
+  "MortgageTech": {
+    "Bank": 4,
+    "Lombard": 1,
+    "Securities": 1,
+    "HFC": 10,
+    "Pru Life": 1,
+    "AMC": 1
+  },
+  "PropTech": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 1,
+    "HFC": 10,
+    "Pru Life": 1,
+    "AMC": 1
+  },
+  "LendingTech": {
+    "Bank": 10,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 8,
+    "Pru Life": 1,
+    "AMC": 1
+  },
+  "RegTech": {
+    "Bank": 10,
+    "Lombard": 10,
+    "Securities": 9,
+    "HFC": 8,
+    "Pru Life": 9,
+    "AMC": 8
+  },
+  "Data Analytics": {
+    "Bank": 9,
+    "Lombard": 9,
+    "Securities": 8,
+    "HFC": 8,
+    "Pru Life": 8,
+    "AMC": 8
+  },
+  "Document AI": {
+    "Bank": 9,
+    "Lombard": 9,
+    "Securities": 8,
+    "HFC": 8,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "HealthTech": {
+    "Bank": 3,
+    "Lombard": 9,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 8,
+    "AMC": 1
+  },
+  "Embedded Insurance": {
+    "Bank": 2,
+    "Lombard": 10,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 9,
+    "AMC": 1
+  },
+  "Financial Wellness": {
+    "Bank": 6,
+    "Lombard": 2,
+    "Securities": 8,
+    "HFC": 2,
+    "Pru Life": 9,
+    "AMC": 8
+  },
+  "MSME SaaS": {
+    "Bank": 9,
+    "Lombard": 3,
+    "Securities": 1,
+    "HFC": 2,
+    "Pru Life": 1,
+    "AMC": 1
+  },
+  "TradeTech": {
+    "Bank": 9,
+    "Lombard": 1,
+    "Securities": 3,
+    "HFC": 1,
+    "Pru Life": 1,
+    "AMC": 1
+  },
+  "Alternative Data": {
+    "Bank": 8,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 8,
+    "Pru Life": 7,
+    "AMC": 6
+  },
+  "Decision Intelligence": {
+    "Bank": 9,
+    "Lombard": 9,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "Climate Risk": {
+    "Bank": 6,
+    "Lombard": 9,
+    "Securities": 2,
+    "HFC": 4,
+    "Pru Life": 2,
+    "AMC": 3
+  }
+}

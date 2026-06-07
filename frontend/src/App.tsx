@@ -140,7 +140,7 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
     : null;
 
   const analysis = rawAnalysisRecord
-    ? ((rawAnalysisRecord.analysis_data || rawAnalysisRecord.analysis_json) as StartupAnalysis)
+    ? ((rawAnalysisRecord.analysis_data || rawAnalysisRecord.analysis_json) as any)
     : null;
 
   const rawName = s.startup_name || s.name || "Unknown Venture";
@@ -344,7 +344,33 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
     status: s.status || "Screening",
     startup_analyses: rawAnalysisRecord ? [{
       analysis_data: analysis
-    }] : s.startup_analyses
+    }] : s.startup_analyses,
+
+    // Upgraded multi-agent workspace columns
+    startup_status: s.startup_status || s.status || "Screening",
+    headquarters: s.headquarters || "Unknown",
+    startup_stage: s.startup_stage || rawFundingStage || "Unknown",
+    relevance_score: rawAnalysisRecord?.relevance_score ?? analysis?.bfsi_relevance?.relevance_score ?? 0,
+    signal_score: rawAnalysisRecord?.signal_score ?? analysis?.scoring?.signal_score ?? 0,
+    deployability_score: rawAnalysisRecord?.deployability_score ?? analysis?.scoring?.deployability_score ?? 0,
+    recommendation_score: rawAnalysisRecord?.recommendation_score ?? analysis?.scoring?.recommendation_score ?? 0,
+    confidence_score: rawAnalysisRecord?.confidence_score ?? analysis?.scoring?.confidence_score ?? 0,
+    recommended_action: rawAnalysisRecord?.recommended_action ?? analysis?.recommendation?.recommended_action ?? "Monitor",
+    priority_band: rawAnalysisRecord?.priority_band ?? "Ignore",
+    matched_entities: rawAnalysisRecord?.matched_entities ?? analysis?.recommendation?.target_entities ?? [],
+    matched_business_teams: rawAnalysisRecord?.matched_business_teams ?? analysis?.recommendation?.target_teams ?? [],
+    matched_business_problems: rawAnalysisRecord?.matched_business_problems ?? analysis?.bfsi_relevance?.use_cases?.map((uc: any) => uc.use_case) ?? [],
+    positive_signals: rawAnalysisRecord?.positive_signals ?? s.positive_signals ?? [],
+    negative_signals: rawAnalysisRecord?.negative_signals ?? s.negative_signals ?? [],
+    audit_summary: rawAnalysisRecord?.audit_summary ?? {},
+    knowledge_version: rawAnalysisRecord?.knowledge_version ?? "",
+    analysis_version: rawAnalysisRecord?.analysis_version ?? "",
+    market_intelligence: analysis?.market_intelligence || s.market_intelligence || {
+      products: [],
+      competitors: [],
+      valuation: {},
+      investors: []
+    }
   };
 };
 
@@ -1033,25 +1059,29 @@ export default function App() {
   };
 
   // Update Assignment Status
-  const handleUpdateAssignment = async (id: string, status: string, notes: string) => {
+  const handleUpdateAssignment = async (id: string, updates: Partial<Assignment>) => {
     try {
       if (isLiveConnected) {
         const response = await fetch(`${API_URL}/assignments/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status, notes })
+          body: JSON.stringify(updates)
         });
-        if (!response.ok) throw new Error("Could not update pilot status.");
+        if (!response.ok) throw new Error("Could not update assignment details.");
       }
 
       const updated = assignments.map((a) => {
         if (String(a.id) === String(id)) {
-          return { ...a, status, notes };
+          const statusVal = updates.status !== undefined ? updates.status : (updates.assigned_to_fpr1 ? `Assigned to ${updates.assigned_to_fpr1}` : a.status);
+          return { ...a, ...updates, status: statusVal };
         }
         return a;
       });
       setAssignments(updated);
-      setGlobalSuccess("Department deliverables progress committed successfully.");
+      if (isLiveConnected) {
+        await loadDatabase();
+      }
+      setGlobalSuccess("Engagement assignment updated successfully.");
     } catch (e) {
       console.error(e);
     }
@@ -1276,6 +1306,7 @@ export default function App() {
           onUpdateStatus={handleUpdateStatus}
           onAddInteraction={handleAddInteraction}
           onCreateAssignment={handleCreateAssignment}
+          onUpdateAssignment={handleUpdateAssignment}
           onAnalyze={isLiveConnected ? handleAnalyzeStartup : undefined}
           onUpdateField={handleUpdateField}
           onRecheckField={handleRecheckField}

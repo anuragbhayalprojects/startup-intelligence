@@ -1,0 +1,10 @@
+{
+  "weights": {
+    "strategic_relevance": 40,
+    "deployability": 20,
+    "traction": 15,
+    "growth_signals": 10,
+    "team_quality": 10,
+    "funding_signals": 5
+  }
+}

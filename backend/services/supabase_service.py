@@ -51,7 +51,10 @@ def map_startup_data(raw_data):
         "founded_year": raw_data.get("founded_year"),
         "description": raw_data.get("description", ""),
         "source": raw_data.get("source", "Unknown"),
-        "source_url": raw_data.get("source_url", "")
+        "source_url": raw_data.get("source_url", ""),
+        "startup_status": raw_data.get("startup_status") or "Screening",
+        "headquarters": raw_data.get("headquarters") or "Unknown",
+        "startup_stage": raw_data.get("startup_stage") or raw_data.get("funding_stage") or "Unknown"
     }
 
 
@@ -228,7 +231,26 @@ def save_startup_analysis(startup_id, analysis_json):
         "icici_primary_entity": primary_entity,
         "use_cases": use_cases,
         "co_creation_opportunities": [fit.get("partnership_opportunity")] if fit.get("partnership_opportunity") else [],
-        "analysis_json": analysis_json
+        "analysis_json": analysis_json,
+        
+        # New operational scoring fields
+        "relevance_score": to_int(analysis_json.get("relevance_score") or bfsi.get("relevance_score")),
+        "signal_score": to_int(analysis_json.get("signal_score")),
+        "deployability_score": to_int(analysis_json.get("deployability_score") or feasibility_score),
+        "recommendation_score": to_int(analysis_json.get("recommendation_score")),
+        "confidence_score": to_int(analysis_json.get("confidence_score")),
+        "recommended_action": analysis_json.get("recommended_action") or "Monitor",
+        "priority_band": analysis_json.get("priority_band") or "Ignore",
+        
+        # New structured JSON fields
+        "matched_entities": analysis_json.get("matched_entities") or [],
+        "matched_business_teams": analysis_json.get("matched_business_teams") or [],
+        "matched_business_problems": analysis_json.get("matched_business_problems") or [],
+        "positive_signals": analysis_json.get("positive_signals") or [],
+        "negative_signals": analysis_json.get("negative_signals") or [],
+        "audit_summary": analysis_json.get("audit_summary") or {},
+        "knowledge_version": analysis_json.get("knowledge_version") or "1.0",
+        "analysis_version": analysis_json.get("analysis_version") or "1.0"
     }
     
     # Check if analysis already exists for this startup
@@ -316,6 +338,16 @@ def save_startup_analysis(startup_id, analysis_json):
             startup_updates["founded_year"] = int(founded_yr) if founded_yr else None
         except Exception:
             pass
+
+    # Update new workspace columns on startups table
+    if "recommended_action" in analysis_json:
+        startup_updates["startup_status"] = analysis_json.get("recommended_action")
+    if "headquarters" in analysis_json:
+        startup_updates["headquarters"] = analysis_json.get("headquarters")
+    if "startup_stage" in analysis_json:
+        startup_updates["startup_stage"] = analysis_json.get("startup_stage")
+    elif "funding_stage" in startup_updates:
+        startup_updates["startup_stage"] = startup_updates["funding_stage"]
 
     # Extract primary founder information to store on startup
     founders = analysis_json.get("founders", [])
