@@ -6,6 +6,8 @@ from backend.agents.relevance_agent import RelevanceAgent
 from backend.agents.strategic_fit_agent import StrategicFitAgent
 from backend.agents.signal_agent import SignalAgent
 from backend.agents.recommendation_agent import RecommendationAgent
+from backend.agents.identity_discovery_agent import IdentityDiscoveryAgent
+from backend.agents.identity_resolution_agent import IdentityResolutionAgent
 
 __all__ = [
     "BaseAgent",
@@ -15,5 +17,7 @@ __all__ = [
     "RelevanceAgent",
     "StrategicFitAgent",
     "SignalAgent",
-    "RecommendationAgent"
+    "RecommendationAgent",
+    "IdentityDiscoveryAgent",
+    "IdentityResolutionAgent",
 ]

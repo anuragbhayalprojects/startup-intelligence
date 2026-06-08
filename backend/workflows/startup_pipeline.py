@@ -21,6 +21,24 @@ from backend.services.supabase_service import (
     supabase
 )
 
+# ---------------------------------------------------------------------------
+# Backward-compatibility re-export: get_clean_website()
+# The canonical implementation now lives in backend.utils.website_resolver.
+# This re-export preserves the existing import surface for:
+#   - backend/scripts/enrich_existing_taxonomy.py
+#   - backend/cleanup_db.py
+#   - backend/agents/enrichment_agent.py
+# ---------------------------------------------------------------------------
+try:
+    from backend.utils.website_resolver import get_clean_website  # noqa: F401
+except ImportError:
+    # Fallback: define inline if the new module isn't available yet
+    def get_clean_website(clean_name, extracted_website):  # type: ignore[misc]
+        """Fallback stub — install backend/utils/website_resolver.py."""
+        return extracted_website or None
+
+
+
 
 # ---------------------------------------------------------------------------
 # External Rules Configuration Loader
@@ -190,23 +208,32 @@ def clean_string(text):
     if not text:
         return ""
     
+    rules = load_name_discovery_rules()
+    verbs = rules.get("verbs", [])
+    prefixes = rules.get("prefixes", [])
+    
     # Pre-process compound hyphenated company suffixes (e.g. PhonePe-owned -> PhonePe owned)
     text = re.sub(r'\b(\w+)-(owned|backed|funded|incubated|acquired|led|run)\b', r'\1 \2', text, flags=re.IGNORECASE)
     
-    # 1. Split at common action verbs, financial descriptors, or noise in headlines (Expanded)
-    verbs_pattern = r'\b(acquires|acquiring|acquisition|raises|raising|launches|launching|posts|secures|securing|crosses|signs|partners|to\s+invest|to|is|re-enters|enters|announces|backing|backs|rolls|gets|got|funding|deploys|commits|unveils|debuts|be|are|was|were|has|have|had|premiumisation|buyback|revenue|profit|shares|capital|investment|opportunities|valuation|valued\s+at|value|pre-money|round|esop|registrations|report|weekly|monthly|annually|results|performance|earnings|stocks|stock|share|options|option|units|unit|equity|debt|rallies|seeks|plans|hit|hits|gst|soup|scores|score|goes|go|wins|win|grabs|grab|leads|lead|led\s+by|eyes|eye|targets|target|bids|bid|prepares|prepare|aims|aim|buys|buy|sells|sell|makes|make|mark|marks|down|up|closes|closed|invests\s+in|invests|funded|funds|partners\s+with|owned|backed|incubated|run|settles|settled|settle|settling|violates|violation|violations|fined|fine|slaps|slapped|sues|sued|reverses|reversed|reverse|soars|soar|soared|proposes|proposed|propose|bans|banned|ban)\b'
-    
-    # Split text at the first occurrence of any action verbs
-    match = re.split(verbs_pattern, text, maxsplit=1, flags=re.IGNORECASE)
-    part = match[0] if match else text
+    # 1. Split at common action verbs, financial descriptors, or noise in headlines (loaded from config)
+    if verbs:
+        verbs_sorted = sorted(verbs, key=len, reverse=True)
+        verbs_pattern = r'\b(' + '|'.join(re.escape(v) for v in verbs_sorted) + r')\b'
+        match = re.split(verbs_pattern, text, maxsplit=1, flags=re.IGNORECASE)
+        part = match[0] if match else text
+    else:
+        part = text
     
     # 2. Split at possessive indicators (e.g. Behind Awfis' -> Behind Awfis)
     part = re.split(r"[’']s?\b", part)[0]
     
-    # 3. Strip starting auxiliary words or descriptive prefixes (Expanded)
-    prefixes_pattern = r'^(healthcare\s+startup|fintech\s+startup|spacetech\s+startup|saas\s+startup|edtech\s+startup|d2c\s+brand|ipo-bound\s+used\s+car\s+marketplace|used\s+car\s+marketplace|online\s+travel\s+aggregator\s*\(?ota\)?\s+platform|business-focused\s+travel\s+distribution\s+platform|online\s+travel\s+aggregator|quick\s+commerce\s+firm|crypto\s+major|car\s+marketplace|spacetech\s+firm|spacetech\s+player|travel\s+platform|startup|can|behind|inside|why|how|after|about|with|from|ai-focused|ai-powered|b2b\s+platform|lending\s+firm|remittance\s+provider|insurtech\s+firm|insurtech\s+startup|edtech\s+venture|agritech\s+firm|proptech\s+startup|wealthtech\s+firm)\s+'
-    
-    cleaned = re.sub(prefixes_pattern, '', part.strip(), flags=re.IGNORECASE)
+    # 3. Strip starting auxiliary words or descriptive prefixes (loaded from config)
+    if prefixes:
+        prefixes_sorted = sorted(prefixes, key=len, reverse=True)
+        prefixes_pattern = r'^(' + '|'.join(re.escape(p).replace(r'\ ', r'\s+') for p in prefixes_sorted) + r')\s+'
+        cleaned = re.sub(prefixes_pattern, '', part.strip(), flags=re.IGNORECASE)
+    else:
+        cleaned = part.strip()
     
     # 4. Strip standard quote, rupee symbol, and other unwanted special characters
     cleaned = re.sub(r"[’'\"`₹$%\+\-\[\]\(\)]", "", cleaned).strip()
@@ -219,76 +246,23 @@ def clean_string(text):
 def get_clean_startup_name(headline, extracted_name):
     """
     Cleans the news headline to extract only the actual startup brand name.
-    Uses AI extracted name as primary, with a robust heuristic fallback.
+    Uses AI extracted name as primary, with a robust mapped lookup fallback.
 
     Filtering rules are loaded dynamically from:
-        backend/config/name_discovery_rules.json
-
-    Key heuristics:
-    - Splits multi-word (3+ word) extracted names at product descriptor terms
-      to isolate the core brand name (e.g. "SecurePay Claims Fraud Guard" -> "SecurePay").
-    - Rejects names matching investor names, locations, bad terms, or generic placeholders.
-    - Applies known brand replacements (e.g. "scriipbox" -> "Scripbox").
+        backend/config/name_resolution_rules.json
     """
     # Load rules from external config (cached after first call)
     rules = load_name_discovery_rules()
 
-    generic_placeholders: list = rules.get("generic_placeholders", [
-        "n/a", "none", "various", "various startups", "indian startups", "industry",
-        "generic", "not applicable", "various companies", "multiple startups", "unknown",
-        "real money", "gaming", "after months", "months of", "indian startup",
-        "haryana", "delhi", "karnataka", "maharashtra", "bengaluru", "mumbai", "india",
-        "punjab", "gujarat", "tamil nadu", "kerala", "coalition", "consortium",
-        "association", "alliance", "d2c", "direct-to-consumer", "b2b", "sme",
-        "startup", "startups", "government", "various names", "digital commerce coalition"
-    ])
-
-    replacements: dict = rules.get("replacements", {
-        "upi": "NPCI",
-        "scriipbox": "Scripbox",
-        "physicswallah": "PhysicsWallah",
-        "physics wallah": "PhysicsWallah"
-    })
-
-    investor_names: set = set(rules.get("investor_names", [
-        "vanguard", "prosus", "softbank", "tiger global", "peak xv", "sequoia",
-        "westbridge", "temasek", "accel", "lightspeed", "elevation", "matrix partners",
-        "kalaari", "nexus", "chiratae", "google", "apple", "microsoft", "amazon", "meta",
-        "together", "together fund", "friale"
-    ]))
-
-    bad_terms: set = set(rules.get("bad_terms", [
-        "coalition", "consortium", "association", "alliance", "government", "ministry", "commission", "state"
-    ]))
-
-    locations: set = set(rules.get("locations", [
-        "haryana", "delhi", "karnataka", "maharashtra", "bengaluru", "mumbai", "india",
-        "punjab", "gujarat", "tamil nadu", "kerala"
-    ]))
-
-    generic_words: set = set(rules.get("generic_words", [
-        "n/a", "none", "various", "generic", "unknown", "industry", "platform", "platforms",
-        "startup", "startups", "company", "companies", "firm", "firms", "player", "players",
-        "d2c", "b2b", "sme", "smes", "msme", "msmes", "funding", "round", "various names"
-    ]))
-
-    # Product/service descriptor terms used for brand-name truncation heuristic.
-    # If an extracted name is ≥3 words and any of these terms appear after the
-    # first word, we truncate at the first occurrence to isolate the brand.
-    product_split_terms: list = rules.get("product_split_terms", [
-        "claims", "fraud", "guard", "launches", "launch", "introduces", "rolls",
-        "suite", "system", "platform", "service", "solution", "solutions", "app",
-        "tool", "module", "engine", "assistant", "agent", "hub", "portal",
-        "for", "by", "pro", "plus", "max", "go", "lite"
-    ])
+    generic_placeholders = rules.get("generic_placeholders", [])
+    replacements = rules.get("replacements", {})
+    investor_names = set(rules.get("investor_names", []))
+    bad_terms = set(rules.get("bad_terms", []))
+    locations = set(rules.get("locations", []))
+    generic_words = set(rules.get("generic_words", []))
+    product_split_terms = rules.get("product_split_terms", [])
 
     def _truncate_at_product_term(name: str) -> str:
-        """
-        If name has ≥3 words, scan tokens from position 1 onwards.
-        When a product-descriptor token is found, return only tokens before it.
-        e.g. "SecurePay Claims Fraud Guard" -> "SecurePay"
-             "Riko AI Agentic Suite"        -> "Riko AI"
-        """
         words = name.split()
         if len(words) < 3:
             return name
@@ -348,7 +322,7 @@ def get_clean_startup_name(headline, extracted_name):
         if not is_invalid_startup_name(clean_name_stripped):
             cleaned_ai = clean_string(extracted_name)
             if cleaned_ai and not is_invalid_startup_name(cleaned_ai):
-                if len(cleaned_ai.split()) <= 3 and len(cleaned_ai) <= 30:
+                if len(cleaned_ai.split()) <= 4 and len(cleaned_ai) <= 30:
                     if cleaned_ai.lower() not in ["and", "to", "for", "with", "the"]:
                         ai_key = cleaned_ai.lower().strip()
                         if ai_key in replacements:
@@ -356,24 +330,40 @@ def get_clean_startup_name(headline, extracted_name):
                         return cleaned_ai
 
     # -----------------------------------------------------------------------
-    # 2. Heuristic fallback: derive brand name from raw headline
+    # 2. Layered fallback: Headline pattern matching
+    # -----------------------------------------------------------------------
+    patterns_config = load_headline_patterns()
+    for pattern_entry in patterns_config.get("patterns", []):
+        rx = pattern_entry.get("regex")
+        groups = pattern_entry.get("groups", [1])
+        match = re.match(rx, headline, re.IGNORECASE)
+        if match:
+            for g in groups:
+                try:
+                    candidate = match.group(g)
+                    candidate_clean = clean_string(candidate)
+                    if candidate_clean and not is_invalid_startup_name(candidate_clean):
+                        final_key = candidate_clean.lower().strip()
+                        if final_key in replacements:
+                            return replacements[final_key]
+                        return candidate_clean
+                except IndexError:
+                    continue
+
+    # -----------------------------------------------------------------------
+    # 3. Last resort fallback: clean string from headline (first 2 words)
     # -----------------------------------------------------------------------
     cleaned_fallback = clean_string(headline)
-
     words = cleaned_fallback.split()
-    if len(words) > 2:
-        cleaned_fallback = " ".join(words[:2])
+    if len(words) > 0:
+        candidate = " ".join(words[:2])
+        if not is_invalid_startup_name(candidate):
+            final_key = candidate.lower().strip()
+            if final_key in replacements:
+                return replacements[final_key]
+            return candidate
 
-    if is_invalid_startup_name(cleaned_fallback):
-        return None
-
-    final_name = cleaned_fallback.strip()
-
-    final_key = final_name.lower().strip()
-    if final_key in replacements:
-        return replacements[final_key]
-
-    return final_name
+    return None
 
 def verify_website(url):
     """
@@ -555,7 +545,8 @@ def process_startup(startup, industry_filter: str = "", sector_filter: str = "",
     pipeline_log(f"\n--- Processing News Headline: '{original_headline}' ---")
     
     # Step 1: Run Pass 1 (Name Discovery) to extract all featured startup names
-    discovered_names = discover_startup_names(original_headline, original_description)
+    paragraphs = startup.get("paragraphs") or [original_description]
+    discovered_names = discover_startup_names(original_headline, paragraphs)
     
     # Trigger Python heuristics fallback if discovery failed (None) or returned empty ([])
     if not discovered_names:

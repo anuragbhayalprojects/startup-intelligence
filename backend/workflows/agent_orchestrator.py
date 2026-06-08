@@ -3,6 +3,8 @@ import json
 from datetime import datetime
 from backend.models.startup_state import StartupState
 from backend.models.startup_features import StartupFeatures
+from backend.agents.identity_discovery_agent import IdentityDiscoveryAgent
+from backend.agents.identity_resolution_agent import IdentityResolutionAgent
 from backend.agents.enrichment_agent import EnrichmentAgent
 from backend.agents.classification_agent import ClassificationAgent
 from backend.agents.market_intelligence_agent import MarketIntelligenceAgent
@@ -22,7 +24,10 @@ from backend.services.supabase_service import (
 
 class AgentOrchestrator:
     def __init__(self):
-        # Instantiate agents in order
+        # Step 0a/0b: Identity resolution (runs before all enrichment)
+        self.identity_discovery_agent = IdentityDiscoveryAgent()
+        self.identity_resolution_agent = IdentityResolutionAgent()
+        # Step 1+: Enrichment and analysis agents
         self.enrich_agent = EnrichmentAgent()
         self.class_agent = ClassificationAgent()
         self.market_intel_agent = MarketIntelligenceAgent()
@@ -50,6 +55,16 @@ class AgentOrchestrator:
             }
         )
         
+        # Attempt to pre-populate startup_id from existing DB record
+        try:
+            existing = supabase.table("startups").select("id").eq(
+                "startup_name", raw_startup.get("startup_name", "")
+            ).execute()
+            if existing.data:
+                state.startup_id = existing.data[0]["id"]
+        except Exception:
+            pass
+
         state.audit_trail.append({
             "timestamp": datetime.now().isoformat(),
             "agent": "Orchestrator",
@@ -57,14 +72,17 @@ class AgentOrchestrator:
             "metadata": {}
         })
 
-        # Step 1: Enrichment
+        # Step 0a: Identity Discovery (registry-first, deterministic)
+        state = self.identity_discovery_agent.run(state)
+
+        # Step 0b: Identity Resolution (confidence gate + DB persistence)
+        state = self.identity_resolution_agent.run(state)
+
+        # Step 1: Enrichment (now identity-aware — state.identity is pre-populated)
         state = self.enrich_agent.run(state)
         
         # Step 2: Classification
         state = self.class_agent.run(state)
-        
-        # Step 2.5: Market Intelligence
-        state = self.market_intel_agent.run(state)
         
         # Step 3: Business Problem Mapping
         state = self.biz_prob_agent.run(state)
@@ -76,11 +94,12 @@ class AgentOrchestrator:
         relevance_score = state.relevance.get("score", 0)
         if relevance_score >= 50:
             # Run remaining downstream analysis
+            state = self.market_intel_agent.run(state)
             state = self.fit_agent.run(state)
             state = self.signal_agent.run(state)
             state = self.rec_agent.run(state)
         else:
-            # Gated: Bypassed Strategic Fit and Signal Agents
+            # Gated: Bypassed Market Intelligence, Strategic Fit, and Signal Agents
             state = self.rec_agent.run(state)
 
         # Calculate deployability score
@@ -141,9 +160,16 @@ class AgentOrchestrator:
             
             # 1. Upsert basic startup details
             hq_val = state.article_data.get("enriched_raw", {}).get("tracxn_profile", {}).get("headquarters") or state.startup_features.headquarters or "Unknown"
+            # Resolve identity-derived website (identity agent > enrichment fallback)
+            resolved_website = (
+                state.identity.get("website")
+                or state.article_data.get("enriched_raw", {}).get("resolved_website", "")
+            )
+
+            products_services_val = explanations.get("relevance", {}).get("reasons", [""])[0] if explanations.get("relevance", {}).get("reasons") else ""
             startup_payload = {
                 "startup_name": state.startup_name,
-                "website": state.article_data.get("enriched_raw", {}).get("resolved_website", ""),
+                "website": resolved_website,
                 "description": state.article_data.get("description", ""),
                 "source": state.article_data.get("source", "Unknown"),
                 "source_url": state.article_data.get("source_url", ""),
@@ -155,7 +181,20 @@ class AgentOrchestrator:
                 "tags": state.article_data.get("enriched_raw", {}).get("tracxn_profile", {}).get("tags", []),
                 "startup_status": state.recommendation.get("recommended_action") or "Screening",
                 "headquarters": hq_val,
-                "startup_stage": state.startup_features.startup_stage
+                "startup_stage": state.startup_features.startup_stage,
+                # Identity-resolved fields
+                "linkedin_url": state.identity.get("linkedin_company_url", "") or state.startup_features.linkedin_company_url or "",
+                "founder_name": state.identity.get("primary_founder_name", "") or state.startup_features.founder_name or "",
+                "founder_linkedin_url": state.identity.get("primary_founder_linkedin", "") or state.startup_features.founder_linkedin_url or "",
+                "founded_year": state.startup_features.founded_year,
+                # New database migration v7 columns
+                "brand_name": state.identity.get("brand_name") or state.startup_name,
+                "legal_name": state.identity.get("legal_name") or "",
+                "company_profile": state.article_data.get("description", ""),
+                "products_services": products_services_val,
+                "identity_confidence": state.identity.get("identity_confidence", 0.0),
+                "hq_city": state.identity.get("city") or "Unknown",
+                "hq_country": state.identity.get("country") or "India"
             }
             
             # Perform upsert

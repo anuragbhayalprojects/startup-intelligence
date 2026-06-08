@@ -1,0 +1,30 @@
+{
+  "resolution_strategy": "registry_first_then_search",
+  "known_aliases": {
+    "zepto": "blinkit",
+    "fampay": "fampay",
+    "razorpay technologies": "razorpay",
+    "juspay technologies": "juspay"
+  },
+  "canonical_domain_patterns": [
+    "https://{brand_name}.com",
+    "https://{brand_name}.in",
+    "https://{brand_name}.co",
+    "https://www.{brand_name}.com",
+    "https://{brand_name}.io"
+  ],
+  "name_normalization": {
+    "strip_suffixes": [" pvt ltd", " private limited", " inc", " llc", " limited", " technologies", " tech", " solutions", " systems", " services", " platform", " platforms"],
+    "strip_prefixes": [],
+    "lowercase_for_matching": true,
+    "collapse_spaces": true
+  },
+  "deduplication": {
+    "similarity_threshold": 0.85,
+    "comparison_fields": ["startup_name", "website", "founder_name", "linkedin_url"],
+    "block_on_exact_match": ["website", "linkedin_url"],
+    "block_on_fuzzy_match": ["startup_name"]
+  },
+  "min_confidence_for_identity_record": 0.35,
+  "source_precedence": ["identity_registry", "canonical_overloads", "tracxn", "existing_database", "website", "linkedin", "search"]
+}

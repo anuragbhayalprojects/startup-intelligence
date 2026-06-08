@@ -429,6 +429,16 @@ def build_vector_index():
         "docs/architecture": "Architecture"
     }
 
+    # -------------------------------------------------------------------------
+    # SECURITY: These files must NEVER be indexed, embedded, or exposed to the
+    # runtime AI. They are internal builder configuration files. Any future
+    # files matching these basenames will also be excluded automatically.
+    # -------------------------------------------------------------------------
+    SECURITY_EXCLUDED_FILES = frozenset([
+        "antigravity_context.md",
+        "antigravity_builder_ethos.md",
+    ])
+
     all_chunks = []
     for directory, category in doc_dirs.items():
         if not os.path.exists(directory):
@@ -437,9 +447,14 @@ def build_vector_index():
         for root, _, files in os.walk(directory):
             for file in files:
                 if file.endswith(".md"):
+                    # Security exclusion check
+                    if file in SECURITY_EXCLUDED_FILES:
+                        print(f"   🔒 EXCLUDED (security): {os.path.join(root, file)}")
+                        continue
                     filepath = os.path.join(root, file)
                     print(f"   Parsing {filepath} ({category})")
                     all_chunks.extend(chunk_document(filepath, category))
+
 
     print(f"📊 Created {len(all_chunks)} chunks. Generating embeddings...")
 

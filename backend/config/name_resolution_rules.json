@@ -1,0 +1,95 @@
+{
+  "verbs": [
+    "acquires", "acquiring", "acquisition", "receives", "receiving", "receive", 
+    "onboards", "onboard", "onboarding", "appoints", "appoint", "appointing", 
+    "hires", "hired", "fires", "fired", "expands", "expand", "expanding", 
+    "merges", "merge", "merging", "files", "file", "filing", "lists", "listing", 
+    "listed", "reports", "report", "reporting", "joins", "join", "joining", 
+    "closes", "close", "closing", "pivots", "pivot", "pivoting", "cuts", "cut", 
+    "cutting", "spins", "spin", "raises", "raising", "launches", "launching", 
+    "posts", "secures", "securing", "crosses", "signs", "partners", "to invest", 
+    "to", "is", "re-enters", "enters", "announces", "backing", "backs", "rolls", 
+    "gets", "got", "funding", "deploys", "commits", "unveils", "debuts", "be", 
+    "are", "was", "were", "has", "have", "had", "premiumisation", "buyback", 
+    "revenue", "profit", "shares", "capital", "investment", "opportunities", 
+    "valuation", "valued at", "value", "pre-money", "round", "esop", "registrations", 
+    "report", "weekly", "monthly", "annually", "results", "performance", "earnings", 
+    "stocks", "stock", "share", "options", "option", "units", "unit", "equity", 
+    "debt", "rallies", "seeks", "plans", "hit", "hits", "gst", "soup", "scores", 
+    "score", "goes", "go", "wins", "win", "grabs", "grab", "leads", "lead", "led by", 
+    "eyes", "eye", "targets", "target", "bids", "bid", "prepares", "prepare", 
+    "aims", "aim", "buys", "buy", "sells", "sell", "makes", "make", "mark", "marks", 
+    "down", "up", "closes", "closed", "invests in", "invests", "funded", "funds", 
+    "partners with", "owned", "backed", "incubated", "run", "settles", "settled", 
+    "settle", "settling", "violates", "violation", "violations", "fined", "fine", 
+    "slaps", "slapped", "sues", "sued", "reverses", "reversed", "reverse", "soars", 
+    "soar", "soared", "proposes", "proposed", "propose", "bans", "banned", "ban"
+  ],
+  "prefixes": [
+    "healthcare startup", "fintech startup", "spacetech startup", "saas startup", 
+    "edtech startup", "d2c brand", "ipo-bound used car marketplace", "used car marketplace", 
+    "online travel aggregator (ota) platform", "business-focused travel distribution platform", 
+    "online travel aggregator", "quick commerce firm", "crypto major", "car marketplace", 
+    "spacetech firm", "spacetech player", "travel platform", "coworking space provider", 
+    "coworking space firm", "coworking space startup", "coworking space", "workspace provider", 
+    "co-working space provider", "ipo-bound", "ipobound", "startup", "can", "behind", 
+    "inside", "why", "how", "after", "about", "with", "from", "ai-focused", "ai-powered", 
+    "b2b platform", "lending firm", "remittance provider", "insurtech firm", "insurtech startup", 
+    "edtech venture", "agritech firm", "proptech startup", "wealthtech firm"
+  ],
+  "suffixes": [
+    "pvt ltd", "private limited", "technologies", "solutions", "systems", "corp", "corporation", "inc", "co", "company"
+  ],
+  "noise_terms": [
+    "n/a", "none", "various", "unknown", "startup", "platform", "company", "firm", "brand", "player", "venture"
+  ],
+  "ipo_keywords": [
+    "ipo-bound", "ipo bound", "pre-ipo", "sme ipo", "mainboard ipo", "goes public", "went public"
+  ],
+  "funding_keywords": [
+    "raises", "raised", "funding", "round", "series", "seed", "pre-series", "secures", "secured", "valuation", "million", "crore", "equity", "debt"
+  ],
+  "generic_business_terms": [
+    "startup", "firm", "company", "venture", "brand", "player", "platform", "solution", "solutions", "system", "systems"
+  ],
+  "generic_placeholders": [
+    "n/a", "none", "various", "various startups", "indian startups", "industry", 
+    "generic", "not applicable", "various companies", "multiple startups", "unknown",
+    "real money", "gaming", "after months", "months of", "indian startup",
+    "haryana", "delhi", "karnataka", "maharashtra", "bengaluru", "mumbai", "india",
+    "punjab", "gujarat", "tamil nadu", "kerala", "coalition", "consortium",
+    "association", "alliance", "d2c", "direct-to-consumer", "b2b", "sme",
+    "startup", "startups", "government", "various names", "digital commerce coalition"
+  ],
+  "replacements": {
+    "upi": "NPCI",
+    "scriipbox": "Scripbox",
+    "physicswallah": "PhysicsWallah",
+    "physics wallah": "PhysicsWallah"
+  },
+  "investor_names": [
+    "vanguard", "prosus", "softbank", "tiger global", "peak xv", "sequoia", 
+    "westbridge", "temasek", "accel", "lightspeed", "elevation", "matrix partners", 
+    "kalaari", "nexus", "chiratae", "google", "apple", "microsoft", "amazon", "meta",
+    "together", "together fund", "friale"
+  ],
+  "bad_terms": [
+    "coalition", "consortium", "association", "alliance", "government", "ministry", "commission", "state"
+  ],
+  "locations": [
+    "haryana", "delhi", "karnataka", "maharashtra", "bengaluru", "mumbai", "india", "punjab", "gujarat", "tamil nadu", "kerala"
+  ],
+  "generic_words": [
+    "n/a", "none", "various", "generic", "unknown", "industry", "platform", "platforms",
+    "startup", "startups", "company", "companies", "firm", "firms", "player", "players",
+    "d2c", "b2b", "sme", "smes", "msme", "msmes", "funding", "round", "various names",
+    "coworking", "workspace", "ipobound", "provider", "space", "spaces"
+  ],
+  "product_split_terms": [
+    "claims", "fraud", "guard", "launches", "launch", "introduces", "rolls",
+    "suite", "system", "platform", "service", "solution", "solutions", "app",
+    "tool", "module", "engine", "assistant", "agent", "hub", "portal",
+    "agentic", "workflow", "copilot", "intelligence", "analytics", "insights",
+    "for", "by", "pro", "plus", "max", "go", "lite"
+  ]
+}

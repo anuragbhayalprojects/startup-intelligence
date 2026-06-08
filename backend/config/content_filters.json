@@ -1,0 +1,25 @@
+{
+  "article_body_selectors": [
+    ".article-content", ".post-content", ".entry-content",
+    "article", "[class*='article-body']", "[class*='post-body']",
+    ".story-body", ".news-body", ".elementor-widget-theme-post-content"
+  ],
+  "blocked_phrases": [
+    "Unlock with Inc42 Plus", "D2CX", "ManagementX", "Subscribe to our",
+    "newsletter", "Tired Of Hustle", "Follow us on", "Terms of Use",
+    "Privacy Policy", "Inc42+ Exclusive", "Join our community",
+    "consent to the processing", "By clicking the button", "Follow us"
+  ],
+  "blocked_patterns": [
+    "^\\s*Advertisement\\s*$",
+    "^\\s*Sponsored\\s*$",
+    "Read more at .{1,60}$"
+  ],
+  "footer_keywords": [
+    "about us", "contact us", "advertise", "write for us",
+    "editorial policy", "corrections policy"
+  ],
+  "min_paragraph_length": 65,
+  "max_paragraphs_for_context": 3,
+  "context_validation_threshold": 0.30
+}

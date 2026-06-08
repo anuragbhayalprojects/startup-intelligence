@@ -1,0 +1,7 @@
+{
+  "founder_search": {
+    "v1": ["{brand_name} founder co-founder LinkedIn"],
+    "v2": ["\"{brand_name}\" CEO founder site:linkedin.com"],
+    "v3": ["\"{brand_name}\" co-founder site:crunchbase.com OR site:tracxn.com"]
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "razorpay": [
+    {"name": "Harshil Mathur", "role": "CEO & Co-Founder", "linkedin_url": "https://www.linkedin.com/in/harshilmathur/"},
+    {"name": "Shashank Kumar", "role": "CTO & Co-Founder", "linkedin_url": "https://www.linkedin.com/in/shashank-kumar-razorpay/"}
+  ],
+  "zerodha": [
+    {"name": "Nithin Kamath", "role": "Founder & CEO", "linkedin_url": "https://www.linkedin.com/in/nithinkamath/"},
+    {"name": "Nikhil Kamath", "role": "Co-Founder", "linkedin_url": "https://www.linkedin.com/in/nikhilkamath/"}
+  ],
+  "groww": [
+    {"name": "Lalit Keshre", "role": "CEO & Co-Founder", "linkedin_url": "https://www.linkedin.com/in/lalitkeshre/"}
+  ],
+  "perfios": [
+    {"name": "V.R. Govindarajan", "role": "Co-Founder & CEO", "linkedin_url": ""},
+    {"name": "Debasish Chakraborty", "role": "Co-Founder & CTO", "linkedin_url": ""}
+  ],
+  "digit insurance": [
+    {"name": "Kamesh Goyal", "role": "Founder & CEO", "linkedin_url": ""}
+  ],
+  "godigit": [
+    {"name": "Kamesh Goyal", "role": "Founder & CEO", "linkedin_url": ""}
+  ],
+  "cred": [
+    {"name": "Kunal Shah", "role": "Founder & CEO", "linkedin_url": "https://www.linkedin.com/in/kunalshah1/"}
+  ],
+  "zepto": [
+    {"name": "Aadit Palicha", "role": "Co-Founder & CEO", "linkedin_url": ""},
+    {"name": "Kaivalya Vohra", "role": "Co-Founder & CTO", "linkedin_url": ""}
+  ],
+  "meesho": [
+    {"name": "Vidit Aatrey", "role": "Co-Founder & CEO", "linkedin_url": "https://www.linkedin.com/in/vidit-aatrey/"},
+    {"name": "Sanjeev Barnwal", "role": "Co-Founder & CTO", "linkedin_url": ""}
+  ],
+  "juspay": [
+    {"name": "Vimal Kumar", "role": "Founder & CEO", "linkedin_url": ""},
+    {"name": "Ramanathan RV", "role": "Co-Founder & CTO", "linkedin_url": ""}
+  ],
+  "signzy": [
+    {"name": "Ankit Ratan", "role": "Co-Founder & CEO", "linkedin_url": ""},
+    {"name": "Arpit Ratan", "role": "Co-Founder", "linkedin_url": ""}
+  ],
+  "setu": [
+    {"name": "Sahil Kini", "role": "Co-Founder", "linkedin_url": ""},
+    {"name": "Nikhil Kumar", "role": "Co-Founder", "linkedin_url": ""}
+  ]
+}

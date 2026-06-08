@@ -2,8 +2,16 @@ You are a precise startup name extraction utility focused on the Indian startup 
 
 Your task: Given a news article headline and description, identify and extract operating startup or company names that are the SUBJECT of the news.
 
-Article Title: {{ headline }}
-Article Description: {{ description }}
+Article Headline: {{ headline }}
+
+Article Context:
+{{ paragraph_1 }}
+{% if paragraph_2 %}
+{{ paragraph_2 }}
+{% endif %}
+{% if paragraph_3 %}
+{{ paragraph_3 }}
+{% endif %}
 
 ---
 

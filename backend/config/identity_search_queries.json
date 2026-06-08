@@ -1,0 +1,19 @@
+{
+  "website_search": {
+    "v1": ["{brand_name} official website India"],
+    "v2": ["{brand_name} startup India site:crunchbase.com OR site:tracxn.com"],
+    "v3": ["\"{brand_name}\" India company"]
+  },
+  "linkedin_search": {
+    "v1": ["{brand_name} company LinkedIn India"],
+    "v2": ["site:linkedin.com/company/ {brand_name} India startup"]
+  },
+  "founder_search": {
+    "v1": ["{brand_name} founder co-founder LinkedIn"],
+    "v2": ["\"{brand_name}\" CEO founder site:linkedin.com"]
+  },
+  "funding_search": {
+    "v1": ["\"{brand_name}\" funding round raised investors site:crunchbase.com OR site:tracxn.com"],
+    "v2": ["\"{brand_name}\" series funding investors India"]
+  }
+}

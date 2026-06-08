@@ -1,0 +1,63 @@
+{
+  "providers": {
+    "google": {
+      "enabled": true,
+      "base_url": "https://www.google.com/search",
+      "min_delay_s": 2.0,
+      "max_delay_s": 5.0,
+      "jitter_s": 1.0,
+      "timeout_s": 10,
+      "max_retries": 1,
+      "backoff_base": 2.0,
+      "backoff_max_s": 30.0,
+      "results_per_query": 4,
+      "retry_status_codes": [429, 403, 503]
+    },
+    "duckduckgo": {
+      "enabled": true,
+      "base_url": "https://html.duckduckgo.com/html/",
+      "min_delay_s": 1.2,
+      "max_delay_s": 4.5,
+      "jitter_s": 0.8,
+      "timeout_s": 10,
+      "max_retries": 2,
+      "backoff_base": 2.0,
+      "backoff_max_s": 30.0,
+      "results_per_query": 4,
+      "retry_status_codes": [429, 403, 503]
+    },
+    "tracxn": {
+      "enabled": false,
+      "api_url": "https://tracxn.com/api/",
+      "api_key_env": "TRACXN_API_KEY",
+      "timeout_s": 15,
+      "max_retries": 2,
+      "results_per_query": 5,
+      "_comment": "Set enabled=true when TRACXN_API_KEY is available in environment"
+    },
+    "brave": {
+      "enabled": false,
+      "api_url": "https://api.search.brave.com/res/v1/web/search",
+      "api_key_env": "BRAVE_API_KEY",
+      "timeout_s": 8,
+      "max_retries": 2,
+      "results_per_query": 5,
+      "_comment": "Set enabled=true when BRAVE_API_KEY is available in environment"
+    }
+  },
+  "user_agents": [
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/120.0"
+  ],
+  "cache": {
+    "enabled": true,
+    "ttl_s": 3600,
+    "max_entries": 2000,
+    "persist_on_exit": false
+  },
+  "strategy": "cache_first_registry_first_search_last"
+}

@@ -10,6 +10,8 @@ try:
 except ImportError:
     BM25Okapi = None
 
+FORBIDDEN_RAG_PATHS = {"antigravity_context.md", "antigravity_builder_ethos.md"}
+
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = "nomic-embed-text"
 INDEX_PATH = os.path.join(
@@ -94,6 +96,12 @@ class HybridRetriever:
         # 3. Hybrid score
         results = []
         for idx, chunk in enumerate(self.chunks):
+            # Security exclusion check
+            filepath = chunk.get("filepath", "")
+            filename = os.path.basename(filepath)
+            if filename in FORBIDDEN_RAG_PATHS or any(f in filepath for f in FORBIDDEN_RAG_PATHS):
+                continue
+
             # Hybrid retrieval score = Cosine Similarity + BM25 keyword matching
             hybrid_score = embedding_scores[idx] + bm25_scores[idx]
             results.append({

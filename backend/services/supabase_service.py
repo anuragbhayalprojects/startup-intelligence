@@ -54,7 +54,15 @@ def map_startup_data(raw_data):
         "source_url": raw_data.get("source_url", ""),
         "startup_status": raw_data.get("startup_status") or "Screening",
         "headquarters": raw_data.get("headquarters") or "Unknown",
-        "startup_stage": raw_data.get("startup_stage") or raw_data.get("funding_stage") or "Unknown"
+        "startup_stage": raw_data.get("startup_stage") or raw_data.get("funding_stage") or "Unknown",
+        # New database migration v7 columns
+        "brand_name": raw_data.get("brand_name") or raw_data.get("startup_name"),
+        "legal_name": raw_data.get("legal_name") or "",
+        "company_profile": raw_data.get("company_profile") or raw_data.get("description", ""),
+        "products_services": raw_data.get("products_services") or "",
+        "identity_confidence": raw_data.get("identity_confidence") or 0.0,
+        "hq_city": raw_data.get("hq_city") or raw_data.get("city") or "Unknown",
+        "hq_country": raw_data.get("hq_country") or raw_data.get("country") or "India"
     }
 
 
@@ -484,3 +492,116 @@ def save_funding_rounds(startup_id: int, funding_data: dict, analysis_id: int = 
     except Exception as e:
         logging.warning(f"Failed to save funding rounds for startup_id {startup_id}: {e}")
         return None
+
+
+# =============================================================================
+# Identity Registry CRUD (startup_identity table)
+# =============================================================================
+
+def get_identity_record(startup_id: int) -> dict | None:
+    """
+    Fetches the identity registry record for a given startup_id.
+    Returns the record dict or None if not found.
+    """
+    try:
+        res = supabase.table("startup_identity").select("*").eq("startup_id", startup_id).execute()
+        return res.data[0] if res.data else None
+    except Exception as e:
+        logging.warning(f"[IdentityRegistry] get_identity_record failed for startup_id={startup_id}: {e}")
+        return None
+
+
+def get_identity_by_name(startup_name: str) -> dict | None:
+    """
+    Fetches the identity registry record by startup_name (case-insensitive prefix match).
+    Returns the best match or None.
+    """
+    try:
+        # Exact match first
+        res = supabase.table("startup_identity").select("*").ilike("startup_name", startup_name.strip()).execute()
+        if res.data:
+            return res.data[0]
+        # Brand name fallback
+        res2 = supabase.table("startup_identity").select("*").ilike("brand_name", startup_name.strip()).execute()
+        return res2.data[0] if res2.data else None
+    except Exception as e:
+        logging.warning(f"[IdentityRegistry] get_identity_by_name failed for '{startup_name}': {e}")
+        return None
+
+
+def upsert_identity_record(startup_id: int, identity_data: dict) -> dict | None:
+    """
+    Upserts an identity record for a startup. If one exists, it is updated
+    only when the new record has equal or higher confidence.
+
+    identity_data keys:
+      startup_name, brand_name, website, linkedin_company_url, primary_founder_name,
+      primary_founder_linkedin, primary_founder_title, leadership (list),
+      headquarters, city, country, founded_year, founded_year_confidence,
+      identity_confidence, source, evidence_count, verification_notes
+
+    Returns the upserted/updated record or None on failure.
+    """
+    from datetime import datetime, timezone
+
+    if not startup_id:
+        return None
+
+    try:
+        now = datetime.now(timezone.utc).isoformat()
+        identity_data["startup_id"] = startup_id
+        identity_data["updated_at"] = now
+
+        existing = supabase.table("startup_identity").select("id, identity_confidence, evidence_count").eq("startup_id", startup_id).execute()
+
+        if existing.data:
+            existing_rec = existing.data[0]
+            new_confidence = identity_data.get("identity_confidence", 0)
+            old_confidence = existing_rec.get("identity_confidence", 0)
+
+            # Merge evidence count upward
+            identity_data["evidence_count"] = max(
+                identity_data.get("evidence_count", 0),
+                existing_rec.get("evidence_count", 0)
+            )
+
+            if new_confidence >= old_confidence:
+                res = supabase.table("startup_identity").update(identity_data).eq("id", existing_rec["id"]).execute()
+                logging.info(f"[IdentityRegistry] Updated identity for startup_id={startup_id}")
+                return res.data[0] if res.data else None
+            else:
+                logging.info(f"[IdentityRegistry] Skipped update (lower confidence) for startup_id={startup_id}")
+                return existing_rec
+        else:
+            identity_data["created_at"] = now
+            res = supabase.table("startup_identity").insert(identity_data).execute()
+            logging.info(f"[IdentityRegistry] Inserted identity for startup_id={startup_id}")
+            return res.data[0] if res.data else None
+
+    except Exception as e:
+        logging.warning(f"[IdentityRegistry] upsert_identity_record failed for startup_id={startup_id}: {e}")
+        return None
+
+
+def update_identity_field(startup_id: int, field: str, value, bump_evidence: bool = True) -> bool:
+    """
+    Updates a single field on the startup_identity record.
+    Optionally bumps evidence_count by 1.
+    Returns True on success.
+    """
+    from datetime import datetime, timezone
+
+    try:
+        payload = {field: value, "updated_at": datetime.now(timezone.utc).isoformat()}
+
+        if bump_evidence:
+            existing = supabase.table("startup_identity").select("evidence_count").eq("startup_id", startup_id).execute()
+            if existing.data:
+                old_count = existing.data[0].get("evidence_count", 0) or 0
+                payload["evidence_count"] = old_count + 1
+
+        res = supabase.table("startup_identity").update(payload).eq("startup_id", startup_id).execute()
+        return bool(res.data)
+    except Exception as e:
+        logging.warning(f"[IdentityRegistry] update_identity_field '{field}' failed for startup_id={startup_id}: {e}")
+        return False

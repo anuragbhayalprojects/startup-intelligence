@@ -537,26 +537,118 @@ async def add_scrape_source(req: Dict[str, Any] = Body(...)):
         raise HTTPException(status_code=500, detail=f"Failed to save custom source: {e}")
 
 
+class CSVUploadRequest(BaseModel):
+    csvText: str
+
+
+@router.post("/startups/upload-csv")
+async def upload_csv(req: CSVUploadRequest = Body(...)):
+    """
+    Batch-inserts startups from a CSV text payload.
+    Expected CSV format: startup_name, description, website, sector, funding_stage
+    Returns: { added: int, duplicates: list[str], errors: list[str] }
+    """
+    try:
+        lines = [l.strip() for l in req.csvText.split("\n") if l.strip()]
+        if len(lines) <= 1:
+            raise HTTPException(status_code=400, detail="CSV is empty or has only a header row.")
+
+        # Fetch existing names for dedup check
+        existing_resp = supabase.table("startups").select("startup_name").execute()
+        existing_names = {s["startup_name"].lower().strip() for s in (existing_resp.data or [])}
+
+        def normalize_name(n: str) -> str:
+            return re.sub(r"[^a-z0-9]", "", n.lower())
+
+        added = 0
+        duplicates = []
+        errors = []
+
+        # Skip header row
+        for row in lines[1:]:
+            cols = [c.strip().strip('"') for c in row.split(",")]
+            if len(cols) < 2:
+                continue
+
+            name = cols[0].strip()
+            desc = cols[1].strip() if len(cols) > 1 else ""
+            website = cols[2].strip() if len(cols) > 2 else "https://example.com"
+            sector = cols[3].strip() if len(cols) > 3 else "FinTech"
+            funding_stage = cols[4].strip() if len(cols) > 4 else "Seed"
+
+            if not name or not desc:
+                continue
+
+            # Duplicate check
+            if normalize_name(name) in {normalize_name(n) for n in existing_names}:
+                duplicates.append(name)
+                continue
+
+            try:
+                ins = {
+                    "startup_name": name,
+                    "website": website or "https://example.com",
+                    "description": desc,
+                    "industry": "Financial Services",
+                    "sector": sector or "FinTech",
+                    "subsector": "Unknown",
+                    "funding_stage": funding_stage or "Seed",
+                    "business_models": [],
+                    "country": "India",
+                }
+                resp = supabase.table("startups").insert(ins).execute()
+                if resp.data:
+                    new_id = resp.data[0]["id"]
+                    assign_fprs_for_startup(new_id)
+                    existing_names.add(name.lower().strip())
+                    added += 1
+            except Exception as row_err:
+                errors.append(f"{name}: {str(row_err)}")
+
+        return {
+            "status": "success",
+            "added": added,
+            "duplicates": duplicates,
+            "errors": errors,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/startups")
 async def get_startups():
     """
     Fetches all startups from the database, filtering out generic news/headlines
     and dynamically joining their corresponding startup_analysis relational rows.
+
     """
     try:
         # Relational join query using Supabase select mapping syntax
-        response = supabase.table("startups").select("*, startup_analysis(*)").order("created_at", desc=True).execute()
+        response = supabase.table("startups").select(
+            "*, startup_analysis(id, ai_summary, relevance_score, signal_score, deployability_score, "
+            "recommendation_score, confidence_score, recommended_action, priority_band, priority_score, "
+            "matched_entities, matched_business_teams, matched_business_problems, positive_signals, "
+            "negative_signals, audit_summary, knowledge_version, analysis_version, analysis_json, "
+            "funding_rounds, total_funding, latest_round_stage, latest_round_date)"
+        ).order("created_at", desc=True).execute()
         raw_startups = response.data or []
-        
+
         filtered_startups = []
         for s in raw_startups:
             name = s.get("startup_name", "")
-            if name:
-                words = name.split()
-                # Keep real, cleanly formatted startup names
-                if len(words) <= 5 and len(name) <= 35:
+            # Filter out blank names and obvious news/article headlines (very long, verb-heavy)
+            if name and len(name.strip()) > 0:
+                words = name.strip().split()
+                # Only exclude lines that look like sentence headlines (>8 words or >60 chars with verb phrases)
+                is_headline = (
+                    len(words) > 8 or
+                    (len(name) > 60 and any(verb in name.lower() for verb in [" raises ", " acquires ", " launches ", " announces ", " partners ", " secures "]))
+                )
+                if not is_headline:
                     filtered_startups.append(s)
-                    
+
         return filtered_startups
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -646,20 +738,53 @@ async def get_startup_details(id: str):
             raise HTTPException(status_code=404, detail="Startup not found")
 
         startup = startup_resp.data[0]
-        analysis_resp = supabase.table("startup_analysis").select("*").eq("startup_id", id).execute()
+        analysis_resp = supabase.table("startup_analysis").select("*").eq("startup_id", int_id).execute()
 
         startup_analyses = []
         if analysis_resp.data:
-            for record in analysis_resp.data:
-                startup_analyses.append({
-                    "analysis_data": record.get("analysis_json") or {}
-                })
-            # Embed funding rounds directly on the startup object
             analysis_rec = analysis_resp.data[0]
+            startup_analyses.append({
+                "analysis_data": analysis_rec.get("analysis_json") or {},
+                "analysis_json": analysis_rec.get("analysis_json") or {},
+                # All operational score columns
+                "relevance_score": analysis_rec.get("relevance_score") or 0,
+                "signal_score": analysis_rec.get("signal_score") or 0,
+                "deployability_score": analysis_rec.get("deployability_score") or 0,
+                "recommendation_score": analysis_rec.get("recommendation_score") or 0,
+                "confidence_score": analysis_rec.get("confidence_score") or 0,
+                "priority_score": analysis_rec.get("priority_score") or 0,
+                "recommended_action": analysis_rec.get("recommended_action") or "Monitor",
+                "priority_band": analysis_rec.get("priority_band") or "Ignore",
+                "matched_entities": analysis_rec.get("matched_entities") or [],
+                "matched_business_teams": analysis_rec.get("matched_business_teams") or [],
+                "matched_business_problems": analysis_rec.get("matched_business_problems") or [],
+                "positive_signals": analysis_rec.get("positive_signals") or [],
+                "negative_signals": analysis_rec.get("negative_signals") or [],
+                "audit_summary": analysis_rec.get("audit_summary") or {},
+                "knowledge_version": analysis_rec.get("knowledge_version") or "",
+                "analysis_version": analysis_rec.get("analysis_version") or "",
+                "funding_rounds": analysis_rec.get("funding_rounds") or [],
+                "total_funding": analysis_rec.get("total_funding") or "",
+                "latest_round_stage": analysis_rec.get("latest_round_stage") or "",
+                "latest_round_date": analysis_rec.get("latest_round_date") or "",
+            })
+            # Also embed these fields at the top-level startup object for easy access
             startup["funding_rounds"] = analysis_rec.get("funding_rounds") or []
             startup["total_funding"] = analysis_rec.get("total_funding") or ""
             startup["latest_round_stage"] = analysis_rec.get("latest_round_stage") or ""
             startup["latest_round_date"] = analysis_rec.get("latest_round_date") or ""
+            startup["relevance_score"] = analysis_rec.get("relevance_score") or 0
+            startup["signal_score"] = analysis_rec.get("signal_score") or 0
+            startup["deployability_score"] = analysis_rec.get("deployability_score") or 0
+            startup["recommendation_score"] = analysis_rec.get("recommendation_score") or 0
+            startup["confidence_score"] = analysis_rec.get("confidence_score") or 0
+            startup["recommended_action"] = analysis_rec.get("recommended_action") or "Monitor"
+            startup["priority_band"] = analysis_rec.get("priority_band") or "Ignore"
+            startup["matched_entities"] = analysis_rec.get("matched_entities") or []
+            startup["matched_business_teams"] = analysis_rec.get("matched_business_teams") or []
+            startup["matched_business_problems"] = analysis_rec.get("matched_business_problems") or []
+            startup["positive_signals"] = analysis_rec.get("positive_signals") or []
+            startup["negative_signals"] = analysis_rec.get("negative_signals") or []
 
         startup["startup_analyses"] = startup_analyses
 
@@ -671,6 +796,7 @@ async def get_startup_details(id: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 
 @router.get("/startup/{id}/news")
@@ -1196,9 +1322,23 @@ async def update_startup_field(id: str, req: FieldUpdateRequest = Body(...)):
         value = req.value
         
         # 1. Update the startups table directly if it is a main column
-        startup_cols = ["website", "founder_name", "founder_linkedin_url", "funding_stage", "sector", "subsector", "description", "startup_name"]
-        if field in startup_cols:
-            supabase.table("startups").update({field: value}).eq("id", int_id).execute()
+        startup_cols = [
+            "website", "founder_name", "founder_linkedin_url", "funding_stage", 
+            "sector", "subsector", "description", "startup_name", "linkedin_url",
+            "brand_name", "legal_name", "company_profile", "products_services"
+        ]
+        
+        # Normalize UI/JS field names to exact DB column names
+        db_field = field
+        if field == "linkedin":
+            db_field = "linkedin_url"
+        elif field == "profile":
+            db_field = "company_profile"
+        elif field == "products":
+            db_field = "products_services"
+            
+        if db_field in startup_cols:
+            supabase.table("startups").update({db_field: value}).eq("id", int_id).execute()
             
         # 2. Update the nested analysis_json inside startup_analysis
         analysis_res = supabase.table("startup_analysis").select("*").eq("startup_id", int_id).execute()
@@ -1209,6 +1349,25 @@ async def update_startup_field(id: str, req: FieldUpdateRequest = Body(...)):
             # Map frontend edit fields to JSON structure keys
             if field == "website":
                 analysis_json["startup_website"] = value
+            elif field in ["linkedin", "linkedin_url"]:
+                analysis_json["linkedin_company_url"] = value
+            elif field in ["description", "profile", "company_profile"]:
+                analysis_json["description"] = value
+                if "summary" not in analysis_json:
+                    analysis_json["summary"] = {}
+                analysis_json["summary"]["business_model"] = value
+            elif field in ["products", "products_services"]:
+                # Ensure value is parsed as list if it's JSON string from frontend
+                if isinstance(value, str):
+                    try:
+                        parsed_val = json.loads(value)
+                    except Exception:
+                        parsed_val = [{"product_name": value, "category": "Product", "description": value, "target_customer": "All", "deployment_model": "SaaS"}]
+                else:
+                    parsed_val = value
+                if "market_intelligence" not in analysis_json:
+                    analysis_json["market_intelligence"] = {}
+                analysis_json["market_intelligence"]["products"] = parsed_val
             elif field == "founders":
                 analysis_json["founders"] = value
                 # Sync first founder's name to startups table
@@ -1249,11 +1408,6 @@ async def update_startup_field(id: str, req: FieldUpdateRequest = Body(...)):
                 }).eq("id", int_id).execute()
             elif field == "valuation":
                 analysis_json["valuation_metrics"] = value
-            elif field == "description":
-                # Sync business model summary in analysis_json
-                if "summary" not in analysis_json:
-                    analysis_json["summary"] = {}
-                analysis_json["summary"]["business_model"] = value
                 
             # Update startup_analysis record
             supabase.table("startup_analysis").update({
@@ -1273,7 +1427,7 @@ async def update_startup_field(id: str, req: FieldUpdateRequest = Body(...)):
 
 @router.post("/startups/{id}/recheck")
 async def recheck_startup_field(id: str, req: FieldRecheckRequest = Body(...)):
-    """Runs a targeted query and LLM analysis to re-discover a single specific field (website, founders, or funding)."""
+    """Runs a targeted query and LLM analysis to re-discover a single specific field."""
     try:
         try:
             int_id = int(id)
@@ -1281,7 +1435,12 @@ async def recheck_startup_field(id: str, req: FieldRecheckRequest = Body(...)):
             raise HTTPException(status_code=400, detail=f"Invalid startup ID '{id}'. Must be an integer.")
             
         field = req.field
-        if field not in ["website", "founders", "funding"]:
+        valid_rechecks = [
+            "website", "founders", "funding", "linkedin", "linkedin_url", 
+            "startup_name", "brand_name", "profile", "description", 
+            "products", "products_services"
+        ]
+        if field not in valid_rechecks:
             raise HTTPException(status_code=400, detail=f"Targeted recheck is not supported for field '{field}'.")
             
         startup_resp = supabase.table("startups").select("*").eq("id", int_id).execute()
@@ -1315,6 +1474,104 @@ Return ONLY a valid JSON block containing the "startup_website" key. Do not outp
 JSON Schema:
 {{
   "startup_website": "https://example.com"
+}}
+
+Search Snippets:
+{search_context}
+
+Begin parsing:
+"""
+
+        elif field in ["linkedin", "linkedin_url"]:
+            search_query = f"{clean_name} company linkedin page India"
+            try:
+                search_context = search_duckduckgo(search_query)
+            except Exception as se:
+                search_context = f"Search failed: {se}"
+                
+            prompt = f"""You are a precise data parsing assistant.
+Analyze the search engine snippets below and extract the official LinkedIn company page URL for the company '{clean_name}'.
+Return ONLY a valid JSON block containing the "linkedin_company_url" key. Do not output any notes, commentary, or wrapper text.
+
+JSON Schema:
+{{
+  "linkedin_company_url": "https://www.linkedin.com/company/example"
+}}
+
+Search Snippets:
+{search_context}
+
+Begin parsing:
+"""
+
+        elif field in ["startup_name", "brand_name"]:
+            search_query = f"{clean_name} official brand name"
+            try:
+                search_context = search_duckduckgo(search_query)
+            except Exception as se:
+                search_context = f"Search failed: {se}"
+                
+            prompt = f"""You are a precise data parsing assistant.
+Analyze the search engine snippets below and extract the operating brand name for the company '{clean_name}'.
+Exclude suffixes like "Pvt Ltd", "Inc", "Solutions", "Technologies", or generic terms.
+Return ONLY a valid JSON block containing the "brand_name" key. Do not output any notes, commentary, or wrapper text.
+
+JSON Schema:
+{{
+  "brand_name": "BrandName"
+}}
+
+Search Snippets:
+{search_context}
+
+Begin parsing:
+"""
+
+        elif field in ["profile", "description", "company_profile"]:
+            search_query = f"{clean_name} company profile overview business model"
+            try:
+                search_context = search_duckduckgo(search_query)
+            except Exception as se:
+                search_context = f"Search failed: {se}"
+                
+            prompt = f"""You are a precise data parsing assistant.
+Analyze the search engine snippets below and write a 2-3 sentence executive company profile summary for the company '{clean_name}' outlining what they do and their target market.
+Return ONLY a valid JSON block containing the "company_profile" key. Do not output any notes, commentary, or wrapper text.
+
+JSON Schema:
+{{
+  "company_profile": "Profile summary text here..."
+}}
+
+Search Snippets:
+{search_context}
+
+Begin parsing:
+"""
+
+        elif field in ["products", "products_services"]:
+            search_query = f"{clean_name} products services solutions list"
+            try:
+                search_context = search_duckduckgo(search_query)
+            except Exception as se:
+                search_context = f"Search failed: {se}"
+                
+            prompt = f"""You are a precise data parsing assistant.
+Analyze the search engine snippets below and extract a list of 2-3 key products or services offered by the company '{clean_name}'.
+For each product/service, specify its product_name, category, description, target_customer, and deployment_model.
+Return ONLY a valid JSON block containing the "products" key. Do not output any notes, commentary, or wrapper text.
+
+JSON Schema:
+{{
+  "products": [
+    {{
+      "product_name": "Product Name",
+      "category": "Software / API / Service",
+      "description": "Short description",
+      "target_customer": "Enterprise / Retail / B2B",
+      "deployment_model": "SaaS / On-Premise"
+    }}
+  ]
 }}
 
 Search Snippets:
@@ -1412,6 +1669,32 @@ Begin parsing:
                 analysis_json["startup_website"] = extracted_val
                 supabase.table("startups").update({"website": extracted_val}).eq("id", int_id).execute()
                 
+            elif field in ["linkedin", "linkedin_url"]:
+                extracted_val = data.get("linkedin_company_url") or ""
+                analysis_json["linkedin_company_url"] = extracted_val
+                supabase.table("startups").update({"linkedin_url": extracted_val}).eq("id", int_id).execute()
+                
+            elif field in ["startup_name", "brand_name"]:
+                extracted_val = data.get("brand_name") or clean_name
+                analysis_json["brand_name"] = extracted_val
+                supabase.table("startups").update({"startup_name": extracted_val, "brand_name": extracted_val}).eq("id", int_id).execute()
+                
+            elif field in ["profile", "description", "company_profile"]:
+                extracted_val = data.get("company_profile") or ""
+                analysis_json["description"] = extracted_val
+                if "summary" not in analysis_json:
+                    analysis_json["summary"] = {}
+                analysis_json["summary"]["business_model"] = extracted_val
+                supabase.table("startups").update({"description": extracted_val, "company_profile": extracted_val}).eq("id", int_id).execute()
+                
+            elif field in ["products", "products_services"]:
+                extracted_val = data.get("products") or []
+                if "market_intelligence" not in analysis_json:
+                    analysis_json["market_intelligence"] = {}
+                analysis_json["market_intelligence"]["products"] = extracted_val
+                products_str = json.dumps(extracted_val)
+                supabase.table("startups").update({"products_services": products_str}).eq("id", int_id).execute()
+                
             elif field == "founders":
                 extracted_val = data.get("founders") or []
                 analysis_json["founders"] = extracted_val
@@ -1424,7 +1707,6 @@ Begin parsing:
                     }).eq("id", int_id).execute()
                     
             elif field == "funding":
-                # Run Pass 3: multi-source search + dedicated LLM extraction
                 from backend.ai.startup_analyzer import collect_funding_snippets, extract_funding_rounds
                 startup_name_res = supabase.table("startups").select("startup_name").eq("id", int_id).execute()
                 sname = startup_name_res.data[0].get("startup_name", "") if startup_name_res.data else ""
@@ -1442,11 +1724,9 @@ Begin parsing:
                                 [inv for r in rounds for inv in r.get("co_investors", [])]
                             ))
                         }
-                        # Sync stage
                         supabase.table("startups").update({
                             "funding_stage": funding_result.get("latest_stage", "")
                         }).eq("id", int_id).execute()
-                        # Persist to dedicated columns
                         save_funding_rounds(int_id, funding_result, analysis_rec.get("id"))
                         data = {"funding_stages": analysis_json["funding_stages"], "funding_rounds": rounds}
                 

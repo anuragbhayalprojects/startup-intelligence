@@ -1,0 +1,41 @@
+{
+  "source_quality_weights": {
+    "identity_registry": 1.00,
+    "canonical_overloads": 0.98,
+    "tracxn": 0.95,
+    "existing_database": 0.90,
+    "known_domain_registry": 0.88,
+    "website_official": 0.85,
+    "linkedin_company": 0.80,
+    "linkedin_backlink": 0.78,
+    "brave_search": 0.70,
+    "google_search": 0.65,
+    "duckduckgo_search": 0.60,
+    "inferred_domain": 0.40,
+    "llm_inference": 0.30
+  },
+  "evidence_multipliers": {
+    "1": 1.0,
+    "2": 1.15,
+    "3": 1.25,
+    "4": 1.35,
+    "5+": 1.45
+  },
+  "cross_validation_bonuses": {
+    "website_and_linkedin_match": 0.10,
+    "legal_name_and_brand_name_match": 0.08,
+    "registry_and_website_match": 0.12,
+    "registry_and_linkedin_match": 0.10,
+    "founder_corroborated": 0.05,
+    "domain_matches_brand": 0.06
+  },
+  "confidence_bands": [
+    {"min": 0.90, "max": 1.00, "label": "Verified", "action": "use_directly"},
+    {"min": 0.70, "max": 0.89, "label": "High Confidence", "action": "use_with_flag"},
+    {"min": 0.50, "max": 0.69, "label": "Medium Confidence", "action": "use_with_recheck"},
+    {"min": 0.30, "max": 0.49, "label": "Low Confidence", "action": "manual_review"},
+    {"min": 0.00, "max": 0.29, "label": "Uncertain", "action": "search_again"}
+  ],
+  "minimum_evidence_to_persist": 1,
+  "minimum_confidence_to_persist": 0.30
+}

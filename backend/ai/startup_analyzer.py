@@ -59,11 +59,16 @@ def clean_llm_response(response_text):
 
 # --- Pass 1: Name Discovery ---
 
-def discover_startup_names(headline: str, description: str) -> list:
+def discover_startup_names(headline: str, paragraphs) -> list:
     """
     Pass 1: Analyzes news text/headline using local LLM to extract all startup names.
     Returns a list of clean startup name strings, or None if the analysis failed.
     """
+    if isinstance(paragraphs, str):
+        paragraphs = [paragraphs]
+    elif not isinstance(paragraphs, list):
+        paragraphs = []
+
     if not OLLAMA_BASE_URL:
         print("⚠️ [Startup Analyzer] Ollama base URL not set. Skipping Pass 1 name discovery.")
         return None
@@ -72,7 +77,10 @@ def discover_startup_names(headline: str, description: str) -> list:
     try:
         with open(prompt_path, "r") as f:
             prompt_template = Template(f.read())
-        prompt = prompt_template.render(headline=headline, description=description)
+        p1 = paragraphs[0] if len(paragraphs) > 0 else ""
+        p2 = paragraphs[1] if len(paragraphs) > 1 else ""
+        p3 = paragraphs[2] if len(paragraphs) > 2 else ""
+        prompt = prompt_template.render(headline=headline, paragraph_1=p1, paragraph_2=p2, paragraph_3=p3)
     except Exception as e:
         print(f"⚠️ [Startup Analyzer] Failed to load name discovery template: {e}")
         return None

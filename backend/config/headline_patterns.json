@@ -1,0 +1,14 @@
+{
+  "patterns": [
+    {"regex": "^(.+?)\\s+(?:acquires|acquired)\\s+(.+)$", "groups": [1, 2], "note": "X acquires Y"},
+    {"regex": "^(.+?)\\s+(?:raises|raised|secures|secured)\\s+", "groups": [1], "note": "X raises"},
+    {"regex": "^(.+?)\\s+(?:launches|launched|introduces|rolls out)\\s+", "groups": [1], "note": "X launches"},
+    {"regex": "^(.+?)\\s+(?:receives|received)\\s+", "groups": [1], "note": "X receives"},
+    {"regex": "^(.+?)\\s+(?:appoints|appointed|hires|hired)\\s+", "groups": [1], "note": "X appoints"},
+    {"regex": "^(.+?)\\s+(?:files|filed)\\s+", "groups": [1], "note": "X files"},
+    {"regex": "^(.+?)\\s+(?:partners|partnered)\\s+with\\s+", "groups": [1], "note": "X partners"},
+    {"regex": "^IPO-Bound\\s+(.+?)\\s+(?:onboards|appoints|hires)", "groups": [1], "note": "IPO-Bound X"},
+    {"regex": "^(.+?)\\s+(?:goes|went)\\s+(?:public|IPO)", "groups": [1], "note": "X goes public"}
+  ],
+  "max_words_in_extracted_name": 4
+}

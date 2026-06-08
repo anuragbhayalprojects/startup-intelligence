@@ -11,6 +11,10 @@ from bs4 import BeautifulSoup
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
 
 from backend.scrapers.common.http_client import get_session, safe_request
+from backend.scrapers.common.context_validator import (
+    validate_article_context,
+    extract_clean_paragraphs
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("scrapers.inc42")
@@ -67,27 +71,35 @@ def scrape_inc42(num_startups: int = 10):
                     logger.info(f"⏳ [Inc42 Scraper] Jitter delay: {delay:.2f} seconds before article fetch...")
                     time.sleep(delay)
                     
+                    paragraphs = []
                     try:
                         art_response = safe_request(session, article_url, timeout=5)
                         if art_response.status_code == 200:
                             art_soup = BeautifulSoup(art_response.text, "html.parser")
-                            paragraphs = []
-                            for p in art_soup.find_all("p"):
-                                # Skip utility or widget paragraphs
-                                if p.get("class") and any(c in p.get("class") for c in ["wp-block-post-excerpt__excerpt", "widget-title"]):
-                                    continue
-                                text = p.get_text(strip=True)
-                                if len(text) < 65:
-                                    continue
-                                if any(phrase in text for phrase in ["Unlock", "newsletter", "Tired Of", "Terms of Use", "Privacy Policy", "Follow us on"]):
-                                    continue
-                                paragraphs.append(text)
-                            if paragraphs:
-                                description = " ".join(paragraphs[:6])
+                            paragraphs = extract_clean_paragraphs(art_response.text)
+                            
+                            # Extract meta description
+                            meta_desc = ""
+                            desc_tag = art_soup.find("meta", attrs={"name": "description"}) or art_soup.find("meta", attrs={"property": "og:description"})
+                            if desc_tag:
+                                meta_desc = desc_tag.get("content", "").strip()
+                                
+                            confidence, bad_context = validate_article_context(title, paragraphs)
+                            
+                            if not bad_context and paragraphs:
+                                description = " ".join(paragraphs[:3])
+                            else:
+                                logger.info(f"⚠️ [Inc42 Scraper] Context validation failed (score={confidence:.2f}) for '{title}'. Falling back.")
+                                if meta_desc and len(meta_desc) > 30:
+                                    description = meta_desc
+                                else:
+                                    rss_desc = entry.get("summary") or entry.get("description") or ""
+                                    if rss_desc:
+                                        description = BeautifulSoup(rss_desc, "html.parser").get_text(strip=True)
                     except Exception as e:
                         logger.warning(f"Failed to fetch details for {article_url}, falling back to RSS summary: {e}")
                     
-                    if description == "N/A":
+                    if not description or description == "N/A":
                         # Fallback to RSS summary/description
                         description = entry.get("summary") or entry.get("description") or "N/A"
                         if description != "N/A":
@@ -97,6 +109,7 @@ def scrape_inc42(num_startups: int = 10):
                         "startup_name": title,
                         "source_url": article_url,
                         "description": description,
+                        "paragraphs": paragraphs or [description],
                         "source": "Inc42",
                         "published_at": parse_published_date(entry.get("published")),
                         "city": "India",
@@ -145,6 +158,7 @@ def scrape_inc42(num_startups: int = 10):
                     continue
                 seen_urls.add(article_url)
                 
+                paragraphs = []
                 description = "N/A"
                 delay = random.uniform(1.0, 2.5)
                 logger.info(f"⏳ [Inc42 HTML Fallback] Jitter delay: {delay:.2f} seconds before article fetch...")
@@ -154,16 +168,22 @@ def scrape_inc42(num_startups: int = 10):
                     art_response = safe_request(session, article_url, timeout=5)
                     if art_response.status_code == 200:
                         art_soup = BeautifulSoup(art_response.text, "html.parser")
-                        paragraphs = []
-                        for p in art_soup.find_all("p"):
-                            text = p.get_text(strip=True)
-                            if len(text) < 65:
-                                continue
-                            if any(phrase in text for phrase in ["Unlock", "newsletter", "Tired Of", "Terms of Use", "Privacy Policy", "Follow us on"]):
-                                continue
-                            paragraphs.append(text)
-                        if paragraphs:
-                            description = " ".join(paragraphs[:6])
+                        paragraphs = extract_clean_paragraphs(art_response.text)
+                        
+                        # Extract meta description
+                        meta_desc = ""
+                        desc_tag = art_soup.find("meta", attrs={"name": "description"}) or art_soup.find("meta", attrs={"property": "og:description"})
+                        if desc_tag:
+                            meta_desc = desc_tag.get("content", "").strip()
+                            
+                        confidence, bad_context = validate_article_context(title, paragraphs)
+                        
+                        if not bad_context and paragraphs:
+                            description = " ".join(paragraphs[:3])
+                        else:
+                            logger.info(f"⚠️ [Inc42 HTML Fallback] Context validation failed (score={confidence:.2f}) for '{title}'. Falling back.")
+                            if meta_desc and len(meta_desc) > 30:
+                                description = meta_desc
                 except Exception as e:
                     logger.warning(f"Failed to fetch description for {article_url}: {e}")
                     
@@ -171,6 +191,7 @@ def scrape_inc42(num_startups: int = 10):
                     "startup_name": title,
                     "source_url": article_url,
                     "description": description,
+                    "paragraphs": paragraphs or [description],
                     "source": "Inc42",
                     "city": "India",
                     "country": "India",

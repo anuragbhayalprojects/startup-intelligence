@@ -203,9 +203,13 @@ export default function DetailModal({
     : null;
 
   // Inline edit fields form states
-  const [editingField, setEditingField] = useState<"website" | "founders" | "funding" | null>(null);
+  const [editingField, setEditingField] = useState<"startup_name" | "website" | "linkedin" | "founders" | "description" | "products" | "funding" | null>(null);
+  const [nameInput, setNameInput] = useState(startup.startup_name || "");
   const [websiteInput, setWebsiteInput] = useState(startup.website || "");
+  const [linkedinInput, setLinkedinInput] = useState(startup.linkedin_url || "");
   const [foundersInput, setFoundersInput] = useState("");
+  const [descriptionInput, setDescriptionInput] = useState("");
+  const [productsInput, setProductsInput] = useState("");
   const [fundingSeriesInput, setFundingSeriesInput] = useState("");
   const [fundingAmountInput, setFundingAmountInput] = useState("");
   const [fundingInvestorsInput, setFundingInvestorsInput] = useState("");
@@ -215,9 +219,18 @@ export default function DetailModal({
 
   // Sync inputs on startup update
   useEffect(() => {
+    setNameInput(startup.startup_name || "");
     setWebsiteInput(startup.website || "");
+    setLinkedinInput(startup.linkedin_url || "");
+    setDescriptionInput(startup.ai_summary || startup.description || "");
+    
+    const mIntel = startup.market_intelligence || analysis?.market_intelligence || {};
+    const localProducts = mIntel.products || [];
+    setProductsInput(JSON.stringify(localProducts, null, 2));
+    
     const initialFounders = analysis?.founders || (startup.founder_name ? [{ name: startup.founder_name, role: "Founder", brief_details: "", linkedin_url: startup.founder_linkedin_url }] : []);
     setFoundersInput(JSON.stringify(initialFounders, null, 2));
+    
     setFundingSeriesInput(startup.latest_round_stage || analysis?.funding_stages?.series || startup.funding_stage || "");
     setFundingAmountInput(startup.total_funding || analysis?.funding_stages?.amount || startup.funding_amount || "");
     setFundingInvestorsInput((analysis?.funding_stages?.investors || []).join(", "));
@@ -225,14 +238,31 @@ export default function DetailModal({
     setEditingField(null);
   }, [startup, analysis]);
 
-  const handleSaveField = async (field: "website" | "founders" | "funding") => {
+  const handleSaveField = async (field: "startup_name" | "website" | "linkedin" | "founders" | "description" | "products" | "funding") => {
     if (!onUpdateField) return;
     setSavingField(true);
     setEditError(null);
     try {
       let value: any;
-      if (field === "website") {
+      if (field === "startup_name") {
+        value = nameInput.trim();
+      } else if (field === "website") {
         value = websiteInput.trim();
+      } else if (field === "linkedin") {
+        value = linkedinInput.trim();
+      } else if (field === "description") {
+        value = descriptionInput.trim();
+      } else if (field === "products") {
+        try {
+          value = JSON.parse(productsInput);
+          if (!Array.isArray(value)) {
+            throw new Error("Products list must be a JSON array.");
+          }
+        } catch (je: any) {
+          setEditError(`Invalid JSON format: ${je.message}`);
+          setSavingField(false);
+          return;
+        }
       } else if (field === "founders") {
         try {
           value = JSON.parse(foundersInput);
@@ -265,7 +295,7 @@ export default function DetailModal({
     }
   };
 
-  const handleRecheckFieldClick = async (field: "website" | "founders" | "funding") => {
+  const handleRecheckFieldClick = async (field: "startup_name" | "website" | "linkedin" | "founders" | "description" | "products" | "funding") => {
     if (!onRecheckField) return;
     setRecheckingField(true);
     setEditError(null);
@@ -274,8 +304,16 @@ export default function DetailModal({
       if (res.error) {
         throw new Error(res.error);
       }
-      if (field === "website") {
+      if (field === "startup_name") {
+        setNameInput(res.data?.brand_name || "");
+      } else if (field === "website") {
         setWebsiteInput(res.data?.startup_website || "");
+      } else if (field === "linkedin") {
+        setLinkedinInput(res.data?.linkedin_company_url || "");
+      } else if (field === "description") {
+        setDescriptionInput(res.data?.company_profile || "");
+      } else if (field === "products") {
+        setProductsInput(JSON.stringify(res.data?.products || [], null, 2));
       } else if (field === "founders") {
         setFoundersInput(JSON.stringify(res.data?.founders || [], null, 2));
       } else if (field === "funding") {
@@ -430,19 +468,65 @@ export default function DetailModal({
               <span className="text-[11px] text-slate-400 font-mono">ID: {startup.id}</span>
             </div>
             
-            <h3 className="text-2xl font-black text-white flex items-center gap-2.5">
-              {startup.startup_name}
-              {startup.website && startup.website.trim() !== "" && (
-                <a
-                  href={startup.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-slate-400 hover:text-orange-400 transition-colors"
+            {editingField === "startup_name" ? (
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="text"
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  className="bg-slate-800 border border-slate-700 text-white text-sm rounded px-2 py-1 focus:outline-none focus:border-orange-500 font-bold"
+                  placeholder="Startup Name"
+                />
+                <button
+                  onClick={() => handleSaveField("startup_name")}
+                  className="bg-orange-500 hover:bg-orange-600 text-slate-950 text-[10px] font-bold px-2 py-1 rounded"
                 >
-                  <Globe size={18} />
-                </a>
-              )}
-            </h3>
+                  Save
+                </button>
+                <button
+                  onClick={() => setEditingField(null)}
+                  className="bg-slate-700 hover:bg-slate-650 text-white text-[10px] font-bold px-2 py-1 rounded"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <h3 className="text-2xl font-black text-white flex items-center gap-2.5">
+                {startup.startup_name}
+                {startup.website && startup.website.trim() !== "" && (
+                  <a
+                    href={startup.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-slate-400 hover:text-orange-400 transition-colors"
+                  >
+                    <Globe size={18} />
+                  </a>
+                )}
+                {onUpdateField && (
+                  <button
+                    onClick={() => {
+                      setNameInput(startup.startup_name || "");
+                      setEditingField("startup_name");
+                    }}
+                    className="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 transition-colors border-0 bg-transparent cursor-pointer"
+                    title="Edit Name"
+                  >
+                    <Pencil size={14} />
+                  </button>
+                )}
+                {onRecheckField && (
+                  <button
+                    onClick={() => handleRecheckFieldClick("startup_name")}
+                    className="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 transition-colors border-0 bg-transparent cursor-pointer"
+                    title="AI Recheck Name"
+                    disabled={recheckingField}
+                  >
+                    <RefreshCw size={14} className={recheckingField ? "animate-spin" : ""} />
+                  </button>
+                )}
+              </h3>
+            )}
             <p className="text-slate-400 text-xs font-semibold">{startup.subsector}</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-full text-slate-450 hover:bg-slate-800 hover:text-white transition-all cursor-pointer">
@@ -521,12 +605,120 @@ export default function DetailModal({
                 <h4 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-2">
                   Company Overview
                 </h4>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                   <div>
-                    <p className="text-[10px] uppercase font-bold text-slate-400">Website</p>
-                    {startup.website ? (
+                    <p className="text-[10px] uppercase font-bold text-slate-400 flex items-center justify-between">
+                      <span>Website</span>
+                      <span className="flex gap-1">
+                        {onUpdateField && (
+                          <button
+                            onClick={() => {
+                              setWebsiteInput(startup.website || "");
+                              setEditingField("website");
+                            }}
+                            className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
+                            title="Edit Website"
+                          >
+                            <Pencil size={10} />
+                          </button>
+                        )}
+                        {onRecheckField && (
+                          <button
+                            onClick={() => handleRecheckFieldClick("website")}
+                            className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
+                            title="AI Recheck Website"
+                            disabled={recheckingField}
+                          >
+                            <RefreshCw size={10} className={recheckingField ? "animate-spin" : ""} />
+                          </button>
+                        )}
+                      </span>
+                    </p>
+                    {editingField === "website" ? (
+                      <div className="flex flex-col gap-1 mt-1">
+                        <input
+                          type="text"
+                          value={websiteInput}
+                          onChange={(e) => setWebsiteInput(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 text-xs rounded p-1"
+                        />
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleSaveField("website")}
+                            className="bg-indigo-600 hover:bg-indigo-705 text-white text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer border-0"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingField(null)}
+                            className="bg-slate-300 hover:bg-slate-400 text-slate-700 text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer border-0"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : startup.website ? (
                       <a href={startup.website} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 mt-1 truncate">
                         Visit <ExternalLink size={10} />
+                      </a>
+                    ) : (
+                      <p className="text-xs font-semibold text-slate-400 mt-1">N/A</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-slate-400 flex items-center justify-between">
+                      <span>LinkedIn</span>
+                      <span className="flex gap-1">
+                        {onUpdateField && (
+                          <button
+                            onClick={() => {
+                              setLinkedinInput(startup.linkedin_url || "");
+                              setEditingField("linkedin");
+                            }}
+                            className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
+                            title="Edit LinkedIn"
+                          >
+                            <Pencil size={10} />
+                          </button>
+                        )}
+                        {onRecheckField && (
+                          <button
+                            onClick={() => handleRecheckFieldClick("linkedin")}
+                            className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
+                            title="AI Recheck LinkedIn"
+                            disabled={recheckingField}
+                          >
+                            <RefreshCw size={10} className={recheckingField ? "animate-spin" : ""} />
+                          </button>
+                        )}
+                      </span>
+                    </p>
+                    {editingField === "linkedin" ? (
+                      <div className="flex flex-col gap-1 mt-1">
+                        <input
+                          type="text"
+                          value={linkedinInput}
+                          onChange={(e) => setLinkedinInput(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 text-xs rounded p-1"
+                        />
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleSaveField("linkedin")}
+                            className="bg-indigo-600 hover:bg-indigo-705 text-white text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer border-0"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingField(null)}
+                            className="bg-slate-300 hover:bg-slate-400 text-slate-700 text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer border-0"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : startup.linkedin_url ? (
+                      <a href={startup.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 mt-1 truncate">
+                        LinkedIn <ExternalLink size={10} />
                       </a>
                     ) : (
                       <p className="text-xs font-semibold text-slate-400 mt-1">N/A</p>
@@ -553,10 +745,60 @@ export default function DetailModal({
 
               {/* Founders & Leadership */}
               <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm space-y-4">
-                <h4 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-2">
-                  Founders &amp; Leadership
+                <h4 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-2 flex items-center justify-between">
+                  <span>Founders &amp; Leadership</span>
+                  <div className="flex gap-2">
+                    {onUpdateField && (
+                      <button
+                        onClick={() => {
+                          const initialFounders = analysis?.founders || (startup.founder_name ? [{ name: startup.founder_name, role: "Founder", brief_details: "", linkedin_url: startup.founder_linkedin_url }] : []);
+                          setFoundersInput(JSON.stringify(initialFounders, null, 2));
+                          setEditingField(editingField === "founders" ? null : "founders");
+                        }}
+                        className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
+                        title="Edit Founders"
+                      >
+                        <Pencil size={12} />
+                      </button>
+                    )}
+                    {onRecheckField && (
+                      <button
+                        onClick={() => handleRecheckFieldClick("founders")}
+                        className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
+                        title="AI Recheck Founders"
+                        disabled={recheckingField}
+                      >
+                        <RefreshCw size={12} className={recheckingField ? "animate-spin" : ""} />
+                      </button>
+                    )}
+                  </div>
                 </h4>
-                {analysis?.founders && analysis.founders.length > 0 ? (
+                {editingField === "founders" ? (
+                  <div className="space-y-2">
+                    <textarea
+                      rows={6}
+                      value={foundersInput}
+                      onChange={(e) => setFoundersInput(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 text-xs rounded p-2 font-mono"
+                      placeholder="JSON Array of founders..."
+                    />
+                    {editError && <p className="text-red-500 text-[10px]">{editError}</p>}
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={() => handleSaveField("founders")}
+                        className="bg-indigo-600 hover:bg-indigo-705 text-white text-[11px] font-bold px-3 py-1 rounded cursor-pointer border-0"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setEditingField(null)}
+                        className="bg-slate-300 hover:bg-slate-400 text-slate-700 text-[11px] font-bold px-3 py-1 rounded cursor-pointer border-0"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : analysis?.founders && analysis.founders.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {analysis.founders.map((founder: any, idx: number) => (
                       <div key={idx} className="p-3 bg-slate-50 border border-slate-200/60 rounded-xl flex items-start gap-3 hover:bg-slate-100/60 transition-colors">
@@ -565,7 +807,7 @@ export default function DetailModal({
                         </div>
                         <div className="space-y-1 text-left min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-slate-850 truncate">{founder.name}</span>
+                            <span className="text-xs font-bold text-slate-855 truncate">{founder.name}</span>
                             {founder.linkedin_url && (
                               <a href={founder.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700">
                                 <Linkedin size={11} />
@@ -573,7 +815,7 @@ export default function DetailModal({
                             )}
                           </div>
                           <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">{founder.role || "Co-Founder"}</p>
-                          {founder.brief_details && <p className="text-[11px] text-slate-600 leading-normal">{founder.brief_details}</p>}
+                          {founder.brief_details && <p className="text-[11px] text-slate-655 leading-normal">{founder.brief_details}</p>}
                         </div>
                       </div>
                     ))}
@@ -660,20 +902,119 @@ export default function DetailModal({
 
               {/* Profile Summary */}
               <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm space-y-3">
-                <h4 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-2">
-                  Business Profile
+                <h4 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-2 flex items-center justify-between">
+                  <span>Business Profile</span>
+                  <div className="flex gap-2">
+                    {onUpdateField && (
+                      <button
+                        onClick={() => {
+                          setDescriptionInput(startup.ai_summary || startup.description || "");
+                          setEditingField(editingField === "description" ? null : "description");
+                        }}
+                        className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
+                        title="Edit Profile"
+                      >
+                        <Pencil size={12} />
+                      </button>
+                    )}
+                    {onRecheckField && (
+                      <button
+                        onClick={() => handleRecheckFieldClick("description")}
+                        className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
+                        title="AI Recheck Profile"
+                        disabled={recheckingField}
+                      >
+                        <RefreshCw size={12} className={recheckingField ? "animate-spin" : ""} />
+                      </button>
+                    )}
+                  </div>
                 </h4>
-                <p className="text-slate-650 text-xs leading-relaxed">
-                  {startup.ai_summary || startup.description || "No company description parsed yet."}
-                </p>
+                {editingField === "description" ? (
+                  <div className="space-y-2">
+                    <textarea
+                      rows={4}
+                      value={descriptionInput}
+                      onChange={(e) => setDescriptionInput(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 text-xs rounded p-2"
+                      placeholder="Company description..."
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={() => handleSaveField("description")}
+                        className="bg-indigo-650 hover:bg-indigo-750 text-white text-[11px] font-bold px-3 py-1 rounded cursor-pointer border-0"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setEditingField(null)}
+                        className="bg-slate-300 hover:bg-slate-400 text-slate-700 text-[11px] font-bold px-3 py-1 rounded cursor-pointer border-0"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-slate-650 text-xs leading-relaxed">
+                    {startup.ai_summary || startup.description || "No company description parsed yet."}
+                  </p>
+                )}
               </div>
 
               {/* Products & Solutions */}
               <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm space-y-4">
-                <h4 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-2">
-                  Products &amp; Solutions
+                <h4 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-2 flex items-center justify-between">
+                  <span>Products &amp; Solutions</span>
+                  <div className="flex gap-2">
+                    {onUpdateField && (
+                      <button
+                        onClick={() => {
+                          setProductsInput(JSON.stringify(products, null, 2));
+                          setEditingField(editingField === "products" ? null : "products");
+                        }}
+                        className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
+                        title="Edit Products"
+                      >
+                        <Pencil size={12} />
+                      </button>
+                    )}
+                    {onRecheckField && (
+                      <button
+                        onClick={() => handleRecheckFieldClick("products")}
+                        className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
+                        title="AI Recheck Products"
+                        disabled={recheckingField}
+                      >
+                        <RefreshCw size={12} className={recheckingField ? "animate-spin" : ""} />
+                      </button>
+                    )}
+                  </div>
                 </h4>
-                {products.length > 0 ? (
+                {editingField === "products" ? (
+                  <div className="space-y-2">
+                    <textarea
+                      rows={6}
+                      value={productsInput}
+                      onChange={(e) => setProductsInput(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 text-xs rounded p-2 font-mono"
+                      placeholder="JSON Array of products..."
+                    />
+                    {editError && <p className="text-red-500 text-[10px]">{editError}</p>}
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={() => handleSaveField("products")}
+                        className="bg-indigo-650 hover:bg-indigo-750 text-white text-[11px] font-bold px-3 py-1 rounded cursor-pointer border-0"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setEditingField(null)}
+                        className="bg-slate-300 hover:bg-slate-400 text-slate-700 text-[11px] font-bold px-3 py-1 rounded cursor-pointer border-0"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : products.length > 0 ? (
                   <div className="overflow-x-auto rounded-xl border border-slate-200">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
@@ -689,7 +1030,7 @@ export default function DetailModal({
                         {products.map((prod: any, i: number) => (
                           <tr key={i} className="hover:bg-slate-50/50">
                             <td className="px-4 py-2.5 font-bold text-slate-800">{prod.product_name}</td>
-                            <td className="px-4 py-2.5 text-slate-600 font-medium">{prod.category}</td>
+                            <td className="px-4 py-2.5 text-slate-660 font-medium">{prod.category}</td>
                             <td className="px-4 py-2.5 text-slate-500 max-w-xs truncate" title={prod.description}>{prod.description}</td>
                             <td className="px-4 py-2.5 text-slate-650">{prod.target_customer}</td>
                             <td className="px-4 py-2.5 text-slate-500">{prod.deployment_model}</td>
@@ -746,21 +1087,114 @@ export default function DetailModal({
 
               {/* Funding & Investors */}
               <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm space-y-4">
-                <h4 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-2">
-                  Funding &amp; Capitalization
+                <h4 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-2 flex items-center justify-between">
+                  <span>Funding &amp; Capitalization</span>
+                  <div className="flex gap-2">
+                    {onUpdateField && (
+                      <button
+                        onClick={() => {
+                          setFundingSeriesInput(startup.latest_round_stage || analysis?.funding_stages?.series || startup.funding_stage || "");
+                          setFundingAmountInput(startup.total_funding || analysis?.funding_stages?.amount || startup.funding_amount || "");
+                          setFundingInvestorsInput((analysis?.funding_stages?.investors || []).join(", "));
+                          setEditingField(editingField === "funding" ? null : "funding");
+                        }}
+                        className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
+                        title="Edit Funding"
+                      >
+                        <Pencil size={12} />
+                      </button>
+                    )}
+                    {onRecheckField && (
+                      <button
+                        onClick={() => handleRecheckFieldClick("funding")}
+                        className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
+                        title="AI Recheck Funding"
+                        disabled={recheckingField}
+                      >
+                        <RefreshCw size={12} className={recheckingField ? "animate-spin" : ""} />
+                      </button>
+                    )}
+                  </div>
                 </h4>
-                {investors.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {investors.map((inv: any, i: number) => (
-                      <div key={i} className="p-3 bg-slate-50 border border-slate-150 rounded-xl space-y-1 hover:border-emerald-250 transition-colors text-left">
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{inv.round || "Investment Round"}</p>
-                        <p className="text-xs font-black text-slate-800 leading-snug">{inv.investor_name}</p>
-                        <p className="text-[10px] text-slate-500 font-mono">{inv.date || "Date Unspecified"}</p>
+                {editingField === "funding" ? (
+                  <div className="space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Stage / Series</label>
+                        <input
+                          type="text"
+                          value={fundingSeriesInput}
+                          onChange={(e) => setFundingSeriesInput(e.target.value)}
+                          className="w-full bg-white border border-slate-200 text-xs rounded p-1.5"
+                          placeholder="e.g. Series A, Seed"
+                        />
                       </div>
-                    ))}
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Amount Raised</label>
+                        <input
+                          type="text"
+                          value={fundingAmountInput}
+                          onChange={(e) => setFundingAmountInput(e.target.value)}
+                          className="w-full bg-white border border-slate-200 text-xs rounded p-1.5"
+                          placeholder="e.g. $10M, Bootstrapped"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Investors (comma separated)</label>
+                      <input
+                        type="text"
+                        value={fundingInvestorsInput}
+                        onChange={(e) => setFundingInvestorsInput(e.target.value)}
+                        className="w-full bg-white border border-slate-200 text-xs rounded p-1.5"
+                        placeholder="Investor 1, Investor 2"
+                      />
+                    </div>
+                    <div className="flex gap-2 justify-end pt-1">
+                      <button
+                        onClick={() => handleSaveField("funding")}
+                        className="bg-indigo-650 hover:bg-indigo-705 text-white text-[11px] font-bold px-3 py-1 rounded cursor-pointer border-0"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setEditingField(null)}
+                        className="bg-slate-300 hover:bg-slate-400 text-slate-700 text-[11px] font-bold px-3 py-1 rounded cursor-pointer border-0"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-450 italic">No detailed investors list verified. Check fields above or trigger targeted enrichment.</p>
+                  <>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                        <p className="text-[9px] uppercase font-bold text-slate-400">Latest Funding Stage</p>
+                        <p className="text-sm font-black text-slate-800 mt-1 font-mono">{startup.latest_round_stage || startup.funding_stage || "Unknown"}</p>
+                      </div>
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                        <p className="text-[9px] uppercase font-bold text-slate-400">Total Funding Raised</p>
+                        <p className="text-sm font-black text-slate-800 mt-1 font-mono">{startup.total_funding || startup.funding_amount || "N/A"}</p>
+                      </div>
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                        <p className="text-[9px] uppercase font-bold text-slate-400">Latest Round Date</p>
+                        <p className="text-sm font-black text-slate-800 mt-1 font-mono">{startup.latest_round_date || "N/A"}</p>
+                      </div>
+                    </div>
+                    {investors.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {investors.map((inv: any, i: number) => (
+                          <div key={i} className="p-3 bg-slate-50 border border-slate-150 rounded-xl space-y-1 hover:border-emerald-250 transition-colors text-left">
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{inv.round || "Investment Round"}</p>
+                            <p className="text-xs font-black text-slate-800 leading-snug">{inv.investor_name}</p>
+                            <p className="text-[10px] text-slate-500 font-mono">{inv.date || "Date Unspecified"}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-450 italic">No detailed investors list verified. Check fields above or trigger targeted enrichment.</p>
+                    )}
+                  </>
                 )}
               </div>
 

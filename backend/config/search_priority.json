@@ -1,0 +1,13 @@
+{
+  "providers_ordered": ["identity_registry", "existing_database", "known_domain_registry", "google", "duckduckgo"],
+  "future_providers": ["tracxn", "brave"],
+  "resolution_priorities": {
+    "identity_resolution": ["identity_registry", "existing_database", "alias_registry", "canonical_overloads", "known_domain_registry", "google", "duckduckgo"],
+    "website_resolution": ["identity_registry", "canonical_overloads", "known_domain_registry", "google", "duckduckgo", "inferred_domain"],
+    "founder_resolution": ["identity_registry", "canonical_overloads", "website_about", "website_team", "website_leadership", "linkedin_company", "google", "duckduckgo"],
+    "leadership_resolution": ["identity_registry", "canonical_overloads", "website_leadership", "website_about", "linkedin_company", "google", "duckduckgo"],
+    "linkedin_company_resolution": ["identity_registry", "canonical_overloads", "google", "duckduckgo"],
+    "founded_year_resolution": ["identity_registry", "website", "linkedin_company", "google", "duckduckgo"]
+  },
+  "note": "Add tracxn and brave to providers_ordered to auto-enable when API keys are available. No code changes required."
+}

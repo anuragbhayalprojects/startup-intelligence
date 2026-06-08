@@ -1,0 +1,16 @@
+{
+  "bad_domains": [
+    "google.com", "inc42.com", "entrackr.com", "techcrunch.com",
+    "yourstory.com", "vccircle.com", "moneycontrol.com", "indiatimes.com",
+    "livemint.com", "linkedin.com", "twitter.com", "x.com", "facebook.com",
+    "youtube.com", "wikipedia.org", "medium.com", "crunchbase.com",
+    "tracxn.com", "economic times", "businesstoday.in", "financialexpress.com",
+    "reuters.com", "bloomberg.com", "mint.com", "thehindubusinessline.com"
+  ],
+  "news_path_patterns": [
+    "/news/", "/article/", "/press/", "/raises-", "-raises-",
+    "-funding", "/funding/", "/blog/", "/feed/", "/portfolio/",
+    "/deals/", "/funding-round", "/category/", "/tag/", "/author/"
+  ],
+  "bad_chars": ["₹", "$", "%", "&", "?", "'", "`", " ", "\"", "[", "]"]
+}

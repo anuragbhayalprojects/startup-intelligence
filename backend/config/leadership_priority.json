@@ -1,0 +1,32 @@
+{
+  "fallback_hierarchy": [
+    {"role": "Founder", "priority": 1, "labels": ["Founder", "Co-Founder"]},
+    {"role": "Co-Founder", "priority": 2, "labels": ["Co-Founder", "Cofounder"]},
+    {"role": "Managing Director", "priority": 3, "labels": ["Managing Director", "MD"]},
+    {"role": "CEO", "priority": 4, "labels": ["CEO", "Chief Executive Officer"]},
+    {"role": "Executive Director", "priority": 5, "labels": ["Executive Director", "ED"]},
+    {"role": "President", "priority": 6, "labels": ["President"]},
+    {"role": "Business Head", "priority": 7, "labels": ["Business Head", "Head of Business"]},
+    {"role": "Country Head", "priority": 8, "labels": ["Country Head", "India Head"]},
+    {"role": "General Manager", "priority": 9, "labels": ["General Manager", "GM"]}
+  ],
+  "discovery_waterfall": [
+    "identity_registry",
+    "website_about_page",
+    "website_team_page",
+    "website_leadership_page",
+    "linkedin_company_page",
+    "google_search",
+    "duckduckgo_search"
+  ],
+  "linkedin_resolution_waterfall": [
+    "identity_registry",
+    "canonical_overloads",
+    "google_search",
+    "duckduckgo_search"
+  ],
+  "max_founders_to_return": 5,
+  "max_leadership_to_return": 3,
+  "minimum_confidence_to_store": 0.40,
+  "prefer_founders_over_executives": true
+}

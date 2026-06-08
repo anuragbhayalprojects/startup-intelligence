@@ -1,0 +1,26 @@
+{
+  "website_search": {
+    "v1": "{brand_name} official website",
+    "v2": "{legal_name} official website India",
+    "v3": "{brand_name} {parent_company} official site"
+  },
+  "linkedin_company_search": {
+    "v1": "{brand_name} LinkedIn company page",
+    "v2": "site:linkedin.com/company {brand_name}",
+    "v3": "{legal_name} LinkedIn company"
+  },
+  "founder_search": {
+    "v1": "\"{brand_name}\" founders co-founders LinkedIn",
+    "v2": "\"{legal_name}\" founder CEO LinkedIn",
+    "v3": "\"{brand_name}\" founder OR \"co-founder\" (site:inc42.com OR site:tracxn.com OR site:linkedin.com)"
+  },
+  "leadership_search": {
+    "v1": "\"{brand_name}\" CEO MD \"Managing Director\" LinkedIn",
+    "v2": "\"{legal_name}\" leadership team site:linkedin.com",
+    "v3": "\"{brand_name}\" {parent_company} CEO president"
+  },
+  "linkedin_person_search": {
+    "v1": "{person_name} {brand_name} LinkedIn",
+    "v2": "{person_name} {legal_name} site:linkedin.com/in/"
+  }
+}
