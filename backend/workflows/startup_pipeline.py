@@ -48,13 +48,13 @@ _HEADLINE_PATTERNS_CACHE: dict | None = None
 
 def load_name_discovery_rules() -> dict:
     """
-    Loads name discovery rules from backend/config/name_discovery_rules.json.
+    Loads name discovery rules from backend/config/name_resolution_rules.json.
     Results are cached in-process to avoid repeated file I/O.
     """
     global _NAME_RULES_CACHE
     if _NAME_RULES_CACHE is not None:
         return _NAME_RULES_CACHE
-    config_path = Path(__file__).resolve().parent.parent / "config" / "name_discovery_rules.json"
+    config_path = Path(__file__).resolve().parent.parent / "config" / "name_resolution_rules.json"
     try:
         with open(config_path, "r", encoding="utf-8") as f:
             _NAME_RULES_CACHE = json.load(f)
@@ -300,6 +300,25 @@ def get_clean_startup_name(headline, extracted_name):
         # Filter out very short names
         if len(name_lower) < 3:
             return True
+
+        # Filter out names starting with ex, former, or containing ex-executive prefix structures
+        if (
+            name_lower.startswith("ex ") or 
+            name_lower.startswith("former ") or 
+            name_lower.startswith("ex-") or 
+            name_lower.startswith("exmirae") or
+            name_lower.startswith("exceo") or
+            name_lower.startswith("exfounder") or
+            name_lower.startswith("exvp") or
+            name_lower.startswith("exdirector")
+        ):
+            return True
+            
+        # If it starts with ex followed by any investor name or bad term (e.g. exmirae, exsoftbank)
+        if name_lower.startswith("ex") and len(name_lower) > 2:
+            rest = name_lower[2:].strip()
+            if rest in investor_names or any(inv in rest for inv in investor_names) or rest in bad_terms:
+                return True
 
         # Split into individual lowercase tokens
         tokens = re.findall(r'\b\w+\b', name_lower)

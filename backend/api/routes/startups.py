@@ -1325,7 +1325,8 @@ async def update_startup_field(id: str, req: FieldUpdateRequest = Body(...)):
         startup_cols = [
             "website", "founder_name", "founder_linkedin_url", "funding_stage", 
             "sector", "subsector", "description", "startup_name", "linkedin_url",
-            "brand_name", "legal_name", "company_profile", "products_services"
+            "brand_name", "legal_name", "company_profile", "products_services",
+            "headquarters", "founded_year", "startup_stage", "startup_status"
         ]
         
         # Normalize UI/JS field names to exact DB column names
@@ -1336,8 +1337,19 @@ async def update_startup_field(id: str, req: FieldUpdateRequest = Body(...)):
             db_field = "company_profile"
         elif field == "products":
             db_field = "products_services"
+        elif field == "founded":
+            db_field = "founded_year"
+        elif field == "stage":
+            db_field = "startup_stage"
+        elif field == "status":
+            db_field = "startup_status"
             
         if db_field in startup_cols:
+            if db_field == "founded_year" and value:
+                try:
+                    value = int(value)
+                except Exception:
+                    value = None
             supabase.table("startups").update({db_field: value}).eq("id", int_id).execute()
             
         # 2. Update the nested analysis_json inside startup_analysis
@@ -1408,6 +1420,21 @@ async def update_startup_field(id: str, req: FieldUpdateRequest = Body(...)):
                 }).eq("id", int_id).execute()
             elif field == "valuation":
                 analysis_json["valuation_metrics"] = value
+            elif field in ["headquarters", "hq"]:
+                analysis_json["headquarters"] = value
+            elif field in ["founded", "founded_year"]:
+                try:
+                    analysis_json["founded_year"] = int(value) if value else None
+                except Exception:
+                    analysis_json["founded_year"] = None
+            elif field in ["stage", "startup_stage", "funding_stage"]:
+                analysis_json["startup_stage"] = value
+                if "funding_stages" not in analysis_json:
+                    analysis_json["funding_stages"] = {}
+                analysis_json["funding_stages"]["series"] = value
+            elif field in ["status", "startup_status"]:
+                analysis_json["recommended_action"] = value
+                analysis_json["startup_status"] = value
                 
             # Update startup_analysis record
             supabase.table("startup_analysis").update({
@@ -1438,7 +1465,8 @@ async def recheck_startup_field(id: str, req: FieldRecheckRequest = Body(...)):
         valid_rechecks = [
             "website", "founders", "funding", "linkedin", "linkedin_url", 
             "startup_name", "brand_name", "profile", "description", 
-            "products", "products_services"
+            "products", "products_services",
+            "headquarters", "hq", "founded", "founded_year", "stage", "startup_stage", "status", "startup_status"
         ]
         if field not in valid_rechecks:
             raise HTTPException(status_code=400, detail=f"Targeted recheck is not supported for field '{field}'.")
@@ -1637,26 +1665,126 @@ Search Snippets:
 Begin parsing:
 """
 
+        elif field in ["headquarters", "hq"]:
+            search_query = f"{clean_name} company headquarters city location"
+            try:
+                search_context = search_duckduckgo(search_query)
+            except Exception as se:
+                search_context = f"Search failed: {se}"
+                
+            prompt = f"""You are a precise database parsing assistant.
+Analyze the search snippets below and extract the city, state, and country location for the headquarters of the company '{clean_name}'.
+Return ONLY a valid JSON block containing the "headquarters" key. Do not output any notes, commentary, or wrapper text.
+
+JSON Schema:
+{{
+  "headquarters": "City, State, Country"
+}}
+
+Search Snippets:
+{search_context}
+
+Begin parsing:
+"""
+
+        elif field in ["founded", "founded_year"]:
+            search_query = f"{clean_name} company founded year established date"
+            try:
+                search_context = search_duckduckgo(search_query)
+            except Exception as se:
+                search_context = f"Search failed: {se}"
+                
+            prompt = f"""You are a precise database parsing assistant.
+Analyze the search snippets below and extract the year the company '{clean_name}' was founded/established (e.g. 2021).
+Return ONLY a valid JSON block containing the "founded_year" key. Do not output any notes, commentary, or wrapper text.
+
+JSON Schema:
+{{
+  "founded_year": 2021
+}}
+
+Search Snippets:
+{search_context}
+
+Begin parsing:
+"""
+
+        elif field in ["stage", "startup_stage", "funding_stage"]:
+            search_query = f"{clean_name} funding stage series seed growth"
+            try:
+                search_context = search_duckduckgo(search_query)
+            except Exception as se:
+                search_context = f"Search failed: {se}"
+                
+            prompt = f"""You are a precise database parsing assistant.
+Analyze the search snippets below and extract the current startup funding stage for the company '{clean_name}'.
+(e.g., Seed, Series A, Series B, Series C, Growth, Early-stage, Late-stage, Bootstrapped, Acquired, Public).
+Return ONLY a valid JSON block containing the "startup_stage" key. Do not output any notes, commentary, or wrapper text.
+
+JSON Schema:
+{{
+  "startup_stage": "Series A"
+}}
+
+Search Snippets:
+{search_context}
+
+Begin parsing:
+"""
+
+        elif field in ["status", "startup_status"]:
+            search_query = f"{clean_name} company operational status active shutdown"
+            try:
+                search_context = search_duckduckgo(search_query)
+            except Exception as se:
+                search_context = f"Search failed: {se}"
+                
+            prompt = f"""You are a precise database parsing assistant.
+Analyze the search snippets below and extract the current operational status for the company '{clean_name}'.
+(e.g., Active, Shut Down, Inactive, Merged).
+Return ONLY a valid JSON block containing the "startup_status" key. Do not output any notes, commentary, or wrapper text.
+
+JSON Schema:
+{{
+  "startup_status": "Active"
+}}
+
+Search Snippets:
+{search_context}
+
+Begin parsing:
+"""
+
         # Call local Ollama model
         from backend.ai.startup_analyzer import clean_llm_response
         
-        response = requests.post(
-            f"{OLLAMA_BASE_URL}/api/generate",
-            json={
-                "model": OLLAMA_MODEL,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "num_ctx": 4096
-                }
-            },
-            headers={"Content-Type": "application/json"},
-            timeout=30.0
-        )
-        response.raise_for_status()
-        result_text = response.json().get("response", "")
-        cleaned_json = clean_llm_response(result_text)
-        data = json.loads(cleaned_json)
+        try:
+            response = requests.post(
+                f"{OLLAMA_BASE_URL}/api/generate",
+                json={
+                    "model": OLLAMA_MODEL,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "num_ctx": 4096
+                    }
+                },
+                headers={"Content-Type": "application/json"},
+                timeout=30.0
+            )
+            response.raise_for_status()
+            result_text = response.json().get("response", "")
+            cleaned_json = clean_llm_response(result_text)
+            data = json.loads(cleaned_json)
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as ce:
+            print(f"❌ Ollama connection refused/timeout during recheck: {ce}")
+            raise HTTPException(
+                status_code=503,
+                detail="Ollama AI service is offline. Please launch the Ollama application or run 'ollama serve' in your terminal, then try again."
+            )
+        except Exception as e:
+            print(f"❌ Ollama response parsing failed: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to process AI response: {str(e)}")
         
         # Save results to Database
         analysis_res = supabase.table("startup_analysis").select("*").eq("startup_id", int_id).execute()
@@ -1730,6 +1858,38 @@ Begin parsing:
                         save_funding_rounds(int_id, funding_result, analysis_rec.get("id"))
                         data = {"funding_stages": analysis_json["funding_stages"], "funding_rounds": rounds}
                 
+            elif field in ["headquarters", "hq"]:
+                extracted_val = data.get("headquarters") or ""
+                analysis_json["headquarters"] = extracted_val
+                supabase.table("startups").update({"headquarters": extracted_val}).eq("id", int_id).execute()
+                data = {"headquarters": extracted_val}
+
+            elif field in ["founded", "founded_year"]:
+                extracted_val = data.get("founded_year")
+                try:
+                    extracted_val = int(extracted_val) if extracted_val else None
+                except Exception:
+                    extracted_val = None
+                analysis_json["founded_year"] = extracted_val
+                supabase.table("startups").update({"founded_year": extracted_val}).eq("id", int_id).execute()
+                data = {"founded_year": extracted_val}
+
+            elif field in ["stage", "startup_stage", "funding_stage"]:
+                extracted_val = data.get("startup_stage") or ""
+                analysis_json["startup_stage"] = extracted_val
+                if "funding_stages" not in analysis_json:
+                    analysis_json["funding_stages"] = {}
+                analysis_json["funding_stages"]["series"] = extracted_val
+                supabase.table("startups").update({"startup_stage": extracted_val, "funding_stage": extracted_val}).eq("id", int_id).execute()
+                data = {"startup_stage": extracted_val}
+
+            elif field in ["status", "startup_status"]:
+                extracted_val = data.get("startup_status") or ""
+                analysis_json["startup_status"] = extracted_val
+                analysis_json["recommended_action"] = extracted_val
+                supabase.table("startups").update({"startup_status": extracted_val}).eq("id", int_id).execute()
+                data = {"startup_status": extracted_val}
+
             supabase.table("startup_analysis").update({"analysis_json": analysis_json}).eq("id", analysis_rec["id"]).execute()
             
         from backend.services.supabase_service import save_startup_analysis

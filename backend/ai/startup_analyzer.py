@@ -172,7 +172,13 @@ def generate_news_summary(startup_name: str, headline: str, description: str) ->
     except Exception as e:
         print(f"⚠️ [News Summary] Generation failed for '{startup_name}': {e}")
 
-    return description  # Fallback to raw description on any failure
+    # Fallback: Truncate to first 3 sentences of raw description for a brief summary
+    import re
+    if description:
+        sentences = re.split(r'(?<=[.!?])\s+', description.strip())
+        fallback_summary = " ".join(sentences[:3])
+        return fallback_summary
+    return description or ""
 
 
 # --- Pass 3: Dedicated Funding Enrichment ---

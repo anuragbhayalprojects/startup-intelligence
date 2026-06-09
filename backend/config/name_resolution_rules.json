@@ -7,7 +7,7 @@
     "listed", "reports", "report", "reporting", "joins", "join", "joining", 
     "closes", "close", "closing", "pivots", "pivot", "pivoting", "cuts", "cut", 
     "cutting", "spins", "spin", "raises", "raising", "launches", "launching", 
-    "posts", "secures", "securing", "crosses", "signs", "partners", "to invest", 
+    "launch", "launched", "posts", "secures", "securing", "crosses", "signs", "partners", "to invest", 
     "to", "is", "re-enters", "enters", "announces", "backing", "backs", "rolls", 
     "gets", "got", "funding", "deploys", "commits", "unveils", "debuts", "be", 
     "are", "was", "were", "has", "have", "had", "premiumisation", "buyback", 
@@ -23,7 +23,8 @@
     "partners with", "owned", "backed", "incubated", "run", "settles", "settled", 
     "settle", "settling", "violates", "violation", "violations", "fined", "fine", 
     "slaps", "slapped", "sues", "sued", "reverses", "reversed", "reverse", "soars", 
-    "soar", "soared", "proposes", "proposed", "propose", "bans", "banned", "ban"
+    "soar", "soared", "proposes", "proposed", "propose", "bans", "banned", "ban",
+    "double", "doubles", "doubling", "triple", "triples", "tripling", "widen", "widens", "widening"
   ],
   "prefixes": [
     "healthcare startup", "fintech startup", "spacetech startup", "saas startup", 
@@ -71,7 +72,7 @@
     "vanguard", "prosus", "softbank", "tiger global", "peak xv", "sequoia", 
     "westbridge", "temasek", "accel", "lightspeed", "elevation", "matrix partners", 
     "kalaari", "nexus", "chiratae", "google", "apple", "microsoft", "amazon", "meta",
-    "together", "together fund", "friale"
+    "together", "together fund", "friale", "mirae", "mirae asset", "sanskrit capital", "sanskrit"
   ],
   "bad_terms": [
     "coalition", "consortium", "association", "alliance", "government", "ministry", "commission", "state"
