@@ -70,6 +70,9 @@ def call_ollama(prompt: str, json_format: bool = True, num_ctx: int = 4096, temp
             cleaned = clean_llm_response(text)
             return json.loads(cleaned)
         return text
+    except requests.exceptions.ConnectionError:
+        print("⚠️ Ollama AI service is offline. Returning empty fallback response.")
+        return {} if json_format else ""
     except Exception as e:
         print(f"⚠️ Ollama API call failed: {e}")
         # Return fallback empty structures on JSON error

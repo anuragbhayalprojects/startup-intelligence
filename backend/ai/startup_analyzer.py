@@ -119,6 +119,8 @@ def discover_startup_names(headline: str, paragraphs) -> list:
                     clean_list.append(name.strip())
             print(f"✨ [Pass 1] Extracted {len(clean_list)} startup names: {clean_list}")
             return clean_list
+    except requests.exceptions.ConnectionError:
+        print("⚠️ [Pass 1] Ollama AI service is offline (Connection refused). Using regex/rules fallback.")
     except Exception as e:
         print(f"⚠️ [Pass 1] Name discovery prompt failed: {e}")
         
@@ -169,6 +171,8 @@ def generate_news_summary(startup_name: str, headline: str, description: str) ->
         if summary and len(summary) > 20:
             print(f"📰 [News Summary] Generated for '{startup_name}': {summary[:100]}...")
             return summary
+    except requests.exceptions.ConnectionError:
+        print(f"⚠️ [News Summary] Ollama AI service is offline. Using description fallback for '{startup_name}'.")
     except Exception as e:
         print(f"⚠️ [News Summary] Generation failed for '{startup_name}': {e}")
 
@@ -296,6 +300,9 @@ def extract_funding_rounds(startup_name: str, funding_snippets: str) -> dict:
         return data
     except json.JSONDecodeError:
         print(f"⚠️ [Pass 3] Failed to parse funding JSON for '{startup_name}'")
+        return {}
+    except requests.exceptions.ConnectionError:
+        print(f"⚠️ [Pass 3] Ollama AI service is offline. Skipping funding extraction for '{startup_name}'.")
         return {}
     except Exception as e:
         print(f"⚠️ [Pass 3] Funding extraction failed for '{startup_name}': {e}")

@@ -121,6 +121,9 @@ def are_headlines_describing_same_event(headline1: str, headline2: str) -> bool:
         response.raise_for_status()
         result = response.json().get("response", "").strip().lower()
         return "yes" in result
+    except requests.exceptions.ConnectionError:
+        print("⚠️ [Pipeline] Ollama AI service is offline. Assuming different events.")
+        return False
     except Exception:
         return False
 
@@ -168,6 +171,9 @@ Respond with only a single word: YES or NO. Do not explain."""
         response.raise_for_status()
         result = response.json().get("response", "").strip().lower()
         return "yes" in result
+    except requests.exceptions.ConnectionError:
+        print("⚠️ [Pipeline] Ollama AI service is offline. Assuming different stories.")
+        return False
     except Exception:
         return False
 
