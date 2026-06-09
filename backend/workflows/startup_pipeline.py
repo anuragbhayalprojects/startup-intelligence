@@ -44,6 +44,7 @@ except ImportError:
 # External Rules Configuration Loader
 # ---------------------------------------------------------------------------
 _NAME_RULES_CACHE: dict | None = None
+_HEADLINE_PATTERNS_CACHE: dict | None = None
 
 def load_name_discovery_rules() -> dict:
     """
@@ -62,6 +63,24 @@ def load_name_discovery_rules() -> dict:
         print(f"⚠️ [Pipeline] Could not load name_discovery_rules.json: {e}")
         _NAME_RULES_CACHE = {}
     return _NAME_RULES_CACHE
+
+
+def load_headline_patterns() -> dict:
+    """
+    Loads regex patterns from backend/config/headline_patterns.json.
+    Results are cached in-process to avoid repeated file I/O.
+    """
+    global _HEADLINE_PATTERNS_CACHE
+    if _HEADLINE_PATTERNS_CACHE is not None:
+        return _HEADLINE_PATTERNS_CACHE
+    config_path = Path(__file__).resolve().parent.parent / "config" / "headline_patterns.json"
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            _HEADLINE_PATTERNS_CACHE = json.load(f)
+    except Exception as e:
+        print(f"⚠️ [Pipeline] Could not load headline_patterns.json: {e}")
+        _HEADLINE_PATTERNS_CACHE = {}
+    return _HEADLINE_PATTERNS_CACHE
 
 
 def are_headlines_describing_same_event(headline1: str, headline2: str) -> bool:
