@@ -50,16 +50,16 @@ JSON Schema:
             classification = call_ollama(prompt, json_format=True)
             
             # 3. Populate state features
+            state.startup_features.industry = classification.get("industry") or "Financial Services"
             state.startup_features.sector = classification.get("sector") or "Unknown"
             state.startup_features.subsector = classification.get("subsector") or "Unknown"
-            
-            # Normalize industry if none returned
-            industry = classification.get("industry") or "Financial Services"
+            state.startup_features.business_models = classification.get("business_models") or []
+            state.startup_features.tags = classification.get("tags") or []
             
             # Store full classification under state metadata or logs
             self.log_audit(
                 state, 
-                f"Classified '{state.startup_name}' under Industry: '{industry}', Sector: '{state.startup_features.sector}', Subsector: '{state.startup_features.subsector}'",
+                f"Classified '{state.startup_name}' under Industry: '{state.startup_features.industry}', Sector: '{state.startup_features.sector}', Subsector: '{state.startup_features.subsector}'",
                 metadata={
                     "classification": classification
                 }

@@ -167,18 +167,24 @@ class AgentOrchestrator:
             )
 
             products_services_val = explanations.get("relevance", {}).get("reasons", [""])[0] if explanations.get("relevance", {}).get("reasons") else ""
+            
+            # Merge LLM-classified business models & tags with Tracxn ones if available
+            tracxn_profile = state.article_data.get("enriched_raw", {}).get("tracxn_profile", {})
+            business_models = state.startup_features.business_models or tracxn_profile.get("business_models", [])
+            tags = state.startup_features.tags or tracxn_profile.get("tags", [])
+
             startup_payload = {
                 "startup_name": state.startup_name,
                 "website": resolved_website,
                 "description": state.article_data.get("description", ""),
                 "source": state.article_data.get("source", "Unknown"),
                 "source_url": state.article_data.get("source_url", ""),
-                "industry": "Financial Services",  # Default industry
+                "industry": state.startup_features.industry,
                 "sector": state.startup_features.sector,
                 "subsector": state.startup_features.subsector,
                 "funding_stage": state.startup_features.startup_stage,
-                "business_models": state.article_data.get("enriched_raw", {}).get("tracxn_profile", {}).get("business_models", []),
-                "tags": state.article_data.get("enriched_raw", {}).get("tracxn_profile", {}).get("tags", []),
+                "business_models": business_models,
+                "tags": tags,
                 "startup_status": state.recommendation.get("recommended_action") or "Screening",
                 "headquarters": hq_val,
                 "startup_stage": state.startup_features.startup_stage,
@@ -207,7 +213,6 @@ class AgentOrchestrator:
             state.startup_id = startup_id
 
             # 2. Format a backward-compatible analysis_json object
-            tracxn_profile = state.article_data.get("enriched_raw", {}).get("tracxn_profile", {})
             
             # Map use cases format
             raw_use_cases = state.recommendation.get("use_cases", [])
@@ -234,12 +239,12 @@ class AgentOrchestrator:
 
             analysis_json = {
                 "classification": {
+                    "industry": state.startup_features.industry,
                     "sector": state.startup_features.sector,
                     "subsector": state.startup_features.subsector,
-                    "industry": "Financial Services",
-                    "business_models": state.article_data.get("enriched_raw", {}).get("tracxn_profile", {}).get("business_models", []),
+                    "business_models": business_models,
                     "industry_relevance": state.startup_features.relevant_entities,
-                    "tags": state.article_data.get("enriched_raw", {}).get("tracxn_profile", {}).get("tags", [])
+                    "tags": tags
                 },
                 "summary": {
                     "one_liner": explanations.get("relevance", {}).get("reasons", [""])[0] if explanations.get("relevance", {}).get("reasons") else "",

@@ -704,7 +704,7 @@ def process_startup(startup, industry_filter: str = "", sector_filter: str = "",
             continue
 
         # Post-enrichment filter check (read from state)
-        industry = "Financial Services"
+        industry = state.startup_features.industry
         sector = state.startup_features.sector
         subsector = state.startup_features.subsector
 
