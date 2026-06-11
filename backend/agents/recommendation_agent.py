@@ -13,8 +13,8 @@ class RecommendationAgent(BaseAgent):
         try:
             # 1. Relevance Gate short-circuit
             relevance_score = state.relevance.get("score", 0)
-            if relevance_score < 50:
-                self.log_audit(state, "Relevance Score < 50: Deterministic gating set recommended action to 'Ignore / Monitor'")
+            if relevance_score < 20:
+                self.log_audit(state, "Relevance Score < 20: Deterministic gating set recommended action to 'Ignore / Monitor'")
                 state.recommendation = {
                     "recommended_action": "Ignore / Monitor",
                     "target_teams": [],

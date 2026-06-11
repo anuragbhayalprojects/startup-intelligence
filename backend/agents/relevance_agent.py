@@ -71,9 +71,9 @@ class RelevanceAgent(BaseAgent):
 
             relevance_score = int(round(total_score))
             
-            # Gating rule: if no business problems were matched, cap final relevance score to 25
+            # Gating rule: if no business problems were matched, cap final relevance score to 15
             if not state.startup_features.business_problems:
-                relevance_score = min(relevance_score, 25)
+                relevance_score = min(relevance_score, 15)
                 reasons = ["No ICICI Group business problems were matched by the agent."] + reasons
 
             # Update state features
@@ -87,13 +87,13 @@ class RelevanceAgent(BaseAgent):
                 "reasons": reasons[:4] if reasons else ["Completed relevance assessment."],
                 "breakdown": breakdown,
                 "entity_relevance": entity_relevance,
-                "gating_bypassed": relevance_score < 30
+                "gating_bypassed": relevance_score < 20
             }
 
 
             self.log_audit(
                 state,
-                f"Calculated relevance score: {relevance_score} (Threshold check: {'Proceed' if relevance_score >= 30 else 'Gated/Ignore'})",
+                f"Calculated relevance score: {relevance_score} (Threshold check: {'Proceed' if relevance_score >= 20 else 'Gated/Ignore'})",
                 metadata={
                     "relevance_score": relevance_score,
                     "breakdown": breakdown

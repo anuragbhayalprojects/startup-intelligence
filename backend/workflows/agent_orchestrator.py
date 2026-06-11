@@ -119,7 +119,7 @@ class AgentOrchestrator:
 
         # Gated check for fitting assessment
         relevance_score = state.relevance.get("score", 0)
-        if relevance_score >= 30:
+        if relevance_score >= 20:
             state = self.fit_agent.run(state)
             state = self.signal_agent.run(state)
             state = self.rec_agent.run(state)

@@ -13,26 +13,26 @@ def test_orchestrator_initialization():
     assert orchestrator.rec_agent is not None
 
 def test_pipeline_relevance_gating_low_relevance():
-    # Test a completely irrelevant startup to verify the Relevance Gating Rule (<50 score)
+    # Test a completely irrelevant startup to verify the Relevance Gating Rule (<20 score)
     # The gating rule should bypass Strategic Fit and Signal agents, setting recommended action to Ignore/Monitor
     irrelevant_startup = {
-        "startup_name": "Gourmet Recipe Generator",
-        "description": "An online platform generating personalized cooking recipes and grocery lists for home chefs.",
+        "startup_name": "Whiskers Cat Diary",
+        "description": "A personal daily diary and photo gallery of a domestic cat named Whiskers living in a small suburban apartment.",
         "source": "Manual Test",
-        "source_url": "https://recipes-generator-example.com"
+        "source_url": "https://whiskers-cat-example.com"
     }
     
     orchestrator = AgentOrchestrator()
     state = orchestrator.run_pipeline(irrelevant_startup)
     
-    assert state.relevance["score"] < 50
+    assert state.relevance["score"] < 20
     assert state.relevance["gating_bypassed"] is True
     assert state.recommendation["recommended_action"] == "Ignore / Monitor"
     
     # Confirm strategic fit and signals were skipped (contain default/zero values)
     assert state.strategic_fit["score"] == 0
     assert len(state.signals["list_detected"]) == 0
-    assert any("Relevance Score < 50" in log["message"] for log in state.audit_trail)
+    assert any("Relevance Score < 20" in log["message"] for log in state.audit_trail)
 
 def test_pipeline_full_run_high_relevance():
     # Test a highly relevant startup to verify full multi-agent execution
