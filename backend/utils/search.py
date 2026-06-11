@@ -119,15 +119,27 @@ def search_ddg_raw(query: str) -> str:
     except Exception as e:
         return f"Could not perform web search due to error: {str(e)}"
 
+_SEARCH_CACHE = {}
+
 def search_duckduckgo(query: str) -> str:
     """
     Main entry point. DuckDuckGo is the default primary discovery engine.
     Google searches are secondary, optional and non-blocking.
+    Uses in-memory query cache to avoid redundant web scrapes.
     """
+    normalized_query = query.strip().lower()
+    if normalized_query in _SEARCH_CACHE:
+        print(f"⚡ [Search Cache Hit] Reusing results for: '{query}'")
+        return _SEARCH_CACHE[normalized_query]
+        
     ddg_res = search_ddg_raw(query)
     if ddg_res and "No web search snippets found" not in ddg_res and "error" not in ddg_res.lower():
+        _SEARCH_CACHE[normalized_query] = ddg_res
         return ddg_res
-    return search_google(query) or ddg_res
+    
+    res = search_google(query) or ddg_res
+    _SEARCH_CACHE[normalized_query] = res
+    return res
 
 def classify_url(url: str) -> str:
     """Classifies a URL into a standard target category."""
@@ -149,18 +161,34 @@ def classify_url(url: str) -> str:
         
     return "official_website"
 
+def load_search_queries() -> dict:
+    """Loads search query templates configuration."""
+    config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "search_queries.json")
+    try:
+        if os.path.exists(config_path):
+            with open(config_path, "r") as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"⚠️ Failed to load search queries configuration: {e}")
+    return {}
+
 def discover_search_evidence(startup_name: str) -> dict:
     """
     Runs multi-query discovery for a startup to collect candidate URLs,
     page titles, and snippets.
     """
-    queries = [
-        f"{startup_name} official website",
-        f"{startup_name} company",
-        f"{startup_name} linkedin",
-        f"{startup_name} startup",
-        f"{startup_name} products"
-    ]
+    config = load_search_queries()
+    identity_discovery = config.get("identity_discovery", {})
+    templates = identity_discovery.get("queries", [
+        "{startup_name} official website",
+        "{startup_name} company",
+        "{startup_name} linkedin",
+        "{startup_name} startup",
+        "{startup_name} products"
+    ])
+    
+    queries = [t.format(startup_name=startup_name) for t in templates]
+
     
     classification_map = {
         "official_website": [],

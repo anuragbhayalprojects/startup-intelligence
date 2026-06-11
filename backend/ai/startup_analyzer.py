@@ -348,8 +348,12 @@ def analyze_startup(startup):
     website = tracxn_profile.get("website", "")
     
     # 2. Phase 1: Search for official website if not found in Tracxn
+    from backend.utils.search import load_search_queries
+    config = load_search_queries()
+    analyzer_cfg = config.get("startup_analyzer", {})
     if not website:
-        website_query = f"{clean_name} official website"
+        website_query_tmpl = analyzer_cfg.get("website_query", "{clean_name} official website")
+        website_query = website_query_tmpl.format(clean_name=clean_name)
         print(f"🔍 [Phase 1] Searching for official website for: '{clean_name}'")
         try:
             website_snippets = search_duckduckgo(website_query)
@@ -360,25 +364,29 @@ def analyze_startup(startup):
         website_snippets = f"Verified official website retrieved: {website}"
 
     # 3. Phase 2: Search for founders (anchored with website URL and premium source filter)
-    founders_query = build_filtered_query(clean_name, "founders co-founders LinkedIn", website)
+    founders_base = analyzer_cfg.get("founders_query_base", "founders co-founders LinkedIn")
+    founders_query = build_filtered_query(clean_name, founders_base, website)
     print(f"🔍 [Phase 2] Searching for founders: '{founders_query}'")
     try:
         founders_snippets = search_duckduckgo(founders_query)
         if not founders_snippets or "No search results" in founders_snippets or "Could not perform web search" in founders_snippets:
             print(f"🔄 [Phase 2] Broad search fallback for founders of: '{clean_name}'")
-            founders_snippets = search_duckduckgo(f'"{clean_name}" founders OR co-founders')
+            fallback_tmpl = analyzer_cfg.get("founders_fallback", '"{clean_name}" founders OR co-founders')
+            founders_snippets = search_duckduckgo(fallback_tmpl.format(clean_name=clean_name))
     except Exception as e:
         print(f"⚠️ Founders search failed: {e}")
         founders_snippets = ""
 
     # 4. Phase 3: Search for funding and financials (anchored with website URL and premium source filter)
-    funding_query = build_filtered_query(clean_name, "funding round valuation investors revenue", website)
+    funding_base = analyzer_cfg.get("funding_query_base", "funding round valuation investors revenue")
+    funding_query = build_filtered_query(clean_name, funding_base, website)
     print(f"🔍 [Phase 3] Searching for funding: '{funding_query}'")
     try:
         funding_snippets = search_duckduckgo(funding_query)
         if not funding_snippets or "No search results" in funding_snippets or "Could not perform web search" in funding_snippets:
             print(f"🔄 [Phase 3] Broad search fallback for funding of: '{clean_name}'")
-            funding_snippets = search_duckduckgo(f'"{clean_name}" funding round valuation investors')
+            fallback_tmpl = analyzer_cfg.get("funding_fallback", '"{clean_name}" funding round valuation investors')
+            funding_snippets = search_duckduckgo(fallback_tmpl.format(clean_name=clean_name))
     except Exception as e:
         print(f"⚠️ Funding search failed: {e}")
         funding_snippets = ""

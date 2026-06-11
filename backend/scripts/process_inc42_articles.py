@@ -15,7 +15,12 @@ os.environ["FORCE_STARTUP_PIPELINE_RUN"] = "true"
 from backend.workflows.agent_orchestrator import AgentOrchestrator
 
 def trace_run():
-    print("🎬 Starting Detailed Workflow Trace for 2 Inc42 Articles...")
+    from backend.utils.tracing import set_trace_id, generate_trace_id, log_trace
+    trace_id = generate_trace_id()
+    set_trace_id(trace_id)
+    log_trace(startup_name="Inc42 Audit Run", article_url="Inc42 Mock Articles")
+    print(f"🎬 Starting Detailed Workflow Trace for 2 Inc42 Articles...")
+    print(f"🔑 GLOBAL TRACE ID FOR THIS RUN: {trace_id}")
     
     # 1. Mock Inc42 Article 1: FinBox (FinTech / Embedded Lending Infrastructure)
     article_1 = {

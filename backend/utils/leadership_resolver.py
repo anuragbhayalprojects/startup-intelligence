@@ -106,10 +106,9 @@ def _load_founder_queries() -> dict:
     global _FOUNDER_QUERIES_CACHE
     if _FOUNDER_QUERIES_CACHE is not None:
         return _FOUNDER_QUERIES_CACHE
-    config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "founder_search_queries.json")
     try:
-        with open(config_path) as f:
-            _FOUNDER_QUERIES_CACHE = json.load(f)
+        from backend.utils.search import load_search_queries
+        _FOUNDER_QUERIES_CACHE = load_search_queries().get("leadership_resolver", {})
     except Exception:
         _FOUNDER_QUERIES_CACHE = {}
     return _FOUNDER_QUERIES_CACHE
@@ -291,8 +290,13 @@ def resolve_founders(
 
     # Level 4 — Funding articles search (inc42/yourstory)
     try:
-        from backend.utils.search import search_duckduckgo
-        query = f'"{brand_name}" founder OR CEO site:inc42.com OR site:yourstory.com'
+        from backend.utils.search import search_duckduckgo, load_search_queries
+        config = load_search_queries()
+        query_template = config.get("leadership_resolver", {}).get(
+            "funding_articles_query",
+            '"{brand_name}" founder OR CEO site:inc42.com OR site:yourstory.com'
+        )
+        query = query_template.format(brand_name=brand_name)
         snippets = search_duckduckgo(query)
         extracted = _extract_founders_from_snippets(brand_name, snippets)
         if extracted:

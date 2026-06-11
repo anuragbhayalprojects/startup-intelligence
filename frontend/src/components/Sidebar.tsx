@@ -192,7 +192,7 @@ export default function Sidebar({
           <button
             id="nav-database"
             onClick={() => onTabChange("database")}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all mb-1 ${
               activeTab === "database"
                 ? "bg-cyan-500/10 text-cyan-400 border-l-2 border-cyan-500 font-semibold"
                 : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
@@ -201,6 +201,22 @@ export default function Sidebar({
             <div className="flex items-center gap-2.5">
               <Database size={18} />
               <span>Supabase Console</span>
+            </div>
+            <ChevronRight size={14} className="opacity-40" />
+          </button>
+
+          <button
+            id="nav-observability"
+            onClick={() => onTabChange("observability")}
+            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              activeTab === "observability"
+                ? "bg-indigo-500/10 text-indigo-400 border-l-2 border-indigo-500 font-semibold"
+                : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="text-indigo-400">⚡</span>
+              <span>Trace Observability</span>
             </div>
             <ChevronRight size={14} className="opacity-40" />
           </button>

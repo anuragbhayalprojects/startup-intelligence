@@ -20,7 +20,10 @@ class EnrichmentAgent(BaseAgent):
             # 2. Search official website if not in Tracxn
             website_snippets = ""
             if not website:
-                website_query = f"{clean_name} official website"
+                from backend.utils.search import load_search_queries
+                config = load_search_queries()
+                website_query_tmpl = config.get("enrichment_agent", {}).get("website_query", "{clean_name} official website")
+                website_query = website_query_tmpl.format(clean_name=clean_name)
                 try:
                     website_snippets = search_duckduckgo(website_query)
                 except Exception as e:
@@ -38,14 +41,19 @@ class EnrichmentAgent(BaseAgent):
                     site_filters.insert(0, f"site:{clean_dom}")
                     
             filter_str = " OR ".join(site_filters)
-            founders_query = f'"{clean_name}" founders co-founders LinkedIn'
+            from backend.utils.search import load_search_queries
+            config = load_search_queries()
+            founders_query_tmpl = config.get("enrichment_agent", {}).get("founders_query_base", '"{clean_name}" founders co-founders LinkedIn')
+            founders_query = founders_query_tmpl.format(clean_name=clean_name)
             if filter_str:
                 founders_query += f" ({filter_str})"
                 
             try:
                 founders_snippets = search_duckduckgo(founders_query)
                 if not founders_snippets or "No search results" in founders_snippets:
-                    founders_snippets = search_duckduckgo(f'"{clean_name}" founders OR co-founders')
+                    founders_fallback_tmpl = config.get("enrichment_agent", {}).get("founders_fallback", '"{clean_name}" founders OR co-founders')
+                    founders_fallback_query = founders_fallback_tmpl.format(clean_name=clean_name)
+                    founders_snippets = search_duckduckgo(founders_fallback_query)
             except Exception as e:
                 founders_snippets = f"Founders search failed: {e}"
 

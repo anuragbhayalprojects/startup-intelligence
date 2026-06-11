@@ -25,12 +25,14 @@ except ImportError:
     def get_canonical_tags(name, tags): return tags
     def get_canonical_founders(name): return None
 
+from backend.utils.tracing import wrap_supabase_client
+
 print("SUPABASE_URL:", SUPABASE_URL)
 
-supabase = create_client(
+supabase = wrap_supabase_client(create_client(
     SUPABASE_URL,
     SUPABASE_KEY
-)
+))
 
 
 def map_startup_data(raw_data):

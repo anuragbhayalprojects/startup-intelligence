@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import "./lib/tracing";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Repository from "./pages/Repository";
@@ -10,6 +11,7 @@ import SupabaseConsole from "./pages/SupabaseConsole";
 import Chat from "./pages/Chat";
 import StartupDetails from "./pages/StartupDetails";
 import Scraping from "./pages/Scraping";
+import Observability from "./pages/Observability";
 import DetailModal from "./components/DetailModal";
 import { AppTab, Startup, Assignment, StartupCategory, Interaction, UserRole, StartupAnalysis } from "./types";
 import { AlertCircle, CheckCircle, RefreshCw } from "lucide-react";
@@ -398,6 +400,7 @@ export default function App() {
     if (path.startsWith("/chat")) return "chat";
     if (path.startsWith("/database")) return "database";
     if (path.startsWith("/scraping")) return "scraping";
+    if (path.startsWith("/observability")) return "observability";
     return "dashboard";
   };
 
@@ -1301,6 +1304,7 @@ export default function App() {
               } />
               <Route path="/startups/:id" element={<StartupDetails />} />
               <Route path="/startup/:id" element={<StartupDetails />} />
+              <Route path="/observability" element={<Observability />} />
             </Routes>
           )}
         </main>

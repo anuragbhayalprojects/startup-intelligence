@@ -1,0 +1,57 @@
+{
+  "version": "1.0",
+  "identity_discovery": {
+    "queries": [
+      "{startup_name} official website",
+      "{startup_name} company",
+      "{startup_name} linkedin",
+      "{startup_name} startup",
+      "{startup_name} products"
+    ]
+  },
+  "website_resolver": {
+    "query": "{brand_name} official website"
+  },
+  "linkedin_resolver": {
+    "query": "{brand_name} LinkedIn company page"
+  },
+  "leadership_resolver": {
+    "funding_articles_query": "\"{brand_name}\" founder OR CEO site:inc42.com OR site:yourstory.com",
+    "founder_search": {
+      "v1": ["{brand_name} founder co-founder LinkedIn"],
+      "v2": ["\"{brand_name}\" CEO founder site:linkedin.com"],
+      "v3": ["\"{brand_name}\" co-founder site:crunchbase.com OR site:tracxn.com"]
+    }
+  },
+  "enrichment_agent": {
+    "website_query": "{clean_name} official website",
+    "founders_query_base": "\"{clean_name}\" founders co-founders LinkedIn",
+    "founders_fallback": "\"{clean_name}\" founders OR co-founders"
+  },
+  "startup_analyzer": {
+    "website_query": "{clean_name} official website",
+    "founders_query_base": "founders co-founders LinkedIn",
+    "founders_fallback": "\"{clean_name}\" founders OR co-founders",
+    "funding_query_base": "funding round valuation investors revenue",
+    "funding_fallback": "\"{clean_name}\" funding round valuation investors"
+  },
+  "api_rechecks": {
+    "website": "{clean_name} official website URL",
+    "linkedin": "{clean_name} company linkedin page India",
+    "brand_name": "{clean_name} official brand name",
+    "profile": "{clean_name} company profile overview business model",
+    "products": "{clean_name} products services solutions list",
+    "founders": "{clean_name} founders co-founders LinkedIn profiles",
+    "funding": "{clean_name} funding rounds series valuation investors",
+    "headquarters": "{clean_name} company headquarters city location",
+    "city": "{clean_name} headquarters city state location India",
+    "founded": "{clean_name} company founded year established date",
+    "stage": "{clean_name} funding stage series seed growth",
+    "status": "{clean_name} company operational status active shutdown",
+    "competitors": "{clean_name} company main competitors comparable companies",
+    "industry": "{clean_name} company overview business description sector"
+  },
+  "custom_web_search": {
+    "suffix": "startup news funding India 2026"
+  }
+}

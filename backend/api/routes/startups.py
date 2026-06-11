@@ -210,15 +210,20 @@ class ChatRequest(BaseModel):
 
 # --- Endpoints ---
 
-def run_scrape_background(sources: List[str], limit: int, industry: str, sector: str, subsector: str, keywords: str):
+def run_scrape_background(sources: List[str], limit: int, industry: str, sector: str, subsector: str, keywords: str, trace_id: str = None):
     """Worker function executed in background threads."""
+    if trace_id:
+        from backend.utils.tracing import set_trace_id, log_trace
+        set_trace_id(trace_id)
+        log_trace()
+        
     import time
     import random
     import urllib.parse
     import feedparser
     from bs4 import BeautifulSoup
     
-    add_scrape_log(f"Starting discovery run for sources: {sources} (Target: {limit} articles to process)")
+    add_scrape_log(f"Starting discovery run for sources: {sources} (Target: {limit} articles to process) with Trace ID: {trace_id}")
     
     try:
         # Load custom scrapers config to resolve URLs
@@ -286,9 +291,10 @@ def run_scrape_background(sources: List[str], limit: int, industry: str, sector:
                     query_parts.append(subsector)
                 if sector and sector != "Unknown":
                     query_parts.append(sector)
-                if industry and industry != "Unknown":
-                    query_parts.append(industry)
-                query_parts.append("startup news funding India 2026")
+                from backend.utils.search import load_search_queries
+                config = load_search_queries()
+                suffix = config.get("custom_web_search", {}).get("suffix", "startup news funding India 2026")
+                query_parts.append(suffix)
                 search_query = " ".join(query_parts)
                 add_scrape_log(f"Query: '{search_query}'")
                 
@@ -450,6 +456,9 @@ async def scrape(scrape_request: ScrapeRequest = Body(...), background_tasks: Ba
         SCRAPE_STATUS["logs"] = []
         SCRAPE_STATUS["processed_startups"] = []
         
+    from backend.utils.tracing import get_trace_id, generate_trace_id
+    trace_id = get_trace_id() or generate_trace_id()
+    
     background_tasks.add_task(
         run_scrape_background,
         scrape_request.sources,
@@ -457,7 +466,8 @@ async def scrape(scrape_request: ScrapeRequest = Body(...), background_tasks: Ba
         scrape_request.industry,
         scrape_request.sector,
         scrape_request.subsector,
-        scrape_request.keywords
+        scrape_request.keywords,
+        trace_id
     )
     
     return {"status": "started", "message": "Startup discovery pipeline successfully initiated in the background."}
@@ -1539,8 +1549,12 @@ async def recheck_startup_field(id: str, req: FieldRecheckRequest = Body(...)):
         search_context = ""
         prompt = ""
         
+        from backend.utils.search import load_search_queries
+        config = load_search_queries()
+        recheck_cfg = config.get("api_rechecks", {})
+        
         if field == "website":
-            search_query = f"{clean_name} official website URL"
+            search_query = recheck_cfg.get("website", "{clean_name} official website URL").format(clean_name=clean_name)
             try:
                 search_context = search_duckduckgo(search_query)
             except Exception as se:
@@ -1562,7 +1576,7 @@ Begin parsing:
 """
 
         elif field in ["linkedin", "linkedin_url"]:
-            search_query = f"{clean_name} company linkedin page India"
+            search_query = recheck_cfg.get("linkedin", "{clean_name} company linkedin page India").format(clean_name=clean_name)
             try:
                 search_context = search_duckduckgo(search_query)
             except Exception as se:
@@ -1584,7 +1598,7 @@ Begin parsing:
 """
 
         elif field in ["startup_name", "brand_name"]:
-            search_query = f"{clean_name} official brand name"
+            search_query = recheck_cfg.get("brand_name", "{clean_name} official brand name").format(clean_name=clean_name)
             try:
                 search_context = search_duckduckgo(search_query)
             except Exception as se:
@@ -1607,7 +1621,7 @@ Begin parsing:
 """
 
         elif field in ["profile", "description", "company_profile"]:
-            search_query = f"{clean_name} company profile overview business model"
+            search_query = recheck_cfg.get("profile", "{clean_name} company profile overview business model").format(clean_name=clean_name)
             try:
                 search_context = search_duckduckgo(search_query)
             except Exception as se:
@@ -1629,7 +1643,7 @@ Begin parsing:
 """
 
         elif field in ["products", "products_services"]:
-            search_query = f"{clean_name} products services solutions list"
+            search_query = recheck_cfg.get("products", "{clean_name} products services solutions list").format(clean_name=clean_name)
             try:
                 search_context = search_duckduckgo(search_query)
             except Exception as se:
@@ -1660,7 +1674,7 @@ Begin parsing:
 """
 
         elif field == "founders":
-            search_query = f"{clean_name} founders co-founders LinkedIn profiles"
+            search_query = recheck_cfg.get("founders", "{clean_name} founders co-founders LinkedIn profiles").format(clean_name=clean_name)
             try:
                 search_context = search_duckduckgo(search_query)
             except Exception as se:
@@ -1690,7 +1704,7 @@ Begin parsing:
 """
 
         elif field == "funding":
-            search_query = f"{clean_name} funding rounds series valuation investors"
+            search_query = recheck_cfg.get("funding", "{clean_name} funding rounds series valuation investors").format(clean_name=clean_name)
             try:
                 search_context = search_duckduckgo(search_query)
             except Exception as se:
@@ -1717,7 +1731,7 @@ Begin parsing:
 """
 
         elif field in ["headquarters", "hq"]:
-            search_query = f"{clean_name} company headquarters city location"
+            search_query = recheck_cfg.get("headquarters", "{clean_name} company headquarters city location").format(clean_name=clean_name)
             try:
                 search_context = search_duckduckgo(search_query)
             except Exception as se:
@@ -1739,7 +1753,7 @@ Begin parsing:
 """
 
         elif field in ["city", "state", "country"]:
-            search_query = f"{clean_name} headquarters city state location India"
+            search_query = recheck_cfg.get("city", "{clean_name} headquarters city state location India").format(clean_name=clean_name)
             try:
                 search_context = search_duckduckgo(search_query)
             except Exception as se:
@@ -1763,7 +1777,7 @@ Begin parsing:
 """
 
         elif field in ["founded", "founded_year"]:
-            search_query = f"{clean_name} company founded year established date"
+            search_query = recheck_cfg.get("founded", "{clean_name} company founded year established date").format(clean_name=clean_name)
             try:
                 search_context = search_duckduckgo(search_query)
             except Exception as se:
@@ -1785,7 +1799,7 @@ Begin parsing:
 """
 
         elif field in ["stage", "startup_stage", "funding_stage"]:
-            search_query = f"{clean_name} funding stage series seed growth"
+            search_query = recheck_cfg.get("stage", "{clean_name} funding stage series seed growth").format(clean_name=clean_name)
             try:
                 search_context = search_duckduckgo(search_query)
             except Exception as se:
@@ -1808,7 +1822,7 @@ Begin parsing:
 """
 
         elif field in ["status", "startup_status"]:
-            search_query = f"{clean_name} company operational status active shutdown"
+            search_query = recheck_cfg.get("status", "{clean_name} company operational status active shutdown").format(clean_name=clean_name)
             try:
                 search_context = search_duckduckgo(search_query)
             except Exception as se:
@@ -1831,7 +1845,7 @@ Begin parsing:
 """
 
         elif field == "competitors":
-            search_query = f"{clean_name} company main competitors comparable companies"
+            search_query = recheck_cfg.get("competitors", "{clean_name} company main competitors comparable companies").format(clean_name=clean_name)
             try:
                 search_context = search_duckduckgo(search_query)
             except Exception as se:
@@ -1860,7 +1874,7 @@ Begin parsing:
 """
 
         elif field in ["industry", "sector", "subsector"]:
-            search_query = f"{clean_name} company overview business description sector"
+            search_query = recheck_cfg.get("industry", "{clean_name} company overview business description sector").format(clean_name=clean_name)
             try:
                 search_context = search_duckduckgo(search_query)
             except Exception as se:

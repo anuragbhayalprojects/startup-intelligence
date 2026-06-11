@@ -218,8 +218,10 @@ def resolve_website(
 
     # Step 5 — Search-based discovery
     try:
-        from backend.utils.search import search_duckduckgo
-        query = f"{brand_name} official website"
+        from backend.utils.search import search_duckduckgo, load_search_queries
+        config = load_search_queries()
+        query_template = config.get("website_resolver", {}).get("query", "{brand_name} official website")
+        query = query_template.format(brand_name=brand_name)
         snippets = search_duckduckgo(query)
         # Extract first URL from snippets
         url_pattern = re.compile(r"https?://[^\s\"\'>]+\.[a-z]{2,6}(?:/[^\s\"\'<>]*)?")

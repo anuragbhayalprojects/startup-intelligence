@@ -107,8 +107,10 @@ def resolve_linkedin_company_url(
 
     # Step 4 — Search-based extraction
     try:
-        from backend.utils.search import search_duckduckgo
-        query = f"{brand_name} LinkedIn company page"
+        from backend.utils.search import search_duckduckgo, load_search_queries
+        config = load_search_queries()
+        query_template = config.get("linkedin_resolver", {}).get("query", "{brand_name} LinkedIn company page")
+        query = query_template.format(brand_name=brand_name)
         snippets = search_duckduckgo(query)
         for m in _LINKEDIN_URL_PATTERN.finditer(snippets):
             url = m.group(0).rstrip(".,;)")

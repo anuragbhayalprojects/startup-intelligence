@@ -8,7 +8,8 @@ export type AppTab =
   | "insights"
   | "database"
   | "chat"
-  | "scraping";
+  | "scraping"
+  | "observability";
 
 export interface Startup {
   id: string;

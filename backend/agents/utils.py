@@ -1,7 +1,11 @@
 import os
 import json
 import requests
+import time
+import inspect
+from typing import Any
 from backend.rag.retriever import get_retriever
+from backend.utils.tracing import generate_uuid, log_prompt_ledger
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
@@ -43,9 +47,25 @@ def clean_llm_response(response_text: str) -> str:
     return response_text.strip()
 
 def call_ollama(prompt: str, json_format: bool = True, num_ctx: int = 4096, temperature: float = 0.0) -> Any:
-    """Calls Ollama API synchronously and parses response."""
+    """Calls Ollama API synchronously, records execution to prompt ledger, and parses response."""
     from backend.utils.ollama_helper import ensure_ollama_running
     ensure_ollama_running()
+    
+    # Detect the agent calling this function from the stack frame
+    agent_name = "OllamaHelper"
+    for frame_info in inspect.stack():
+        self_obj = frame_info.frame.f_locals.get("self")
+        if self_obj and hasattr(self_obj, "__class__"):
+            cls_name = self_obj.__class__.__name__
+            if "Agent" in cls_name or cls_name.endswith("Agent"):
+                agent_name = cls_name
+                break
+
+    prompt_id = "PRMPT_" + generate_uuid()
+    start_time = time.perf_counter()
+    text = ""
+    parsed_json = {}
+    
     try:
         payload = {
             "model": OLLAMA_MODEL,
@@ -70,15 +90,31 @@ def call_ollama(prompt: str, json_format: bool = True, num_ctx: int = 4096, temp
         
         if json_format:
             cleaned = clean_llm_response(text)
-            return json.loads(cleaned)
+            parsed_json = json.loads(cleaned)
+            return parsed_json
         return text
     except requests.exceptions.ConnectionError:
         print("⚠️ Ollama AI service is offline. Returning empty fallback response.")
+        text = "ConnectionError: Ollama service offline"
         return {} if json_format else ""
     except Exception as e:
         print(f"⚠️ Ollama API call failed: {e}")
-        # Return fallback empty structures on JSON error
+        text = f"Error: {str(e)}"
         return {} if json_format else ""
+    finally:
+        duration_ms = (time.perf_counter() - start_time) * 1000.0
+        # If response was not JSON or parsing failed, wrap raw text in dict
+        ledger_parsed = parsed_json if (json_format and parsed_json) else {"response_text": text}
+        log_prompt_ledger(
+            prompt_id=prompt_id,
+            agent_name=agent_name,
+            prompt_template=prompt,
+            injected_context="",
+            raw_response=text,
+            parsed_response=ledger_parsed,
+            duration_ms=duration_ms
+        )
+
 
 def get_rag_context(query: str, category_filter: str = None, top_k: int = 3) -> str:
     """Retrieves relevant chunk contents from the RAG store as text."""
