@@ -1,387 +1,551 @@
-# Startup Intelligence Operating System: Architecture & Blueprint Document
-**ICICI Group Enterprise Startup Vetting & Pilots Registry Platform (Entity-Resolution First)**
+# Startup Intelligence Operating System: Architecture Specification & Execution Blueprint
+**Production-Grade Technical Architecture Reference & Blueprint Spec**
 
 ---
 
-## SECTION 1 — EXECUTIVE OVERVIEW
+## SECTION 1 — SYSTEM CONTEXT & LOGICAL ARCHITECTURE
 
-### Problem Solved
-The **ICICI Group Startup Intelligence OS** solves the critical challenge of unstructured, slow, and non-explainable startup vetting within a large banking enterprise. Traditionally, mapping fintech innovation onto specific corporate challenges was done via ad-hoc emails, word-of-mouth recommendations, and unvetted pitch decks. The registry automates discovery from open channels, performs programmatic and deterministic vetting, maps startup products to specific business problems across ICICI entities, and manages pilot pipelines.
+The Startup Intelligence OS is an enterprise-class registry and multi-agent vetting system designed to automatically ingest, resolve, evaluate, and prioritize startups for piloting and integration across ICICI Group entities.
 
-### Business Purpose
-* **Relate Startups to Business Problems**: Ensure no startup is entered without a specific business problem mapping.
-* **Determine Group Relevance**: Route fintech opportunities directly to the correct internal business teams.
-* **Maintain Zero-Budget Local Vetting**: Execute analysis pipelines using local AI models (Ollama/Qwen) to eliminate API costs.
-* **Enforce Explainable Evaluations**: Provide deterministic scoring (priority, recommendation, confidence) so RMs can understand recommendations in 30 seconds.
-* **Entity-Resolution First Vetting**: Gate all enrichment pipelines until a startup's digital presence (website, LinkedIn, legal entity names) has been discovered and resolved with high confidence.
-
-### Target Users & Stakeholders
-1. **Innovation COE Administrators**: Oversee crawler triggers, run database seeds, and manage taxonomies.
-2. **First Points of Contact (FPR1 & FPR2)**: Relationship managers assigned to evaluate, engage, and pilot with startups.
-3. **CTOs, CIOs, and Strategy Directors**: Track strategic alignment, market gap analyses, and pilot sandboxes.
-
-### Key Capabilities
-* **Crawling & Ingestion**: Inc42, Entrackr, YC, ProductHunt monitoring.
-* **Entity Resolution Engine**: DuckDuckGo-first search mapping, legal name matching, and multi-source confidence evaluations.
-* **Multi-Agent Evaluation**: Sequential agents processing state transitions for classification, relevance gating, and risk assessments.
-* **Dynamic Details Drawer**: Drag-resizable drawer (50%-95% desktop width) with three focused intelligence tabs.
-* **Strategic Fit Engine**: Mathematical weighting of strategic alignment, deployability, signals, and data confidence.
-
-### Capability Map
+### 1.1 System Context Flow
 ```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                              STARTUP INTELLIGENCE OS CAPABILITIES                      │
-├───────────────────────────┬───────────────────────────┬────────────────────────────────┤
-│      DATA INGESTION       │    INTELLIGENCE & AI      │      ENGAGEMENT WORKSPACE      │
-├───────────────────────────┼───────────────────────────┼────────────────────────────────┤
-│ • News Scrapers (BS4)     │ • Entity Resolution Gate  │ • Draggable Resizable Drawer   │
-│ • DuckDuckGo Search       │ • Multi-Agent Pipeline    │ • FPR Routing Assignments      │
-│ • CSV Upload Parser       │ • Taxonomy Fuzzy Mapper   │ • Outreach Drafts Generator    │
-│ • Manual Venture Forms    │ • Deterministic Scoring   │ • RM Activity Log Timeline     │
-└───────────────────────────┴───────────────────────────┴────────────────────────────────┘
+[External News RSS / Manual Input]
+           ↓
+[scrapers/scraper_manager.py] -- (Extracts raw article HTML/RSS feeds)
+           ↓
+[workflows/startup_pipeline.py] -- (First-pass extraction, standard regex cleaning)
+           ↓
+[workflows/agent_orchestrator.py] -- (Phase 1 & Phase 2 state orchestration)
+           ↓
+   ┌───────┴──────────────────────────────────────┐
+   ▼ (Phase 1: Entity Resolution)                 ▼ (Phase 2: Deep Vetting)
+[IdentityDiscoveryAgent]                      [DescriptionGeneratorAgent]
+[LegalNameAgent]                              [ProductIntelligenceAgent]
+[IdentityResolutionAgent]                     [IndustryClassificationAgent]
+   │                                          [CompetitorIntelligenceAgent]
+   ▼                                          [OpportunityMappingAgent]
+[Weighted Gating: Score >= 50?]               [FundingIntelligenceAgent]
+   │                                              │
+   ├── [No: needs_review] ──► [Halt Pipeline]     │
+   └── [Yes: verified] ───────────────────────────┘
+                                                  │
+                                                  ▼
+                                      [BusinessProblemAgent] -- (Maps to RAG database)
+                                                  │
+                                                  ▼
+                                      [RelevanceAgent] -- (Score evaluation & gating)
+                                                  │
+                                                  ▼
+                                      [StrategicFitAgent & SignalAgent]
+                                                  │
+                                                  ▼
+                                      [RecommendationAgent] -- (Reachout generation)
+                                                  │
+                                                  ▼
+                                      [ScoringService & ExplanationService]
+                                                  │
+                                                  ▼
+                                      [supabase_service.py Persistence]
+                                                  │
+                                                  ▼
+                                      [React UI / DetailModal.tsx Drawer]
 ```
 
-### Business Workflow Diagram
-
-```mermaid
-graph TD
-    A["Raw Startup Ingested"] --> B["Phase 1: Entity Discovery (DDG + Crawling)"]
-    B --> C["Legal Name Extraction"]
-    C --> D["Entity Resolution & Scoring"]
-    D --> E{"Resolution Score < 50?"}
-    E -->|Yes: NEEDS_REVIEW| F["Halt Pipeline & Skip Enrichment"]
-    E -->|No: Confidence >= 50| G["Phase 2: Downstream Intelligence (Desc, Products, Competitors, Taxonomy, Opportunity)"]
-    G --> H["Legacy Vetting (Business Problems, Relevance Scoring)"]
-    H --> I{"Relevance Score >= 30?"}
-    I -->|Yes| J["Run Strategic Fit & Signal Scanning"]
-    I -->|No| K["Bypass Strategic Fit & Signals"]
-    J --> L["Calculate Final Scores & Urgency Bands"]
-    K --> L
-    L --> M["Supabase Upsert & Round-Robin Assign RM"]
-    M --> N["Outreach Drafts Generated & Drawer Populated"]
-```
+### 1.2 Node Explanations
+1. **Ingestion Layer**: Ingests unstructured news articles from RSS/news outlets (e.g., Inc42, Entrackr) or accepts direct structured payload from manual inputs and forms.
+2. **Scraper Layer**: Programmatically requests the target HTML elements, strips ads/scripts, and outputs clean textual paragraphs.
+3. **Pipeline Layer**: Acts as the entry gate; identifies the presence of potential startup names using regex pattern matchers.
+4. **Agent Orchestration**: Orchestrates execution state of a startup pipeline. It processes sequentially through discovery, resolution, downstream extraction, scoring, recommendation generation, and database sync.
+5. **Phase 1 (Entity Resolution)**: Discovers web domains, crawling T&C/privacy text to extract legal entities. Computes a weighted matching score.
+6. **Phase 2 (Downstream Intelligence)**: Performs core details extraction (products, solutions, funding rounds, competitors, taxonomy classification) only if Phase 1 passes the gated threshold ($\ge 50$).
+7. **Business Mapping & Scoring**: Utilizes vector database retrieval (RAG) to compare startup product profiles against internal corporate challenges. Outputs deterministic priority, confidence, and strategic fit metrics.
+8. **Outreach & Recommendation Engine**: Generates candidate outreach emails and LinkedIn connection messages targeted at the startup's leadership.
+9. **Persistence Layer**: Upserts data directly to Supabase PostgreSQL schema with round-robin relationship manager assignments.
+10. **Dashboard Layer**: Visualizes startup health, assignments, and detailed metrics inside a draggable drawer on the client workspace.
 
 ---
 
-## SECTION 2 — COMPLETE REPOSITORY ANALYSIS
+## SECTION 2 — REPOSITORY STRUCTURE & DEPENDENCY MAP
 
-### Repository Tree
 ```
 startup-intelligence/
 ├── backend/
-│   ├── agents/                   # Multi-agent interface and implementations
-│   │   ├── base.py
-│   │   ├── identity_discovery_agent.py      # Phase 1: Resolves websites and socials
-│   │   ├── legal_name_agent.py              # Phase 1: Resolves legal names/registrations
-│   │   ├── identity_resolution_agent.py     # Phase 1: Resolves weighted score gating
-│   │   ├── description_generator_agent.py   # Phase 2: Generates clean company summaries
-│   │   ├── product_intelligence_agent.py    # Phase 2: Extracts products & features
-│   │   ├── industry_classification_agent.py # Phase 2: Maps categories to taxonomy
-│   │   ├── competitor_intelligence_agent.py # Phase 2: Compiles competitor matrix
-│   │   ├── funding_intelligence_agent.py    # Phase 2: Extracts financial rounds (non-blocking)
-│   │   ├── opportunity_mapping_agent.py     # Phase 2: Maps co-creation pilots
-│   │   ├── business_problem_agent.py        # Maps startup features onto ICICI problems
-│   │   ├── relevance_agent.py               # Computes strategic relevance
-│   │   ├── strategic_fit_agent.py           # Evaluates integration feasibility
-│   │   ├── signal_agent.py                  # Scans positive/negative momentum signals
-│   │   └── recommendation_agent.py          # Suggests action & drafts emails
-│   ├── ai/                       # Legacy LLM parser routines
-│   ├── api/                      # FastAPI routes and server config
-│   │   ├── main.py
+│   ├── agents/                   # Agent implementations derived from BaseAgent
+│   │   ├── base.py               # Base class mapping audit logging hooks
+│   │   ├── identity_discovery_agent.py
+│   │   ├── legal_name_agent.py
+│   │   ├── identity_resolution_agent.py
+│   │   ├── description_generator_agent.py
+│   │   ├── product_intelligence_agent.py
+│   │   ├── industry_classification_agent.py
+│   │   ├── competitor_intelligence_agent.py
+│   │   ├── funding_intelligence_agent.py
+│   │   ├── opportunity_mapping_agent.py
+│   │   ├── business_problem_agent.py
+│   │   ├── relevance_agent.py
+│   │   ├── strategic_fit_agent.py
+│   │   ├── signal_agent.py
+│   │   └── recommendation_agent.py
+│   ├── ai/
+│   │   └── startup_analyzer.py   # Legacy fallback inference schemas
+│   ├── api/
+│   │   ├── main.py               # FastAPI entry config
 │   │   └── routes/
-│   │       └── startups.py
-│   ├── config/                   # Externalized configurations and JSON rules
-│   ├── models/                   # Pydantic states and schemas
-│   │   ├── startup_state.py
-│   │   └── startup_features.py
-│   ├── prompts/                  # Jinja2 prompt text files
-│   ├── scrapers/                 # Web scraper BeautifulSoup modules
-│   ├── services/                 # Supabase operations and Scoring math
-│   │   ├── supabase_service.py
-│   │   └── scoring_service.py
-│   └── workflows/                # Orchestration execution scripts
-│       ├── agent_orchestrator.py
-│       └── startup_pipeline.py
-├── database/                     # Migration files and base SQL scripts
+│   │       └── startups.py       # API endpoints, CRUD logic, and manual triggers
+│   ├── config/                   # Configuration mappings and weighting rules
+│   │   ├── business_problems.json
+│   │   ├── name_resolution_rules.json
+│   │   ├── entity_resolution_rules.json
+│   │   └── opportunity_matrix.json
+│   ├── models/
+│   │   ├── startup_state.py      # Main pipeline state container
+│   │   └── startup_features.py   # Normalized database feature columns
+│   ├── prompts/                  # Text prompt templates loaded by Jinja2
+│   ├── rag/
+│   │   └── retriever.py          # BM25 + Vector embedding search indexer
+│   ├── scrapers/
+│   │   └── scraper_manager.py    # BeautifulSoup scraping coordinator
+│   ├── services/
+│   │   ├── supabase_service.py   # Database client queries & RPC mapping
+│   │   ├── scoring_service.py    # Priority and confidence scoring formulas
+│   │   └── explanation_service.py# AI-backed summary explanations generator
+│   └── workflows/
+│       ├── agent_orchestrator.py # Multi-Agent workflow sequencer
+│       └── startup_pipeline.py   # Ingestion entry point and cleaning scripts
+├── database/
+│   ├── schema.sql                # Supabase database base schema definitions
+│   └── migrations/               # Database structural delta migrations
 ├── docs/                         # Documentation and architectural guides
-└── frontend/                     # React + Vite Client Application
+└── frontend/                     # React + Vite client-side GUI
+    ├── src/
+    │   ├── components/
+    │   │   └── DetailModal.tsx   # Slidable details drawer
+    │   ├── pages/
+    │   │   ├── Scraping.tsx
+    │   │   └── StartupDetails.tsx
+    │   └── App.tsx               # Main routing and layout view
 ```
 
-### Complete Code File Analysis
-
-| File Path | Purpose / Responsibility | Key Exports / Methods | Execution Context |
-| :--- | :--- | :--- | :--- |
-| `backend/agents/base.py` | Declares common `BaseAgent` and logs audit events to state. | `BaseAgent`, `log_audit` | Main process |
-| `backend/agents/identity_discovery_agent.py` | Runs multi-query DDG-first discovery and homepage crawlers. | `IdentityDiscoveryAgent.run` | Phase 1 Discovery |
-| `backend/agents/legal_name_agent.py` | Extracts official registration legal entities using scrapers. | `LegalNameAgent.run` | Phase 1 Legal Name |
-| `backend/agents/identity_resolution_agent.py` | Evaluates weighted matching configs and gates pipeline. | `IdentityResolutionAgent.run` | Phase 1 Gating |
-| `backend/agents/product_intelligence_agent.py` | Compiles structured products with evidence links and target audience. | `ProductIntelligenceAgent.run` | Phase 2 Downstream |
-| `backend/agents/competitor_intelligence_agent.py` | Maps structural competitors with reasons, confidence, and links. | `CompetitorIntelligenceAgent.run` | Phase 2 Downstream |
-| `backend/agents/opportunity_mapping_agent.py` | Generates co-creation use-cases across ICICI entities. | `OpportunityMappingAgent.run` | Phase 2 Downstream |
-| `backend/workflows/agent_orchestrator.py` | Manages state initialization, sequential execution, and DB sync. | `AgentOrchestrator.run_pipeline` | FastAPI routing / script |
-| `backend/services/scoring_service.py` | Mathematical calculations for Priority, Confidence, and Rec scores. | `ScoringService` math statics | Orchestrator/API |
-| `backend/services/supabase_service.py` | Direct wrapper database connectivity for CRUD transactions. | `upsert_startup`, `save_startup_analysis` | DB layers |
+### 2.1 Repository Dependency Map
+```
+[FastAPI / main.py] ──► [api/routes/startups.py]
+                                 │
+                                 ▼
+                     [workflows/agent_orchestrator.py]
+                                 │
+         ┌───────────────────────┴───────────────────────┐
+         ▼                                               ▼
+[backend/agents/*]                               [backend/services/*]
+(Inherit backend/agents/base.py)             (supabase_service / scoring_service)
+         │                                               │
+         ▼                                               ▼
+[backend/utils/*]                                [database/schema.sql]
+(crawler.py / search.py)                     (Supabase Tables)
+         │
+         ▼
+[Local Ollama / DDG API]
+```
 
 ---
 
-## SECTION 3 — SYSTEM ARCHITECTURE & DIAGRAMS OF LINKAGES
+## SECTION 3 — CLASS-LEVEL ARCHITECTURE SPECIFICATION
 
-This section provides the complete architectural link map, demonstrating how data and requests route across tiers.
+This section documents every primary class structure across the application pipeline.
 
-### 1. Logical Architecture Diagram
-Shows the system layer separation:
+### 3.1 BaseAgent
+* **Location**: [backend/agents/base.py](file:///Users/anurag/Projects/startup-intelligence/backend/agents/base.py)
+* **Purpose**: Abstract template class defining audit-trail integration and common log interfaces for all pipeline agents.
+* **Responsibilities**:
+  * Implement base interfaces.
+  * Provide standard audit trail writing mechanism.
+* **Invoked By**: Child agents during subclassing initialization.
+* **Methods**:
+  * `run(state: StartupState) -> StartupState`: Abstract core logic hook.
+  * `log_audit(state: StartupState, message: str, level: str = "INFO", metadata: dict = None)`: Appends structured details into `state.audit_trail`.
+* **State Maintained**: Stateless. Mutates the passed `StartupState`.
+
+### 3.2 IdentityDiscoveryAgent
+* **Location**: [backend/agents/identity_discovery_agent.py](file:///Users/anurag/Projects/startup-intelligence/backend/agents/identity_discovery_agent.py)
+* **Purpose**: Coordinates web domain search discovery and crawls homepage metadata to extract candidate URLs.
+* **Responsibilities**:
+  * Cleans the company name to isolate the operating brand name.
+  * Runs multi-query searches on DuckDuckGo.
+  * Captures homepage text content using crawler utilities.
+* **Invoked By**: [AgentOrchestrator](file:///Users/anurag/Projects/startup-intelligence/backend/workflows/agent_orchestrator.py)
+* **Methods**:
+  * `run(state: StartupState) -> StartupState`
+* **Data Produced**: `state.article_data["discovered_snippets"]`, `state.article_data["crawled_content"]`, `state.identity["website"]`, `state.identity["linkedin_company_url"]`.
+* **Failure Scenarios**: DuckDuckGo rate-limiting (resolved by falling back to secondary Google Search and applying 8-15s random delays).
+
+### 3.3 LegalNameAgent
+* **Location**: [backend/agents/legal_name_agent.py](file:///Users/anurag/Projects/startup-intelligence/backend/agents/legal_name_agent.py)
+* **Purpose**: Extracts official corporate registration details (HQ address, founded year, city, state, country, and co-founders list).
+* **Responsibilities**:
+  * Compiles news article paragraphs and crawled website content.
+  * Triggers LLM parser models using structured schema prompts.
+  * Fallbacks to regex patterns if LLM output fails.
+* **Invoked By**: [AgentOrchestrator](file:///Users/anurag/Projects/startup-intelligence/backend/workflows/agent_orchestrator.py)
+* **Methods**:
+  * `run(state: StartupState) -> StartupState`
+* **Data Produced**: `state.identity["legal_name"]`, `state.identity["headquarters"]`, `state.identity["founded_year"]`, `state.identity["city"]`, `state.identity["state"]`, `state.identity["country"]`, `state.startup_features.leadership`.
+
+### 3.4 IdentityResolutionAgent
+* **Location**: [backend/agents/identity_resolution_agent.py](file:///Users/anurag/Projects/startup-intelligence/backend/agents/identity_resolution_agent.py)
+* **Purpose**: Gating coordinator evaluating entity resolution confidence weights.
+* **Responsibilities**:
+  * Parses weights config from `entity_resolution_rules.json`.
+  * Computes deterministic matching confidence index.
+  * Maps resolution status (`VERIFIED`, `LIKELY_MATCH`, `PARTIAL_MATCH`, `NEEDS_REVIEW`).
+  * Persists resolved registry state in database table `startup_identity`.
+* **Invoked By**: [AgentOrchestrator](file:///Users/anurag/Projects/startup-intelligence/backend/workflows/agent_orchestrator.py)
+* **Methods**:
+  * `run(state: StartupState) -> StartupState`
+* **Data Produced**: `state.identity["identity_confidence"]`, `state.identity["verification_status"]`.
+
+### 3.5 AgentOrchestrator
+* **Location**: [backend/workflows/agent_orchestrator.py](file:///Users/anurag/Projects/startup-intelligence/backend/workflows/agent_orchestrator.py)
+* **Purpose**: Core pipeline coordinator managing agent instantiation, state propagation, and Supabase integration.
+* **Invoked By**: Ingestion routers and script triggers.
+* **Methods**:
+  * `run_pipeline(raw_startup: dict) -> StartupState`: Loops through sequentially executing agents.
+  * `persist_to_database(state: StartupState)`: Performs CRUD synchronization of startups, assignments, and analysis records.
+
+### 3.6 StartupState (Pydantic Model)
+* **Location**: [backend/models/startup_state.py](file:///Users/anurag/Projects/startup-intelligence/backend/models/startup_state.py)
+* **State Maintained**:
+  * `startup_name: str`
+  * `startup_id: int | None`
+  * `identity: dict` (website, linkedin, legal_name, location)
+  * `market_intelligence: dict` (products, competitors, classifications)
+  * `relevance: dict` (score, matched problems)
+  * `strategic_fit: dict` (breakdowns)
+  * `signals: dict` (score, negative/positive signals)
+  * `audit_trail: list`
+  * `article_data: dict`
+
+---
+
+## SECTION 4 — FUNCTION-LEVEL ARCHITECTURE CATALOG
+
+An detailed catalog of primary functions execution details across the codebase.
+
+### 4.1 `discover_search_evidence`
+* **Location**: [backend/utils/search.py](file:///Users/anurag/Projects/startup-intelligence/backend/utils/search.py)
+* **Parameters**: `startup_name: str`
+* **Return Type**: `dict` (Category-to-records mapping)
+* **Output Schema**:
+  ```json
+  {
+    "official_website": [{"title": "String", "url": "String", "snippet": "String"}],
+    "linkedin": [...],
+    "news": [...]
+  }
+  ```
+* **Side Effects**: Executes external HTTP requests to DuckDuckGo/Google search engines.
+* **Error Handling**: Captures exceptions, logs warning, and returns empty category lists.
+
+### 4.2 `scrape_page`
+* **Location**: [backend/utils/crawler.py](file:///Users/anurag/Projects/startup-intelligence/backend/utils/crawler.py)
+* **Parameters**: `url: str`, `timeout: float = 3.5`
+* **Return Type**: `dict` (Structured scraped page details)
+* **Input Schema**: Clean domain target URL string.
+* **Output Schema**:
+  ```json
+  {
+    "url": "https://www.target.com",
+    "title": "Page Title",
+    "meta_description": "Metadata info text",
+    "text_content": "Clean text representation capped at 3000 chars",
+    "legal_company_name": "String | Empty",
+    "headquarters": "String"
+  }
+  ```
+* **LLM Calls**: None. Programmatic BeautifulSoup parsing (decomposing headers, scripts, footers).
+
+### 4.3 `get_clean_startup_name`
+* **Location**: [backend/workflows/startup_pipeline.py](file:///Users/anurag/Projects/startup-intelligence/backend/workflows/startup_pipeline.py)
+* **Parameters**: `headline: str`, `extracted_name: str`, `source: str = None`, `source_url: str = None`
+* **Return Type**: `str | None`
+* **Logic**: Matches candidate names against validation lists in `name_resolution_rules.json` (filtering out tech giants, organizational words, locations, and possessive headline prefixes).
+
+### 4.4 `calculate_priority_score`
+* **Location**: [backend/services/scoring_service.py](file:///Users/anurag/Projects/startup-intelligence/backend/services/scoring_service.py)
+* **Parameters**: `relevance_score: int`, `strategic_fit_score: int`, `deployability_score: int`, `signal_score: int`
+* **Return Type**: `int`
+* **Mathematical Implementation**:
+  ```python
+  if relevance_score < 30:
+      return relevance_score
+  raw_score = (0.40 * relevance_score) + (0.30 * strategic_fit_score) + (0.20 * deployability_score) + (0.10 * signal_score)
+  return int(round(raw_score))
+  ```
+
+---
+
+## SECTION 5 — AGENT ARCHITECTURE SPECIFICATION
+
+Detailed specification profiles for the multi-agent orchestration pool.
+
+### 5.1 DescriptionGeneratorAgent
+* **Purpose**: Generates standard business descriptions without noise (competitors, funding details).
+* **Trigger Conditions**: Executed as the first downstream phase 2 task after Phase 1 passes.
+* **Input Payload**: `state.article_data["crawled_content"]`, `state.article_data["discovered_snippets"]`.
+* **Output Payload**: Updates `state.article_data["business_description"]`.
+* **Prompt Template**: Matches instructions in `description_generation_prompt.txt` restricting text output to 100-150 words.
+* **Interactions**: Downstream classification and opportunity mapping depend on the output of this agent.
+
+### 5.2 ProductIntelligenceAgent
+* **Purpose**: Extracts structured products, features, and target customer segments.
+* **Input Payload**: `state.identity["website"]`, `state.article_data["crawled_content"]`.
+* **Output Payload**: Populates `state.market_intelligence["products"]`.
+* **Retry/Fallback Logic**: If crawled subpage text is empty, it parses homepage text, and falls back to DuckDuckGo search snippets.
+
+### 5.3 BusinessProblemAgent
+* **Purpose**: Maps startup profiles against ICICI internal business challenges.
+* **Logic**: Connects to the vector embedding database using [retriever.py](file:///Users/anurag/Projects/startup-intelligence/backend/rag/retriever.py) to look up challenges. Filters matches by comparing allowed categories against the startup's canonicalized sector.
+* **Gated Rules**: Discards any matched business problems if the startup's sector does not match the list of allowed sectors.
+
+---
+
+## SECTION 6 — MULTI-AGENT EXECUTION FLOW DIAGRAM
+
 ```mermaid
 graph TD
-    subgraph Presentation Layer [Frontend Client]
-        UI["React DOM (App.tsx / Repository.tsx)"]
-        StateStore["Local State & localStorage (Drawer Width)"]
-        ClientAPI["fetch API Wrapper (services/api.ts)"]
-    end
-
-    subgraph API Gateway Layer [Backend FastAPI]
-        Router["startups.py Router"]
-        Validate["Pydantic Schemas"]
-        Orchestration["AgentOrchestrator Pipeline"]
-    end
-
-    subgraph Business Logic Layer [Sequential Agents]
-        AgentPool["BaseAgent Instances (Phase 1 & Phase 2 Agents)"]
-        MathEngine["ScoringService (Python Math)"]
-        FuzzyEngine["Taxonomy Mapper (difflib)"]
-    end
-
-    subgraph Database Layer [Supabase Cloud]
-        Postgres[("PostgreSQL DB Tables")]
-        Triggers["PL/pgSQL Triggers (Autofill, Status RR)"]
-    end
-
-    subgraph External Vetting Layer
-        Ollama["Local Ollama qwen2.5:3b (Port 11434)"]
-        DDG["DuckDuckGo Scraper Services"]
-        Crawler["Homepage Web Crawler"]
-    end
-
-    UI -->|Interactive state updates| StateStore
-    UI -->|Calls| ClientAPI
-    ClientAPI -->|HTTP REST Requests| Router
-    Router -->|Validates| Validate
-    Router -->|Triggers| Orchestration
-    Orchestration -->|Invokes agents| AgentPool
-    AgentPool -->|Fuzzy standardization| FuzzyEngine
-    AgentPool -->|Estimates scores| MathEngine
-    AgentPool -->|Queries DDG / Classifies URLs| DDG
-    AgentPool -->|Scrapes Homepage, T&Cs, Solutions| Crawler
-    AgentPool -->|Runs inference| Ollama
-    Orchestration -->|Upserts records| Postgres
-    Postgres -->|Fires database logic| Triggers
-```
-
-### 2. Service Interaction Architecture Diagram
-This diagram shows the complete linkage flow across all layers requested:
-$$\text{User} \longrightarrow \text{Frontend} \longrightarrow \text{API} \longrightarrow \text{Services} \longrightarrow \text{Database} \longrightarrow \text{AI Layer} \longrightarrow \text{Response}$$
-
-```mermaid
-graph TD
-    User["User (Relationship Manager)"] -->|1. Clicks Row / Triggers Analysis| FE["Frontend Client (DetailModal.tsx)"]
-    FE -->|2. POST /api/analyze/{id}| API["API Gateway (startups.py Router)"]
-    API -->|3. run_pipeline(state)| Services["Services (agent_orchestrator.py / scoring_service.py)"]
-    Services -->|4. Fetch context metadata| Database["Database (supabase_service.py / Supabase)"]
-    Database -- 5. Returns raw row metadata --> Services
-    Services -->|6. Run Phase 1 Gated Agents| AILayer["AI Layer (Discovery, Legal, Resolution)"]
-    AILayer -- 7. Evaluates Resolution Confidence --> Services
-    alt Resolution Confidence < 50
-        Services ->> Database: 8. Persist gated "NEEDS_REVIEW" state
-        Services -- 9. Early return to API --> API
-    else Resolution Confidence >= 50
-        Services ->> AILayer: 8. Run Downstream Phase 2 & Legacy Agents
-        AILayer -- 9. Decodes extracted JSON parameters --> Services
-        Services -->|10. Recalculate priority math scores| Services
-        Services -->|11. Persist finalized analysis_json payload| Database
-    end
-    Database -- 12. Confirm upsert successful --> Services
-    Services -- 13. Returns updated StartupState --> API
-    API -- 14. HTTP 200 JSON Response payload --> FE
-    FE -->|15. Re-render drawer panels & KPI widgets| User
-```
-
----
-
-## SECTION 4 — FRONTEND ARCHITECTURE
-
-### Framework & Layout Strategy
-* **Framework**: React 18, Vite HMR build engine, Tailwind CSS utility styling, TypeScript types.
-* **Width Resizing Persistence**: Persistent drawer layout stored in `localStorage.detail_drawer_width` ranging between 50% and 95% on desktop viewports.
-
-### Page Flow Breakdown
-```mermaid
-stateDiagram-v2
-    [*] --> Dashboard : App Startup
-    Dashboard --> Repository : Click Repository View
-    Repository --> DetailDrawer : Click Registry Row
-    DetailDrawer --> CompanyIntelligenceTab : Tab 1
-    DetailDrawer --> ICICIRelevanceTab : Tab 2
-    DetailDrawer --> EngagementWorkspaceTab : Tab 3
-    EngagementWorkspaceTab --> Dashboard : Submit log or update assignment
-```
-
----
-
-## SECTION 5 — BACKEND CONFIGURATION ARCHITECTURE
-
-To maximize modularity and maintainability, all system parameters, heuristics, and weights have been externalized and are dynamically loaded from `/backend/config`.
-
-### Config Schema Catalog
-
-| Configuration File | Path | Key Settings & Parameters |
-| :--- | :--- | :--- |
-| **Entity Resolution Rules** | [entity_resolution_rules.json](file:///Users/anurag/Projects/startup-intelligence/backend/config/entity_resolution_rules.json) | Sets weights for website and LinkedIn matches, thresholds for `VERIFIED`, `LIKELY_MATCH`, and `PARTIAL_MATCH`. |
-| **Search Sources Config** | [search_sources_config.json](file:///Users/anurag/Projects/startup-intelligence/backend/config/search_sources_config.json) | High-priority domains list (e.g. Tracxn, PitchBook, Crunchbase, LinkedIn). |
-| **Custom Scrapers Config** | [custom_scrapers_config.json](file:///Users/anurag/Projects/startup-intelligence/backend/config/custom_scrapers_config.json) | Standard and custom RSS/HTML scraping targets (Inc42, Entrackr, etc.). |
-| **Funding Sources** | [funding_sources.json](file:///Users/anurag/Projects/startup-intelligence/backend/config/funding_sources.json) | Prioritized search domains and query keywords for funding extraction. |
-| **Startup Taxonomy** | [startup_taxonomy.json](file:///Users/anurag/Projects/startup-intelligence/backend/config/startup_taxonomy.json) | Allowed master Industry, Sector, and Subsector lists. |
-| **Business Problems** | [business_problems.json](file:///Users/anurag/Projects/startup-intelligence/backend/config/business_problems.json) | Standard mapping definitions and targets for ICICI business challenges. |
-
----
-
-## SECTION 6 — ENTITY RESOLUTION & DECI-SCORING ENGINE
-
-The operating system enforces a strict **Entity-Resolution First Vetting** pattern.
-
-### Phase 1: Entity Resolution Weights & Gating
-Weights are configurable inside [entity_resolution_rules.json](file:///Users/anurag/Projects/startup-intelligence/backend/config/entity_resolution_rules.json):
-* **Website Name Match**: 25%
-* **LinkedIn Name Match**: 25%
-* **Website & LinkedIn Description Similarity**: 20%
-* **LinkedIn/Website Domain Match**: 15%
-* **Industry Alignment Match**: 10%
-* **Founder Verification**: 5%
-
-```mermaid
-graph TD
-    subgraph Phase 1: Discovery & Resolution
-        A["Raw Startup Ingested"] --> B["IdentityDiscoveryAgent<br/>(Crawls website homepage, about, solutions)"]
-        B --> C["LegalNameAgent<br/>(Extracts official incorporation name)"]
-        C --> D["IdentityResolutionAgent<br/>(Calculates weighted matching score)"]
+    %% Sequence Node Definitions
+    Start[Raw News Article Ingested] --> Discovery[IdentityDiscoveryAgent<br/>DDG Search + Crawling]
+    Discovery --> Legal[LegalNameAgent<br/>Extract corporate identities]
+    Legal --> Resolution[IdentityResolutionAgent<br/>Evaluate weights & check duplicate]
+    
+    %% Phase 1 Gate
+    Resolution --> Gate{Resolution Score >= 50?}
+    Gate -->|No| NEEDS_REVIEW[Set status to Needs Review<br/>Halt downstream agents]
+    Gate -->|Yes| Downstream[Run Downstream Agents Pool]
+    
+    %% Downstream Pool Details
+    subgraph Downstream Vetting & Enrichment
+        Downstream --> Desc[DescriptionGeneratorAgent<br/>Limit to 100-150 words]
+        Desc --> Product[ProductIntelligenceAgent<br/>Extract structural products]
+        Product --> Taxonomy[IndustryClassificationAgent<br/>early taxonomy normalization]
+        Taxonomy --> Competitor[CompetitorIntelligenceAgent<br/>Map competition]
+        Competitor --> Funding[FundingIntelligenceAgent<br/>Extract Series round]
+        Funding --> Opportunity[OpportunityMappingAgent<br/>Generate use-cases]
     end
     
-    subgraph Gating Evaluation
-        D --> E{"Resolution Score"}
-        E -->|">= 90"| F["VERIFIED<br/>(Full Enrichment Enabled)"]
-        E -->|"75 - 89"| G["LIKELY_MATCH<br/>(Full Enrichment Enabled)"]
-        E -->|"50 - 74"| H["PARTIAL_MATCH<br/>(Enriched with Warning Tags)"]
-        E -->|"< 50"| I["NEEDS_REVIEW<br/>(Halt Pipeline & Gate Enrichment)"]
-    end
+    %% Vetting Filters
+    Opportunity --> BizProb[BusinessProblemAgent<br/>Match against RAG index]
+    BizProb --> RelGate{Relevance Score >= 30?}
+    
+    RelGate -->|Yes| Strategic[StrategicFitAgent & SignalAgent<br/>Priority Scoring Calculation]
+    RelGate -->|No| ScoringFallback[Bypass Strategic Fit<br/>Cap Priority Score = Relevance]
+    
+    %% Persistence Layer
+    Strategic & ScoringFallback --> Rec[RecommendationAgent<br/>Outreach drafts]
+    Rec --> DB[supabase_service.py<br/>Persist all columns]
+    DB --> Complete[Registry Dashboard Ready]
 
-    F & G & H --> J["Phase 2 Downstream Agents (Description, Products, Competitors, etc.)"]
+    style Gate fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style RelGate fill:#ffebee,stroke:#c62828,stroke-width:2px
 ```
 
-### Downstream Analysis JSON Structure
-Enriched data is stored in the `analysis_json` column of the `startup_analysis` table following a structured schema that includes confidence ratings and evidence URLs:
+---
 
-```json
-{
-  "enrichment_version": "2.0",
-  "last_enriched_at": "ISO-TIMESTAMP",
-  "last_verified_at": "ISO-TIMESTAMP",
-  "products": {
-    "value": [
-      {
-        "name": "Product Name",
-        "type": "Software/Service",
-        "description": "Product Description",
-        "evidence_url": "Website URL / Homepage",
-        "target_audience": "Target Audience details"
-      }
-    ],
-    "confidence": 90
-  },
-  "competitors": {
-    "value": [
-      {
-        "name": "Competitor Name",
-        "reason": "Competitive overlap explanation",
-        "website": "Competitor Website URL",
-        "confidence": 85,
-        "evidence_url": "Source URL"
-      }
-    ],
-    "confidence": 80
-  },
-  "opportunity_mapping": {
-    "value": [
-      {
-        "use_case": "Integration use-case description",
-        "icici_entity": "ICICI Bank / Lombard / etc.",
-        "relevance_score": 85,
-        "potential_impact": "High / Medium / Low"
-      }
-    ],
-    "confidence": 90
-  },
-  "industry_classification": {
-    "value": {
-      "sector": "Enterprise Software",
-      "industry": "Enterprise",
-      "subsector": "Productivity"
-    },
-    "confidence": 95
+## SECTION 7 — PROMPT ARCHITECTURE CATALOG
+
+Detailed mapping of templates and schema specifications.
+
+### 7.1 Description Generation Prompt
+* **System/User Template**: Renders details from `description_generation_prompt.txt`.
+* **Context Injection**: Infuses homepage, about page crawled text, and snippets.
+* **Hallucination Prevention**: Enforces a strict instruction: *"Rely only on the evidence below. Do not mention funding, investors, or direct competitors. Keep descriptions under 150 words."*
+
+### 7.2 Corporate Identity Prompt
+* **Context Injection**: Renders `corporate_identity_prompt.txt` using the `startup_name` and `search_context`.
+* **Output Schema**:
+  ```json
+  {
+    "legal_name": "Official registered name or empty string",
+    "headquarters": "HQ Address string or 'Unknown'",
+    "founded_year": 2021,
+    "city": "String",
+    "state": "String",
+    "country": "String"
   }
-}
+  ```
+
+---
+
+## SECTION 8 — DATABASE PERSISTENCE ARCHITECTURE
+
+The database tables are implemented inside Supabase PostgreSQL schema.
+
+### 8.1 Database Entity Relationship Diagram (ERD)
+```
+  ┌────────────────────────┐              ┌────────────────────────┐
+  │        startups        │              │    startup_news        │
+  ├────────────────────────┤              ├────────────────────────┤
+  │ PK  id (bigint)        │◄────────────┼│ FK  startup_id (bigint)│
+  │     startup_name       │              │     headline           │
+  │     website            │              │     summary            │
+  │     description        │              │     source_url         │
+  │     city, state        │              └────────────────────────┘
+  │     founded_year       │
+  │     funding_stage      │              ┌────────────────────────┐
+  │     status             │              │    startup_analysis    │
+  └───────────┬────────────┘              ├────────────────────────┤
+              │                           │ PK  id (bigint)        │
+              ├──────────────────────────┼│ FK  startup_id (bigint)│
+              │                           │     analysis_json (jsonb)
+              │                           └────────────────────────┘
+              │
+              │                           ┌────────────────────────┐
+              │                           │  startup_assignments   │
+              │                           ├────────────────────────┤
+              └──────────────────────────┼│ FK  startup_id (bigint)│
+                                          │     fpr_1, fpr_2       │
+                                          └────────────────────────┘
+```
+
+### 8.2 Tables Schema Reference
+* **`startups`**: Main registry table holding name, website, location (city, state, country, headquarters), stage, and description.
+  * *Indexes*: Unique index on `startup_name`.
+  * *Constraints*: Foreign keys constraints on cascade deletes.
+* **`startup_news`**: Stores chronological news articles associated with a startup, allowing multiple historical summaries.
+* **`startup_analysis`**: Stores detailed JSON payload (`analysis_json`) which contains structural lists of products, competitors, opportunities, and evaluation scores.
+
+---
+
+## SECTION 9 — KNOWLEDGE GRAPH ARCHITECTURE
+
+The Startup Intelligence OS implements a conceptual Knowledge Graph layer to map relationships between startups, founders, investors, and ICICI entities.
+
+```
+       [Founder Node] ─── (FOUNDER_OF) ───► [Startup Node] ◄─── (COMPETES_WITH) ─── [Startup Node]
+                                                  │
+                                              (OFFERS)
+                                                  │
+                                                  ▼
+[ICICI Entity] ◄─── (PILOT_OPPORTUNITY) ─── [Product Node] ─── (SERVES) ───► [Sector Node]
+```
+
+### 9.1 Entity Node Types
+1. **Startup Node**: Core node identified by clean brand name.
+2. **Founder Node**: Extracted co-founders and leadership roles.
+3. **Investor Node**: Financial backers extracted from funding round history.
+4. **Product Node**: Software and services offered by the startup.
+5. **Sector Node**: Industry taxonomy classifications (e.g., FinTech, SaaS).
+
+### 9.2 Relationship Schema
+* `(Founder)-[:FOUNDER_OF]->(Startup)`
+* `(Startup)-[:OFFERS]->(Product)`
+* `(Product)-[:PILOT_OPPORTUNITY {icici_entity, use_case}]->(ICICI Entity)`
+* `(Startup)-[:COMPETES_WITH]->(Startup)`
+* `(Startup)-[:FUNDED_BY {round, amount}]->(Investor)`
+
+---
+
+## SECTION 10 — DASHBOARD UI LAYER
+
+### 10.1 Resizable Details Drawer
+* **Component**: `DetailModal.tsx` handles slidable overlay layout.
+* **Width persistence**: Caches size transitions (50% to 95% screen width) to `localStorage.detail_drawer_width` so layout remains consistent.
+* **Three Vetting Tabs**:
+  1. **Company Intelligence**: Displays geographics labels (city, stage, founded), clean description, co-founders list, and news headlines histories.
+  2. **ICICI Relevance**: Visualizes opportunities, matched challenges, and priority scores.
+  3. **Engagement Workspace**: timeline activity logs, RM assignments dropdown, and outreach email editors.
+
+---
+
+## SECTION 11 — END-TO-END DATA LINEAGE
+
+ lineage mapping for core registry fields:
+
+```
+[Raw RSS Headline / Crawl Text]
+           │
+           ▼
+[IdentityDiscoveryAgent: Clean brand name] ──► startup_name
+           │
+           ▼
+[DuckDuckGo Search Query: domain] ───────────► website
+           │
+           ▼
+[LegalNameAgent: corporate prompt] ──────────► city, state, founded_year, co-founders
+           │
+           ▼
+[FundingIntelligenceAgent: context parsing] ──► funding_stage, funding_history
+           │
+           ▼
+[AgentOrchestrator: persist_to_database()] ──► Supabase postgres columns
+           │
+           ▼
+[startups / startup_analysis API REST] ──────► DetailModal Drawer Widgets
 ```
 
 ---
 
-## SECTION 7 — PROGRAMMATIC SCORING FORMULAS
+## SECTION 12 — FLOW SEQUENCE DIAGRAMS
 
-### 1. Priority Score ($P$)
-Defines operational priority for CoE review. If relevance is gated ($Relevance < 30$), the Priority score is capped at the relevance score:
-$$P = \begin{cases} Relevance & \text{if } Relevance < 30 \\ \text{Round}\left(0.40 \cdot Relevance + 0.30 \cdot Fit + 0.20 \cdot Deployability + 0.10 \cdot Signal\right) & \text{if } Relevance \ge 30 \end{cases}$$
-
-### 2. Confidence Score ($C$)
-Combines completeness of records, business problem matching, source reliability, and classification certainty:
-* **Data Completeness (Max 40 points)**: Checks presence of website, description, founders, sectors, and funding.
-* **Business Problem Match (Max 30 points)**: Incremental points based on the number of corporate challenges matched.
-* **Source Reliability (Max 20 points)**: Verifies website domains and founder LinkedIn urls.
-* **Classification Certainty (Max 10 points)**: Reflects taxonomy classification match confidence.
-
-### 3. Recommendation Score ($R$)
-Weighted average of priority review score and data reliability confidence:
-$$R = \text{Round}\left(0.70 \cdot P + 0.30 \cdot C\right)$$
-
----
-
-## SECTION 8 — DETAILED CODE FLOW (INGESTION TO PERSISTENCE)
-
+### 12.1 End-to-End Startup Analysis Sequence
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Feed as RSS Feed / News Site
-    participant Scraper as BS4 News Scraper
-    participant Pipeline as startup_pipeline.py
-    participant Orch as AgentOrchestrator
-    participant Discovery as IdentityDiscoveryAgent
-    participant Legal as LegalNameAgent
-    participant Resolution as IdentityResolutionAgent
-    participant Downstream as Downstream Agent Pool
-    participant Supabase as Supabase DB
+    participant UI as client/DetailModal.tsx
+    participant API as api/routes/startups.py
+    participant Orch as workflows/agent_orchestrator.py
+    participant Discovery as agents/identity_discovery_agent.py
+    participant Legal as agents/legal_name_agent.py
+    participant DB as services/supabase_service.py
 
-    Feed->>Scraper: Fetch latest article body
-    Scraper->>Pipeline: Raw Headline & Article Body
-    Pipeline->>Pipeline: Apply regex patterns & name discovery rules
-    Pipeline->>Orch: Trigger run_pipeline(raw_startup)
-    Orch->>Discovery: Run discovery (DuckDuckGo lookup & crawl homepage)
-    Discovery-->>Orch: Website URL, Homepage HTML, Metadata
-    Orch->>Legal: Run legal name extraction
-    Legal-->>Orch: legal_name & incorporation info
-    Orch->>Resolution: Run resolution (Assess matching confidence)
-    Resolution-->>Orch: resolution_score, verification_status
-    alt status is NEEDS_REVIEW (Score < 50)
-        Orch->>Supabase: Early persist (Ignore Priority Band, halt pipeline)
-    else status is VERIFIED / LIKELY_MATCH / PARTIAL_MATCH
-        Orch->>Downstream: Sequentially run Phase 2 Agents (Products, Competitors, Opportunities)
-        Downstream-->>Orch: Enriched attributes & analysis_json payloads
-        Orch->>Orch: Evaluate Relevance & Strategic Fit math scores
-        Orch->>Supabase: Save startup record & save_startup_analysis (analysis_json)
-    end
-    Supabase-->>Pipeline: Vetting Sync Successful
+    UI->>API: POST /api/analyze/{id}
+    API->>Orch: run_pipeline(raw_startup)
+    Orch->>Discovery: run(state) [Standardize brand name & Search DDG]
+    Discovery-->>Orch: Clean brand name ("FinBox"), website, crawls
+    Orch->>Legal: run(state) [Incorporate article details]
+    Legal-->>Orch: headquarters ("Bengaluru"), founded_year ("2016")
+    Orch->>Orch: Run downstreams (Products, Taxonomy, Strategic Fit)
+    Orch->>DB: persist_to_database(state)
+    DB-->>Orch: DB upsert completed
+    Orch-->>API: returns finalized StartupState
+    API-->>UI: HTTP 200 OK (updated JSON)
+    UI->>UI: Refresh drawer tabs and tags
 ```
+
+---
+
+## SECTION 13 — ERROR HANDLING & RESILIENCE PLAYBOOK
+
+### 13.1 Resilience Matrix
+
+| Failure Point | Root Cause | Handling Strategy | Fallback Mechanism |
+| :--- | :--- | :--- | :--- |
+| **DuckDuckGo Search** | Rate limiting / Captcha | Wait 8-15 seconds per query | Fallback to organic Google search wrapper |
+| **Ollama Connectivity** | local engine offline | `ensure_ollama_running` checks | Mark pipeline values as Unknown, proceed gracefully |
+| **Malformed LLM JSON** | Output parsing error | Strict JSON prompt schema | Fallback regex parsing (extracting legal names) |
+| **Supabase database lock** | DB connection pool full | Automatic retry connection loop | Logs fail, cache queue locally |
+
+---
+
+## SECTION 14 — PERFORMANCE & LATENCY SPECIFICATION
+
+### 14.1 Latency Profiling
+* **Identity Discovery**: 40-75 seconds (gated by 8-15 seconds DuckDuckGo delays).
+* **Downstream LLM Vetting**: 10-35 seconds per agent execution.
+* **Total execution time**: 3-4 minutes per startup ingestion.
+* **Optimization strategy**: Large website crawls are truncated to the first 1500 characters, preventing prompt truncation, model context overflow, and local CPU execution timeouts.
+
+---
+
+## SECTION 15 — STEP-BY-STEP EXECUTION WALKTHROUGH NARRATIVE
+
+This section presents the step-by-step trace narrative of a real-world article moving through the system.
+
+### Ingestion Scenario: Incuspaze Ingestion Trace
+1. **Article Published**: A news item titled `"Proptech Startup Incuspaze Raises $8Mn In Series A Funding led by India Contextual Fund"` is ingested.
+2. **First-Pass Regex Cleaning**: `startup_pipeline.py` extracts `"Proptech Startup Incuspaze"`.
+3. **Identity Discovery**: `IdentityDiscoveryAgent` runs brand name cleaning, resolving it to `"Incuspaze"`.
+4. **Targeted Crawl**: Crawler scrapes `https://www.incuspaze.com` homepage.
+5. **Corporate Identity Extraction**: `LegalNameAgent` parses both the crawled homepage and the news paragraph stating: *"Founded in 2016, Incuspaze provides managed office spaces..."*.
+6. **Value Extraction**: The LLM successfully extracts `"headquarters": "Gurgaon"`, `"founded_year": 2016`, and co-founders details.
+7. **Downstream Vetting**: `FundingIntelligenceAgent` extracts `"latest_round": "Series A"` and `"amount": "$8M"`.
+8. **Persistence**: `persist_to_database()` upserts the record to the `startups` and `startup_analysis` tables in Supabase.
+9. **Dashboard Refresh**: The React frontend re-renders the workspace, instantly displaying Incuspaze with `Gurgaon` location tags and a `Series A` badge.
