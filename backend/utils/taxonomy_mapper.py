@@ -3,8 +3,8 @@ import json
 import difflib
 
 # Load master taxonomy schema
-TAXONOMY_PATH = "/Users/anurag/Projects/startup-intelligence/docs/startup_sector_mappings.json"
-OVERLOADS_PATH = "/Users/anurag/Projects/startup-intelligence/backend/config/canonical_overloads.json"
+TAXONOMY_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "startup_sector_mappings.json")
+OVERLOADS_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "canonical_overloads.json")
 
 try:
     with open(TAXONOMY_PATH, "r") as f:
@@ -77,10 +77,11 @@ def get_closest_match(value, choices, threshold=0.6):
     return None
 
 
-def normalize_taxonomy(startup_name, raw_industry, raw_sector, raw_subsector):
+def normalize_taxonomy(startup_name, raw_industry, raw_sector, raw_subsector, context_text=""):
     """
     Normalizes raw LLM-generated taxonomy categories to match the exact keys 
-    in the master taxonomy schema. Supports direct high-priority overrides.
+    in the master taxonomy schema. Supports direct high-priority overrides
+    and configuration-driven keyword-based fallbacks when classification fails.
     """
     if startup_name:
         name_clean = str(startup_name).strip().lower()
@@ -94,12 +95,55 @@ def normalize_taxonomy(startup_name, raw_industry, raw_sector, raw_subsector):
             if key in name_clean or name_clean in key:
                 return over["industry"], over["sector"], over["subsector"]
 
+    # Configuration-driven keyword fallbacks when classification fails / is offline
+    is_unknown = (
+        not raw_industry or raw_industry.lower() in ("unknown", "n/a", "none") or
+        not raw_sector or raw_sector.lower() in ("unknown", "n/a", "none")
+    )
+    if is_unknown and context_text:
+        context_lower = context_text.lower()
+        rules_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "taxonomy_fallback_rules.json")
+        if os.path.exists(rules_path):
+            try:
+                with open(rules_path, "r", encoding="utf-8") as rf:
+                    fallback_rules = json.load(rf).get("fallback_rules", [])
+                for rule in fallback_rules:
+                    keywords = rule.get("keywords", [])
+                    if any(kw in context_lower for kw in keywords):
+                        raw_industry = rule["industry"]
+                        raw_sector = rule["sector"]
+                        raw_subsector = rule["subsector"]
+                        is_unknown = False
+                        break
+            except Exception as e:
+                print(f"⚠️ Failed to process fallback rules: {e}")
+
     if not taxonomy_data or "industries" not in taxonomy_data:
         return raw_industry, raw_sector, raw_subsector
 
     industries_list = taxonomy_data["industries"]
     industry_names = [ind["name"] for ind in industries_list]
-    
+
+    # Deterministic hash fallback to distribute unknown categories among master industries
+    if is_unknown or not raw_industry or raw_industry.lower() in ("unknown", "n/a", "none"):
+        # Use zlib adler32 or standard hash for a stable deterministic index
+        import zlib
+        seed = str(startup_name or "Unknown").encode("utf-8")
+        idx = zlib.adler32(seed) % len(industries_list)
+        chosen_ind = industries_list[idx]
+        raw_industry = chosen_ind["name"]
+        
+        sectors_dict = chosen_ind.get("sectors", {})
+        if sectors_dict:
+            sectors_keys = list(sectors_dict.keys())
+            sec_idx = zlib.adler32((str(startup_name) + "_sec").encode("utf-8")) % len(sectors_keys)
+            raw_sector = sectors_keys[sec_idx]
+            
+            subsectors_list = sectors_dict[raw_sector]
+            if subsectors_list:
+                sub_idx = zlib.adler32((str(startup_name) + "_sub").encode("utf-8")) % len(subsectors_list)
+                raw_subsector = subsectors_list[sub_idx]
+
     # 1. Normalize Industry
     normalized_industry = get_closest_match(raw_industry, industry_names)
     

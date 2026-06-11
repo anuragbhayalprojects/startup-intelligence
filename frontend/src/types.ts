@@ -31,8 +31,8 @@ export interface Startup {
   created_at: string;
   updated_at?: string;
 
-  // Joined or fallback evaluation attributes
   ai_summary?: string;
+  relevance_summary?: string;
   entity_relevance?: string;
   relevance_mapping?: Record<string, string>;
   use_cases?: string[]; // fallback string list or mapped live use cases

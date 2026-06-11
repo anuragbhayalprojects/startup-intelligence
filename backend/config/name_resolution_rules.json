@@ -66,16 +66,20 @@
     "upi": "NPCI",
     "scriipbox": "Scripbox",
     "physicswallah": "PhysicsWallah",
-    "physics wallah": "PhysicsWallah"
+    "physics wallah": "PhysicsWallah",
+    "together": "Together Fund",
+    "together fund": "Together Fund",
+    "riko ai v2 enterprise agent": "Riko AI V2 Enterprise Agent",
+    "riko ai v2 enterprise agent raises $10m from peak xv to build coding agents": "Riko AI V2 Enterprise Agent"
   },
   "investor_names": [
     "vanguard", "prosus", "softbank", "tiger global", "peak xv", "sequoia", 
     "westbridge", "temasek", "accel", "lightspeed", "elevation", "matrix partners", 
-    "kalaari", "nexus", "chiratae", "google", "apple", "microsoft", "amazon", "meta",
-    "together", "together fund", "friale", "mirae", "mirae asset", "sanskrit capital", "sanskrit"
+    "kalaari", "nexus", "chiratae", "google", "apple", "microsoft", "friale", "mirae", "mirae asset", "sanskrit capital", "sanskrit"
   ],
   "bad_terms": [
-    "coalition", "consortium", "association", "alliance", "government", "ministry", "commission", "state"
+    "coalition", "consortium", "association", "alliance", "government", "ministry", "commission", "state",
+    "entrackr", "inc42", "pitchbook", "yourstory", "vccircle", "moneycontrol", "livemint", "techcrunch", "bloomberg"
   ],
   "locations": [
     "haryana", "delhi", "karnataka", "maharashtra", "bengaluru", "mumbai", "india", "punjab", "gujarat", "tamil nadu", "kerala"

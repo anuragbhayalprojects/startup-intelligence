@@ -55,6 +55,8 @@ class HybridRetriever:
 
     def _get_embedding(self, text: str) -> List[float]:
         try:
+            from backend.utils.ollama_helper import ensure_ollama_running
+            ensure_ollama_running()
             resp = requests.post(
                 f"{OLLAMA_BASE_URL}/api/embeddings",
                 json={

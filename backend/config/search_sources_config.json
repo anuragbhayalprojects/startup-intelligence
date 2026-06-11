@@ -1,0 +1,10 @@
+{
+  "version": "1.0",
+  "priority_sources": [
+    { "name": "Tracxn", "domain": "tracxn.com" },
+    { "name": "PitchBook", "domain": "pitchbook.com" },
+    { "name": "YNOS", "domain": "ynos.in" },
+    { "name": "Crunchbase", "domain": "crunchbase.com" },
+    { "name": "LinkedIn", "domain": "linkedin.com" }
+  ]
+}

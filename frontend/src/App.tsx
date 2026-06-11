@@ -148,7 +148,7 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
   // Industry Resolution with AI override & smart guess fallback
   let rawIndustry = s.industry || "Unknown";
   if ((!rawIndustry || rawIndustry.toLowerCase() === "unknown") && analysis?.classification?.industry) {
-    rawIndustry = analysis.classification.industry;
+    rawIndustry = analysis?.classification?.industry;
   }
   if (!rawIndustry || rawIndustry.toLowerCase() === "unknown") {
     rawIndustry = guessIndustry(rawName, s.description || "");
@@ -157,7 +157,7 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
   // Sector Resolution with AI override & smart guess fallback
   let rawSector = s.sector || "Unknown";
   if ((!rawSector || rawSector.toLowerCase() === "unknown") && (analysis?.classification?.sector || analysis?.classification?.primary_sector)) {
-    rawSector = (analysis.classification.sector || analysis.classification.primary_sector) as string;
+    rawSector = (analysis?.classification?.sector || analysis?.classification?.primary_sector) as string;
   }
   if (!rawSector || rawSector.toLowerCase() === "unknown") {
     rawSector = guessSector(rawName, s.description || "");
@@ -166,7 +166,7 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
   // Subsector
   let rawSubsector = s.subsector || "";
   if (!rawSubsector && (analysis?.classification?.subsector || analysis?.classification?.sub_sectors?.[0])) {
-    rawSubsector = (analysis.classification.subsector || analysis.classification.sub_sectors?.[0]) as string;
+    rawSubsector = (analysis?.classification?.subsector || analysis?.classification?.sub_sectors?.[0]) as string;
   }
   if (!rawSubsector) {
     rawSubsector = "Alternative Scoring";
@@ -175,7 +175,7 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
   // Business Models
   let rawBusinessModels = s.business_models;
   if (analysis?.classification?.business_models) {
-    rawBusinessModels = analysis.classification.business_models;
+    rawBusinessModels = analysis?.classification?.business_models;
   }
   if (!rawBusinessModels || rawBusinessModels.length === 0) {
     rawBusinessModels = guessBusinessModels(rawName, s.description || "");
@@ -184,7 +184,7 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
   // Industry Relevance
   let rawIndustryRelevance = s.industry_relevance;
   if (analysis?.classification?.industry_relevance) {
-    rawIndustryRelevance = analysis.classification.industry_relevance;
+    rawIndustryRelevance = analysis?.classification?.industry_relevance;
   }
   if (!rawIndustryRelevance || rawIndustryRelevance.length === 0) {
     rawIndustryRelevance = guessIndustryRelevance(rawName, s.description || "");
@@ -193,7 +193,7 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
   // Tags
   let rawTags = s.tags;
   if (analysis?.classification?.tags) {
-    rawTags = analysis.classification.tags;
+    rawTags = analysis?.classification?.tags;
   }
   if (!rawTags || rawTags.length === 0) {
     rawTags = guessTags(rawName, s.description || "");
@@ -202,7 +202,7 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
   // Funding Stage Resolution with AI override & smart guess fallback
   let rawFundingStage = s.funding_stage || "";
   if ((!rawFundingStage || rawFundingStage.toLowerCase() === "unknown") && analysis?.funding_stages?.series) {
-    rawFundingStage = analysis.funding_stages.series;
+    rawFundingStage = analysis?.funding_stages?.series;
   }
   if (!rawFundingStage || rawFundingStage.toLowerCase() === "unknown") {
     rawFundingStage = guessFundingStage(rawName, s.description || "");
@@ -214,7 +214,7 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
   // Funding Amount Resolution with AI override & smart guess fallback
   let rawFundingAmount = s.funding_amount || "";
   if ((!rawFundingAmount || rawFundingAmount.toLowerCase() === "unknown" || rawFundingAmount === "$1.2M" || rawFundingAmount === "$1.5M") && analysis?.funding_stages?.amount) {
-    rawFundingAmount = analysis.funding_stages.amount;
+    rawFundingAmount = analysis?.funding_stages?.amount;
   }
   if (!rawFundingAmount || rawFundingAmount.toLowerCase() === "unknown" || rawFundingAmount === "$1.2M" || rawFundingAmount === "$1.5M") {
     rawFundingAmount = guessFundingAmount(rawName, s.description || "");
@@ -226,13 +226,13 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
   // Founded Year
   let rawFoundedYear = s.founded_year;
   if (!rawFoundedYear && analysis?.founded_year) {
-    rawFoundedYear = analysis.founded_year;
+    rawFoundedYear = analysis?.founded_year;
   }
 
   // Website Resolution with AI override
   let rawWebsite = s.website || "";
   if ((!rawWebsite || rawWebsite.includes("example.com")) && analysis?.startup_website) {
-    rawWebsite = analysis.startup_website;
+    rawWebsite = analysis?.startup_website;
   }
   if (!rawWebsite || rawWebsite.includes("example.com") || rawWebsite.trim() === "") {
     rawWebsite = "";
@@ -241,7 +241,7 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
   // Priority Score Resolution with AI override & keyword heuristics to prevent flat scoring lists
   let rawPriorityScore = s.priority_score;
   if (analysis?.scoring?.overall_priority_score) {
-    rawPriorityScore = analysis.scoring.overall_priority_score;
+    rawPriorityScore = analysis?.scoring?.overall_priority_score;
   }
   if (!rawPriorityScore) {
     const text = `${rawName} ${s.description || ""}`.toLowerCase();
@@ -252,13 +252,18 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
     rawPriorityScore = Math.min(score, 98);
   }
 
-  // AI Summary
+  // AI Summary & Relevance Summary
   let rawAiSummary = s.ai_summary || "";
   if (analysis) {
     rawAiSummary = analysis.summary?.one_liner || "";
   }
   if (!rawAiSummary || rawAiSummary.includes("No AI analysis") || rawAiSummary.includes("Registry Entry") || rawAiSummary.includes("CSV Import")) {
     rawAiSummary = "Business profile pending AI enrichment.";
+  }
+
+  let rawRelevanceSummary = s.relevance_summary || "";
+  if (analysis) {
+    rawRelevanceSummary = analysis.relevance_summary || "";
   }
 
   // Entity Relevance & Mappings
@@ -280,10 +285,10 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
     rawEntityRelevance = "";
   }
 
-  const rawRelevanceMapping = (analysis && analysis.bfsi_relevance?.use_cases && analysis.bfsi_relevance.is_relevant !== false)
+  const rawRelevanceMapping = (analysis && Array.isArray(analysis.bfsi_relevance?.use_cases) && analysis.bfsi_relevance.is_relevant !== false)
     ? analysis.bfsi_relevance.use_cases.reduce((acc: Record<string, string>, uc: any) => {
-        const entity = uc.icici_entity;
-        const ucDesc = uc.use_case;
+        const entity = uc?.icici_entity;
+        const ucDesc = uc?.use_case;
         if (
           entity && 
           entity !== "None" && 
@@ -299,8 +304,8 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
       }, {})
     : (s.relevance_mapping || {});
 
-  const rawUseCases = (analysis && analysis.bfsi_relevance?.use_cases)
-    ? analysis.bfsi_relevance.use_cases.map((uc: any) => `${uc.icici_entity}: ${uc.use_case}`)
+  const rawUseCases = (analysis && Array.isArray(analysis.bfsi_relevance?.use_cases))
+    ? analysis.bfsi_relevance.use_cases.map((uc: any) => `${uc?.icici_entity || "Unknown"}: ${uc?.use_case || "N/A"}`)
     : s.use_cases || [];
 
   return {
@@ -321,6 +326,7 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
     description: s.description || "No description provided.",
     website: rawWebsite,
     created_at: s.created_at || new Date().toISOString(),
+    recent_news: s.startup_news || s.recent_news || [],
 
     // Pass 3 Funding Rounds & Summary Mapping
     funding_rounds: rawAnalysisRecord?.funding_rounds || s.funding_rounds || [],
@@ -331,6 +337,7 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
     // Analytical tags derived from live analysis or seed maps
     priority_score: rawPriorityScore,
     ai_summary: rawAiSummary,
+    relevance_summary: rawRelevanceSummary,
     entity_relevance: rawEntityRelevance,
     relevance_mapping: rawRelevanceMapping,
     use_cases: rawUseCases,
@@ -357,20 +364,24 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
     confidence_score: rawAnalysisRecord?.confidence_score ?? analysis?.scoring?.confidence_score ?? 0,
     recommended_action: rawAnalysisRecord?.recommended_action ?? analysis?.recommendation?.recommended_action ?? "Monitor",
     priority_band: rawAnalysisRecord?.priority_band ?? "Ignore",
-    matched_entities: rawAnalysisRecord?.matched_entities ?? analysis?.recommendation?.target_entities ?? [],
-    matched_business_teams: rawAnalysisRecord?.matched_business_teams ?? analysis?.recommendation?.target_teams ?? [],
-    matched_business_problems: rawAnalysisRecord?.matched_business_problems ?? analysis?.bfsi_relevance?.use_cases?.map((uc: any) => uc.use_case) ?? [],
-    positive_signals: rawAnalysisRecord?.positive_signals ?? s.positive_signals ?? [],
-    negative_signals: rawAnalysisRecord?.negative_signals ?? s.negative_signals ?? [],
+    matched_entities: Array.isArray(rawAnalysisRecord?.matched_entities) ? rawAnalysisRecord.matched_entities : (Array.isArray(analysis?.recommendation?.target_entities) ? analysis.recommendation.target_entities : []),
+    matched_business_teams: Array.isArray(rawAnalysisRecord?.matched_business_teams) ? rawAnalysisRecord.matched_business_teams : (Array.isArray(analysis?.recommendation?.target_teams) ? analysis.recommendation.target_teams : []),
+    matched_business_problems: Array.isArray(rawAnalysisRecord?.matched_business_problems) ? rawAnalysisRecord.matched_business_problems : (Array.isArray(analysis?.bfsi_relevance?.use_cases) ? analysis.bfsi_relevance.use_cases.map((uc: any) => uc?.use_case || "").filter(Boolean) : []),
+    positive_signals: Array.isArray(rawAnalysisRecord?.positive_signals) ? rawAnalysisRecord.positive_signals : (Array.isArray(s.positive_signals) ? s.positive_signals : []),
+    negative_signals: Array.isArray(rawAnalysisRecord?.negative_signals) ? rawAnalysisRecord.negative_signals : (Array.isArray(s.negative_signals) ? s.negative_signals : []),
     audit_summary: rawAnalysisRecord?.audit_summary ?? {},
     knowledge_version: rawAnalysisRecord?.knowledge_version ?? "",
     analysis_version: rawAnalysisRecord?.analysis_version ?? "",
-    market_intelligence: analysis?.market_intelligence || s.market_intelligence || {
-      products: [],
-      competitors: [],
-      valuation: {},
-      investors: []
-    }
+    market_intelligence: (analysis?.market_intelligence && Object.keys(analysis.market_intelligence).length > 0)
+      ? analysis.market_intelligence
+      : (s.market_intelligence && Object.keys(s.market_intelligence).length > 0)
+      ? s.market_intelligence
+      : {
+          products: [],
+          competitors: [],
+          valuation: {},
+          investors: []
+        }
   };
 };
 

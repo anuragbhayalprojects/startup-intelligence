@@ -40,49 +40,20 @@ class StrategicFitAgent(BaseAgent):
                 top_k=3
             )
 
-            prompt = f"""You are the ICICI Strategic Fit Feature Extractor.
-Your job is to assess the strategic fit parameters for the startup '{state.startup_name}'.
-
-Evaluate these nine specific scoring dimensions on a scale of 0 to 100 based on the startup details:
-1. Business Problem Relevance: Directness in solving targeted internal problems.
-2. Entity Alignment: Applicability across multiple group entities (e.g. Bank, Lombard, Securities).
-3. Business Team Alignment: Clarity of finding a sponsoring internal business team.
-4. Deployability: API maturity, integration ease, and architecture security.
-5. Market Validation: Customer adoption, revenue, and product-market fit.
-6. Innovation & Differentiation: Patents, proprietary tech, or unique value.
-7. Scalability: Software/SaaS scalability versus consulting/services.
-8. Strategic Investment Potential: Long-term strategic partnership/investment feasibility.
-9. Ecosystem Influence: Industry positioning, visibility, and partnership strengths.
-
-RAG Reference Context:
-{rag_context}
-
-Startup Details:
-Sector: {state.startup_features.sector}
-Subsector: {state.startup_features.subsector}
-Matched Business Problems: {state.startup_features.business_problems}
-Relevance Breakdown: {state.relevance.get('breakdown', {})}
-Description: {state.article_data.get('description', '')}
-
-For each dimension, extract/estimate a raw feature score (0 to 100) and provide a concise, factual explanation for the score. Do not calculate the final weighted score.
-
-Return ONLY a valid JSON object matching the schema below. Do not add notes, wrappers, or explanations.
-
-JSON Schema:
-{{
-  "dimensions": {{
-    "business_problem_relevance": {{ "score": 90, "reason": "Directly matches claims fraud problems." }},
-    "entity_alignment": {{ "score": 80, "reason": "Applies to both ICICI Lombard and Pru Life." }},
-    "business_team_alignment": {{ "score": 85, "reason": "Sponsor team is clearly Claims Operations." }},
-    "deployability": {{ "score": 75, "reason": "Exposes standard REST APIs." }},
-    "market_validation": {{ "score": 60, "reason": "Has 5+ customer pilots running." }},
-    "innovation_differentiation": {{ "score": 70, "reason": "Uses proprietary fraud model." }},
-    "scalability": {{ "score": 85, "reason": "Pure SaaS product with zero consulting." }},
-    "strategic_investment_potential": {{ "score": 65, "reason": "Could become an equity investment candidate later." }},
-    "ecosystem_influence": {{ "score": 60, "reason": "Emerging provider in fintech ecosystem." }}
-  }}
-}}
-"""
+            # Load prompt from external file
+            from jinja2 import Template
+            prompt_path = os.path.join(os.path.dirname(__file__), "../prompts/strategic_fit_prompt.txt")
+            with open(prompt_path, "r", encoding="utf-8") as f:
+                prompt_template = Template(f.read())
+            prompt = prompt_template.render(
+                startup_name=state.startup_name,
+                rag_context=rag_context,
+                sector=state.startup_features.sector,
+                subsector=state.startup_features.subsector,
+                business_problems=state.startup_features.business_problems,
+                relevance_breakdown=state.relevance.get('breakdown', {}),
+                description=state.article_data.get('description', '')
+            )
             extraction = call_ollama(prompt, json_format=True)
             dimensions = extraction.get("dimensions", {})
 

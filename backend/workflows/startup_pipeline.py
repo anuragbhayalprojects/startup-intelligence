@@ -107,6 +107,8 @@ def are_headlines_describing_same_event(headline1: str, headline2: str) -> bool:
     Based on the rules, are these two headlines describing the same corporate event?
     Respond with only a single word: YES or NO. Do not explain."""
     try:
+        from backend.utils.ollama_helper import ensure_ollama_running
+        ensure_ollama_running()
         response = requests.post(
             f"{base_url}/api/generate",
             json={
@@ -157,6 +159,8 @@ Context/Description: "{desc2}"
 Based on the rules, do these two news events describe the same corporate event or story?
 Respond with only a single word: YES or NO. Do not explain."""
     try:
+        from backend.utils.ollama_helper import ensure_ollama_running
+        ensure_ollama_running()
         response = requests.post(
             f"{base_url}/api/generate",
             json={
@@ -177,44 +181,26 @@ Respond with only a single word: YES or NO. Do not explain."""
     except Exception:
         return False
 
-def is_news_duplicate(new_headline: str, new_description: str, existing_news: list) -> bool:
+def is_news_duplicate(new_headline: str, new_description: str, existing_news: list, source_url: str = "") -> bool:
     """
-    Determines if a new headline/description is a duplicate of any existing news using a hybrid approach:
-    1. Fast Jaccard and Overlap token coefficient checks.
-    2. Deep LLM semantic double-check on moderate match candidates, incorporating description context.
+    Determines if a new headline is a duplicate of any existing news.
+    Only returns True for exact identical headlines or source URL matches to allow repeating news summaries.
     """
     if not existing_news:
         return False
         
-    def clean_tokens(text):
-        text = re.sub(r'[^a-z0-9\s]', '', text.lower())
-        return set(text.split())
-        
-    new_tokens = clean_tokens(new_headline)
-    if not new_tokens:
-        return False
-        
+    clean_new_headline = new_headline.strip().lower()
+    clean_new_url = source_url.strip().lower() if source_url else ""
+    
     for news in existing_news:
-        exist_headline = news.get("headline", "")
-        exist_desc = news.get("summary") or news.get("description") or ""
-        exist_tokens = clean_tokens(exist_headline)
-        if not exist_tokens:
-            continue
-            
-        intersection = new_tokens.intersection(exist_tokens)
-        union = new_tokens.union(exist_tokens)
-        jaccard = len(intersection) / len(union) if union else 0.0
-        overlap = len(intersection) / min(len(new_tokens), len(exist_tokens)) if min(len(new_tokens), len(exist_tokens)) else 0.0
+        exist_headline = (news.get("headline") or "").strip().lower()
+        exist_url = (news.get("source_url") or "").strip().lower()
         
-        # High-confidence heuristic match
-        if jaccard > 0.75 or overlap > 0.90:
+        if clean_new_headline == exist_headline:
+            return True
+        if clean_new_url and clean_new_url == exist_url:
             return True
             
-        # Moderate similarity candidate: ask LLM
-        if jaccard > 0.20 or overlap > 0.35:
-            if are_news_events_describing_same_story(new_headline, new_description, exist_headline, exist_desc):
-                return True
-                
     return False
 
 def pipeline_log(message):
@@ -268,7 +254,7 @@ def clean_string(text):
     
     return cleaned
 
-def get_clean_startup_name(headline, extracted_name):
+def get_clean_startup_name(headline, extracted_name, source=None, source_url=None):
     """
     Cleans the news headline to extract only the actual startup brand name.
     Uses AI extracted name as primary, with a robust mapped lookup fallback.
@@ -302,6 +288,16 @@ def get_clean_startup_name(headline, extracted_name):
         if not name:
             return True
         name_lower = name.lower().strip()
+
+        # Ignore if name matches news source or source domain
+        if source:
+            src_lower = source.lower().strip()
+            if name_lower == src_lower or src_lower in name_lower or name_lower in src_lower:
+                return True
+        if source_url:
+            domain = source_url.replace("https://", "").replace("http://", "").replace("www.", "").split("/")[0].split(".")[0].lower()
+            if domain and (name_lower == domain or domain in name_lower or name_lower in domain):
+                return True
 
         # Filter out very short names
         if len(name_lower) < 3:
@@ -594,7 +590,7 @@ def process_startup(startup, industry_filter: str = "", sector_filter: str = "",
     
     # Trigger Python heuristics fallback if discovery failed (None) or returned empty ([])
     if not discovered_names:
-        fallback_name = get_clean_startup_name(original_headline, None)
+        fallback_name = get_clean_startup_name(original_headline, None, source=startup.get("source"), source_url=startup.get("source_url"))
         if fallback_name:
             discovered_names = [fallback_name]
             
@@ -605,7 +601,7 @@ def process_startup(startup, industry_filter: str = "", sector_filter: str = "",
     processed_results = []
     
     for name in discovered_names:
-        clean_name = get_clean_startup_name(original_headline, name)
+        clean_name = get_clean_startup_name(original_headline, name, source=startup.get("source"), source_url=startup.get("source_url"))
         if not clean_name:
             continue
             
@@ -632,7 +628,7 @@ def process_startup(startup, industry_filter: str = "", sector_filter: str = "",
         
         # Cache Check: Check if startup already exists and has a fresh analysis
         existing_startup = check_existing_startup(clean_name)
-        if existing_startup:
+        if existing_startup and os.getenv("FORCE_STARTUP_PIPELINE_RUN") != "true":
             startup_id = existing_startup["id"]
             analysis_resp = supabase.table("startup_analysis").select("*").eq("startup_id", startup_id).execute()
             if analysis_resp.data:
@@ -662,7 +658,7 @@ def process_startup(startup, industry_filter: str = "", sector_filter: str = "",
                             
                         existing_news = get_startup_news(startup_id) or []
                         news_summary = None
-                        if is_news_duplicate(original_headline, original_description, existing_news):
+                        if is_news_duplicate(original_headline, original_description, existing_news, source_url=startup.get("source_url", "")):
                             pipeline_log(f"⏭️ Skipping duplicate news event for '{clean_name}': '{original_headline}'")
                         else:
                             pipeline_log(f"✅ Cache hit: '{clean_name}' already exists with a fresh analysis (created {age.days} days ago). Saving new news event.")
@@ -766,7 +762,7 @@ def process_startup(startup, industry_filter: str = "", sector_filter: str = "",
         pipeline_log("Step 3: Saving news event to startup_news history...")
         try:
             existing_news = get_startup_news(startup_id) or []
-            if is_news_duplicate(original_headline, original_description, existing_news):
+            if is_news_duplicate(original_headline, original_description, existing_news, source_url=startup.get("source_url", "")):
                 pipeline_log(f"⏭️ Skipping duplicate news event for new startup '{clean_name}': '{original_headline}'")
             else:
                 save_startup_news(

@@ -13,10 +13,104 @@
       ],
       "priority": "High",
       "startup_categories": [
+        "5G Infrastructure",
+        "AI Applications",
+        "AI FinTech",
+        "AI HRTech",
+        "AI Healthcare",
+        "AI LegalTech",
+        "AI MarketingTech",
+        "AI Observability",
+        "AI SalesTech",
+        "Accounting",
+        "B2B Commerce",
+        "Battlefield Systems",
+        "Beauty",
+        "Billing",
+        "Booking Platforms",
+        "CRM",
+        "Citizen Services",
+        "Cloud Kitchens",
+        "Collaboration",
+        "Communities",
+        "Compliance",
+        "Connectivity Platforms",
+        "Content Monetization",
+        "Corporate Learning",
+        "Corporate Travel",
+        "Creator Economy",
+        "Creator Tools",
+        "Cross-border Commerce",
+        "D2C Brands",
+        "Dating Platforms",
+        "Defense AI",
+        "DefenseTech",
         "Digital Banking",
+        "Digital Governance",
+        "Document AI",
+        "Documentation",
+        "E-commerce",
+        "ERP",
+        "EdTech",
+        "Employee Training",
+        "Esports",
+        "Fashion",
+        "FinTech",
+        "Food Delivery",
+        "FoodTech",
+        "Freelance Platforms",
+        "Future of Work",
+        "Gaming",
+        "Gaming Infrastructure",
+        "Gig Economy",
+        "GovTech",
+        "Higher Education",
+        "Home & Living",
+        "Hospitality Tech",
+        "Influencer Platforms",
+        "Inventory Management",
+        "InvestmentTech",
+        "K12",
+        "Knowledge Management",
+        "LLM Platforms",
+        "LMS",
+        "Language Learning",
+        "Leadership Development",
+        "Loyalty Platforms",
+        "Market Data",
+        "Marketplaces",
+        "Mobile Gaming",
+        "Model Hosting",
         "Neobanking",
+        "Network Intelligence",
+        "POS",
+        "Personal Care",
+        "Pet Care",
+        "Procurement",
+        "Productivity",
+        "Project Management",
+        "Quick Commerce",
         "RegTech",
-        "Document AI"
+        "Remote Work",
+        "Restaurant SaaS",
+        "Retail Analytics",
+        "RetailTech",
+        "SaaS",
+        "Sales Agents",
+        "Social Commerce",
+        "Social Networks",
+        "Social Platforms",
+        "Surveillance",
+        "Team Communication",
+        "Telecom Infrastructure",
+        "Test Preparation",
+        "Trading Infrastructure",
+        "TravelTech",
+        "Upskilling",
+        "Vector Databases",
+        "Vocational Training",
+        "Workflow Automation",
+        "Workforce Productivity"
       ]
     },
     {
@@ -33,9 +127,10 @@
       ],
       "priority": "High",
       "startup_categories": [
-        "RegTech",
         "Document AI",
-        "Identity Security"
+        "Identity Security",
+        "RegTech",
+        "Zero Trust"
       ]
     },
     {
@@ -52,9 +147,32 @@
       ],
       "priority": "High",
       "startup_categories": [
-        "Lending",
+        "Agri Finance",
+        "Agritech",
         "Alternative Data",
-        "Data Analytics"
+        "Carbon Management",
+        "Circular Economy",
+        "ClimateTech",
+        "Consumer Lending",
+        "Credit Infrastructure",
+        "Data Analytics",
+        "ESG",
+        "Energy Storage",
+        "EnergyTech",
+        "Farm Inputs",
+        "Farm Management",
+        "Grid Technology",
+        "Industry 4.0",
+        "Lending",
+        "MSME Lending",
+        "ManufacturingTech",
+        "Precision Agriculture",
+        "Robotics",
+        "Smart Factory",
+        "Solar",
+        "TreasuryTech",
+        "Waste Management",
+        "Wind"
       ]
     },
     {
@@ -70,8 +188,11 @@
       ],
       "priority": "High",
       "startup_categories": [
-        "Fraud Detection",
+        "Compliance",
         "Cybersecurity",
+        "Fraud Detection",
+        "Fraud Prevention",
+        "Identity Security",
         "RegTech"
       ]
     },
@@ -89,9 +210,11 @@
       ],
       "priority": "Medium",
       "startup_categories": [
-        "Collections",
         "Agentic AI",
-        "Data Analytics"
+        "Collections",
+        "Data Analytics",
+        "ERP",
+        "MSME Lending"
       ]
     },
     {
@@ -107,9 +230,29 @@
       ],
       "priority": "Medium",
       "startup_categories": [
+        "5G Infrastructure",
+        "Accounting",
+        "Battlefield Systems",
+        "Billing",
+        "Citizen Services",
+        "Cloud Kitchens",
+        "Connectivity Platforms",
+        "Cross-border Payments",
+        "Defense AI",
+        "DefenseTech",
+        "Digital Governance",
+        "ERP",
+        "Embedded Finance",
+        "Food Delivery",
+        "FoodTech",
+        "GovTech",
+        "Network Intelligence",
         "Payments",
-        "UPI Infrastructure",
-        "TaxTech"
+        "Restaurant SaaS",
+        "Surveillance",
+        "TaxTech",
+        "Telecom Infrastructure",
+        "UPI Infrastructure"
       ]
     },
     {
@@ -127,8 +270,48 @@
       ],
       "priority": "High",
       "startup_categories": [
+        "AI Applications",
+        "AI FinTech",
+        "AI HRTech",
+        "AI Healthcare",
+        "AI Infrastructure",
+        "AI LegalTech",
+        "AI Observability",
+        "AI Security",
+        "Application Security",
+        "Autonomous Systems",
+        "Chip Design",
+        "Cloud Security",
+        "Commercial Drones",
         "Cybersecurity",
-        "AI Infrastructure"
+        "Data Security",
+        "Defense Drones",
+        "Drone Analytics",
+        "Drones",
+        "Earth Observation",
+        "Endpoint Security",
+        "FinTech",
+        "Fraud Prevention",
+        "Governance Risk Compliance",
+        "Identity Security",
+        "Industrial Robotics",
+        "InvestmentTech",
+        "LLM Platforms",
+        "Launch Systems",
+        "Market Data",
+        "Model Hosting",
+        "Network Security",
+        "Quantum Computing",
+        "Quantum Hardware",
+        "Quantum Software",
+        "Satellites",
+        "Semiconductor",
+        "Semiconductor Manufacturing",
+        "Service Robotics",
+        "SpaceTech",
+        "Threat Intelligence",
+        "Vector Databases",
+        "Zero Trust"
       ]
     },
     {
@@ -144,9 +327,36 @@
       ],
       "priority": "High",
       "startup_categories": [
+        "Bioinformatics",
+        "Biotechnology",
         "Claims Automation",
+        "Commercial Drones",
+        "Diagnostics",
+        "Digital Insurance",
+        "Digital Therapeutics",
+        "Drone Analytics",
+        "Drones",
+        "Drug Discovery",
+        "Embedded Insurance",
         "Fraud Detection",
-        "Risk Analytics"
+        "Fraud Prevention",
+        "Genomics",
+        "HealthTech",
+        "Healthcare AI",
+        "Healthcare SaaS",
+        "Hospital Management",
+        "InsurTech",
+        "Insurance Distribution",
+        "Insurance Infrastructure",
+        "MedTech",
+        "Medical Devices",
+        "Mental Health",
+        "Remote Monitoring",
+        "Risk Analytics",
+        "Synthetic Biology",
+        "Telemedicine",
+        "Wellness",
+        "Women's Health"
       ]
     },
     {
@@ -164,7 +374,11 @@
       "startup_categories": [
         "Claims Automation",
         "Document AI",
-        "Generative AI"
+        "Generative AI",
+        "InsurTech",
+        "Multimodal AI",
+        "Text Generation",
+        "Workflow Automation"
       ]
     },
     {
@@ -181,9 +395,50 @@
       ],
       "priority": "High",
       "startup_categories": [
-        "Risk Analytics",
+        "Alternative Data",
+        "Autonomous Systems",
+        "Chip Design",
+        "Claims Automation",
+        "Commercial Drones",
+        "Connected Devices",
+        "Connected Vehicles",
         "Data Analytics",
-        "Alternative Data"
+        "Defense Drones",
+        "Digital Insurance",
+        "Drone Analytics",
+        "Drones",
+        "EV Charging",
+        "EV Platforms",
+        "Earth Observation",
+        "Embedded Insurance",
+        "Fleet Management",
+        "FreightTech",
+        "Industrial IoT",
+        "Industrial Robotics",
+        "Industry 4.0",
+        "InsurTech",
+        "Insurance Distribution",
+        "Insurance Infrastructure",
+        "IoT",
+        "Launch Systems",
+        "LogisticsTech",
+        "ManufacturingTech",
+        "Mobility",
+        "Quantum Computing",
+        "Quantum Hardware",
+        "Quantum Software",
+        "Risk Analytics",
+        "Robotics",
+        "Satellites",
+        "Semiconductor",
+        "Semiconductor Manufacturing",
+        "Service Robotics",
+        "Shared Mobility",
+        "Smart Cities",
+        "Smart Factory",
+        "SpaceTech",
+        "Supply Chain Visibility",
+        "WarehouseTech"
       ]
     },
     {
@@ -199,8 +454,27 @@
       ],
       "priority": "Medium",
       "startup_categories": [
+        "Agentic AI",
+        "CRM",
+        "Claims Automation",
+        "Coding Agents",
+        "Creator Tools",
+        "Customer Service Agents",
+        "Digital Insurance",
+        "Embedded Insurance",
+        "Generative AI",
+        "Image Generation",
+        "Influencer Platforms",
+        "InsurTech",
         "Insurance Distribution",
-        "Agentic AI"
+        "Insurance Infrastructure",
+        "Knowledge Agents",
+        "Multimodal AI",
+        "Risk Analytics",
+        "Sales Agents",
+        "Text Generation",
+        "Video Generation",
+        "Workflow Agents"
       ]
     },
     {
@@ -215,9 +489,11 @@
       ],
       "priority": "High",
       "startup_categories": [
+        "Alternative Investments",
+        "Investment Platforms",
         "Stock Broking",
-        "WealthTech",
-        "Investment Platforms"
+        "Wealth Infrastructure",
+        "WealthTech"
       ]
     },
     {
@@ -233,9 +509,13 @@
       ],
       "priority": "High",
       "startup_categories": [
-        "WealthTech",
+        "Capital Markets Tech",
         "Generative AI",
-        "Capital Markets Tech"
+        "Investment Platforms",
+        "Knowledge Agents",
+        "Multimodal AI",
+        "Text Generation",
+        "WealthTech"
       ]
     },
     {
@@ -251,9 +531,10 @@
       ],
       "priority": "Medium",
       "startup_categories": [
-        "Investment Platforms",
         "Agentic AI",
-        "Financial Wellness"
+        "Financial Wellness",
+        "Investment Platforms",
+        "WealthTech"
       ]
     },
     {
@@ -269,9 +550,12 @@
       ],
       "priority": "High",
       "startup_categories": [
+        "Brokerage Tech",
+        "Lending",
         "Mortgage Tech",
         "PropTech",
-        "Lending"
+        "Property Marketplace",
+        "Rental Platforms"
       ]
     },
     {
@@ -287,9 +571,15 @@
       ],
       "priority": "High",
       "startup_categories": [
-        "Mortgage Tech",
         "Alternative Data",
-        "Document AI"
+        "Construction Automation",
+        "ConstructionTech",
+        "Document AI",
+        "Facility Management",
+        "Mortgage Tech",
+        "PropTech",
+        "Property Management",
+        "Smart Buildings"
       ]
     },
     {
@@ -305,9 +595,25 @@
       ],
       "priority": "High",
       "startup_categories": [
-        "Insurance Distribution",
         "Agentic AI",
-        "Generative AI"
+        "CRM",
+        "Claims Automation",
+        "Coding Agents",
+        "Customer Service Agents",
+        "Digital Insurance",
+        "Embedded Insurance",
+        "Generative AI",
+        "Image Generation",
+        "InsurTech",
+        "Insurance Distribution",
+        "Insurance Infrastructure",
+        "Knowledge Agents",
+        "Multimodal AI",
+        "Risk Analytics",
+        "Sales Agents",
+        "Text Generation",
+        "Video Generation",
+        "Workflow Agents"
       ]
     },
     {
@@ -323,9 +629,11 @@
       ],
       "priority": "High",
       "startup_categories": [
-        "Risk Analytics",
+        "Agentic AI",
+        "CRM",
         "Data Analytics",
-        "Agentic AI"
+        "InsurTech",
+        "Risk Analytics"
       ]
     },
     {
@@ -341,9 +649,10 @@
       ],
       "priority": "High",
       "startup_categories": [
-        "WealthTech",
         "Investment Platforms",
-        "RegTech"
+        "RegTech",
+        "Wealth Infrastructure",
+        "WealthTech"
       ]
     },
     {
@@ -358,9 +667,10 @@
       ],
       "priority": "High",
       "startup_categories": [
-        "Data Analytics",
         "Agentic AI",
-        "Financial Wellness"
+        "Data Analytics",
+        "Financial Wellness",
+        "WealthTech"
       ]
     }
   ]

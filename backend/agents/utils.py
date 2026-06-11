@@ -44,6 +44,8 @@ def clean_llm_response(response_text: str) -> str:
 
 def call_ollama(prompt: str, json_format: bool = True, num_ctx: int = 4096, temperature: float = 0.0) -> Any:
     """Calls Ollama API synchronously and parses response."""
+    from backend.utils.ollama_helper import ensure_ollama_running
+    ensure_ollama_running()
     try:
         payload = {
             "model": OLLAMA_MODEL,
@@ -61,7 +63,7 @@ def call_ollama(prompt: str, json_format: bool = True, num_ctx: int = 4096, temp
             f"{OLLAMA_BASE_URL}/api/generate",
             json=payload,
             headers={"Content-Type": "application/json"},
-            timeout=40.0
+            timeout=90.0
         )
         resp.raise_for_status()
         text = resp.json().get("response", "").strip()

@@ -1,0 +1,502 @@
+{
+  "HyperNorm": {
+    "startup": {
+      "id": 156,
+      "startup_name": "HyperNorm AI",
+      "website": "https://www.hypernorm.ai/",
+      "linkedin_url": "https://www.linkedin.com/company/hypernorm-ai",
+      "city": "Unknown",
+      "state": "Unknown",
+      "country": "India",
+      "sector": "Agentic AI",
+      "subsector": "Workflow Agents",
+      "funding_stage": "Unknown",
+      "founded_year": null,
+      "description": "HyperNorm AI is an AI-native decision intelligence platform designed for registered investment advisors (RIAs) and wealth managers. The platform offers personalized, adaptive, and productivity-enhancing solutions to help users make faster and smarter decisions through contextual insights and adaptive workflows. HyperNorm AI surfaces which portfolios need immediate attention based on urgency, risk exposure, and client mandates, providing prioritized alerts daily. It also maps recent market events directly impacting each client's portfolio in plain language, enabling advisors to understand the \"why\" behind market changes before their clients ask.\n\nThe platform integrates seamlessly into existing workflows without requiring significant adjustments. HyperNorm AI\u2019s advanced AI models are trained on millions of data points to decode complex markets with precision and accuracy. The system is constantly evolving through its research and machine learning pipelines, adapting to shifting market regimes and macro signals. Users benefit from sharper forecasts, faster pivots, and confident rebalancing validated by real portfolio impact.\n\nKeyur Faldu, the founder and CEO, brings extensive experience in AI/ML leadership across various domains including data and research teams. Peeyush Jain, as the CTO, has a background in building and scaling SAAS and B2C platforms with large-scale team management expertise. Soumitra Saxena leads engineering efforts, while Hemang Akbari serves as the principal machine learning engineer.\n\nHyperNorm AI is poised to be a trusted co-pilot for advisors and wealth managers, offering real-time decision-first intelligence that addresses complex challenges in modern financial asset management. The platform's adaptability, impact, and smarter investment decisions are at its core, making it an essential tool for navigating today\u2019s dynamic market landscape.",
+      "source": "Unknown",
+      "source_url": "",
+      "created_at": "2026-06-10T12:28:54.843943",
+      "updated_at": "2026-06-10T12:28:54.843943",
+      "industry": "Artificial Intelligence",
+      "business_models": [],
+      "industry_relevance": [],
+      "tags": [],
+      "founder_name": "Keyur Faldu",
+      "founder_linkedin_url": "https://www.linkedin.com/in/peeyush-jain-7917414",
+      "priority_score": 0,
+      "priority_band": "Ignore",
+      "recommended_action": "Monitor",
+      "relevance_summary": "",
+      "relevance_score": 76,
+      "signal_score": 0,
+      "deployability_score": 50,
+      "confidence_score": 43,
+      "recommendation_score": 0,
+      "matched_entities": [],
+      "matched_business_teams": [],
+      "market_intelligence": {},
+      "total_funding": null,
+      "latest_round_stage": null,
+      "assigned_team": null,
+      "status": "Monitor",
+      "entity_relevance": "{}",
+      "recent_news": [],
+      "brand_name": "HyperNorm AI",
+      "legal_name": "HSA is an agreement between HyperNorm AI Pvt. Ltd",
+      "identity_confidence": 0,
+      "headquarters": "Unknown"
+    },
+    "analysis": {
+      "id": 114,
+      "startup_id": 156,
+      "ai_summary": "",
+      "priority_score": 0,
+      "icici_primary_entity": "Not Relevant to any of the ICICI Group Companies",
+      "use_cases": [],
+      "co_creation_opportunities": [],
+      "analysis_json": {
+        "founders": [
+          {
+            "name": "Keyur Faldu",
+            "role": "CEO & Co-founder",
+            "linkedin_url": "https://www.linkedin.com/in/peeyush-jain-7917414",
+            "brief_details": "Former leadership positions at Meta, McKinsey, Embibe, Veveo, and Runa. Currently leads HyperNormAI."
+          },
+          {
+            "name": "Peeyush Jain",
+            "role": "Co-founder & CTO",
+            "linkedin_url": "https://www.linkedin.com/in/peeyush-jain-7917414",
+            "brief_details": "Previous experience at Verloop, Embibe, CommonFloor, and British Telecom. Current co-founder of HyperNormAI."
+          }
+        ],
+        "use_cases": [
+          {
+            "use_case": "ICICI Securities can integrate HyperNorm AI into its wealth management platform to provide real-time decision intelligence for its advisors. This integration would allow ICICI Securities to offer a more comprehensive and adaptive solution to their clients, enabling them to make faster and smarter investment decisions based on contextual insights and market events.",
+            "icici_entity": "ICICI Securities",
+            "relevance_score": 85,
+            "potential_impact": "High"
+          },
+          {
+            "use_case": "ICICI Prudential AMC can integrate HyperNorm AI into its asset management platform to provide personalized and adaptive solutions for their clients. This integration would help ICICI Prudential AMC offer more tailored investment advice, leading to higher client satisfaction and loyalty.",
+            "icici_entity": "ICICI Prudential AMC",
+            "relevance_score": 85,
+            "potential_impact": "High"
+          },
+          {
+            "use_case": "ICICI Lombard can integrate HyperNorm AI into its insurance platform to provide advisors with real-time insights on market events and their impact on client portfolios. This integration would help ICICI Lombard offer more informed and proactive advice, potentially leading to increased sales and customer satisfaction.",
+            "icici_entity": "ICICI Lombard",
+            "relevance_score": 85,
+            "potential_impact": "High"
+          },
+          {
+            "use_case": "ICICI Bank (Retail) can integrate HyperNorm AI into its wealth management services to provide personalized and adaptive solutions for their clients. This integration would help ICICI Bank (Retail) offer more tailored financial advice, leading to higher client satisfaction and loyalty.",
+            "icici_entity": "ICICI Bank (Retail)",
+            "relevance_score": 85,
+            "potential_impact": "High"
+          },
+          {
+            "use_case": "ICICI Bank (Corporate) can integrate HyperNorm AI into its wealth management services for corporate clients to provide personalized and adaptive solutions. This integration would help ICICI Bank (Corporate) offer more tailored financial advice, leading to higher client satisfaction and loyalty.",
+            "icici_entity": "ICICI Bank (Corporate)",
+            "relevance_score": 85,
+            "potential_impact": "High"
+          },
+          {
+            "use_case": "ICICI HFC can integrate HyperNorm AI into its home finance services to provide personalized and adaptive solutions for their clients. This integration would help ICICI HFC offer more tailored financial advice, leading to higher client satisfaction and loyalty.",
+            "icici_entity": "ICICI HFC",
+            "relevance_score": 85,
+            "potential_impact": "High"
+          }
+        ],
+        "ai_summary": "HyperNorm AI is an AI-native decision intelligence platform designed for registered investment advisors (RIAs) and wealth managers. The platform offers personalized, adaptive, and productivity-enhancing solutions to help users make faster and smarter decisions through contextual insights and adaptive workflows. HyperNorm AI surfaces which portfolios need immediate attention based on urgency, risk exposure, and client mandates, providing prioritized alerts daily. It also maps recent market events directly impacting each client's portfolio in plain language, enabling advisors to understand the \"why\" behind market changes before their clients ask.\n\nThe platform integrates seamlessly into existing workflows without requiring significant adjustments. HyperNorm AI\u2019s advanced AI models are trained on millions of data points to decode complex markets with precision and accuracy. The system is constantly evolving through its research and machine learning pipelines, adapting to shifting market regimes and macro signals. Users benefit from sharper forecasts, faster pivots, and confident rebalancing validated by real portfolio impact.\n\nKeyur Faldu, the founder and CEO, brings extensive experience in AI/ML leadership across various domains including data and research teams. Peeyush Jain, as the CTO, has a background in building and scaling SAAS and B2C platforms with large-scale team management expertise. Soumitra Saxena leads engineering efforts, while Hemang Akbari serves as the principal machine learning engineer.\n\nHyperNorm AI is poised to be a trusted co-pilot for advisors and wealth managers, offering real-time decision-first intelligence that addresses complex challenges in modern financial asset management. The platform's adaptability, impact, and smarter investment decisions are at its core, making it an essential tool for navigating today\u2019s dynamic market landscape.",
+        "analysis_json": {
+          "funding": {
+            "value": {
+              "investors": [],
+              "latest_round": "",
+              "total_funding": "",
+              "funding_history": [
+                {
+                  "date": "2026-06",
+                  "round": "Seed",
+                  "amount": "$2.2M",
+                  "investors": [
+                    "Capital 2B",
+                    "SenseAI Ventures"
+                  ]
+                }
+              ],
+              "latest_round_date": ""
+            },
+            "confidence": 30
+          },
+          "products": {
+            "value": [
+              {
+                "name": "HyperNorm AI",
+                "type": "Software / Service",
+                "description": "HyperNorm AI is an AI-native decision intelligence platform for wealth advisors, designed to help advisory firms cut through the complexity of modern, multi-asset portfolios.",
+                "evidence_url": "https://hypernorm.ai",
+                "target_audience": [
+                  "BFSI",
+                  "Wealth Management"
+                ]
+              }
+            ],
+            "confidence": 90
+          },
+          "investors": [],
+          "valuation": {},
+          "competitors": {
+            "value": [
+              {
+                "name": "Quantopian",
+                "reason": "Both offer AI-driven solutions for financial advisors and managers, focusing on portfolio management and decision intelligence. Quantopian's platform is known for its robust algorithmic trading tools and market analysis capabilities.",
+                "website": "https://www.quantopian.com/",
+                "confidence": 85,
+                "evidence_url": "https://www.quantopian.com/"
+              },
+              {
+                "name": "Blackfire",
+                "reason": "Blackfire provides AI-driven solutions for wealth management, including portfolio optimization and decision intelligence. Their platform is designed to help advisors make faster and smarter decisions by providing real-time insights into market trends and client mandates.",
+                "website": "https://blackfire.io/",
+                "confidence": 85,
+                "evidence_url": "https://blackfire.io/"
+              },
+              {
+                "name": "Alpaca",
+                "reason": "Alpaca offers AI-driven solutions for retail investors and advisors, including portfolio management tools. Their platform provides real-time market insights and decision intelligence to help users make informed investment decisions.",
+                "website": "https://www.alpacacorp.com/",
+                "confidence": 85,
+                "evidence_url": "https://www.alpacacorp.com/"
+              }
+            ],
+            "confidence": 80
+          },
+          "last_enriched_at": "2026-06-10T12:28:53.696094+00:00",
+          "last_verified_at": "2026-06-10T12:28:53.696662+00:00",
+          "enrichment_version": "2.0",
+          "opportunity_mapping": {
+            "value": [
+              {
+                "use_case": "ICICI Securities can integrate HyperNorm AI into its wealth management platform to provide real-time decision intelligence for its advisors. This integration would allow ICICI Securities to offer a more comprehensive and adaptive solution to their clients, enabling them to make faster and smarter investment decisions based on contextual insights and market events.",
+                "icici_entity": "ICICI Securities",
+                "relevance_score": 85,
+                "potential_impact": "High"
+              },
+              {
+                "use_case": "ICICI Prudential AMC can integrate HyperNorm AI into its asset management platform to provide personalized and adaptive solutions for their clients. This integration would help ICICI Prudential AMC offer more tailored investment advice, leading to higher client satisfaction and loyalty.",
+                "icici_entity": "ICICI Prudential AMC",
+                "relevance_score": 85,
+                "potential_impact": "High"
+              },
+              {
+                "use_case": "ICICI Lombard can integrate HyperNorm AI into its insurance platform to provide advisors with real-time insights on market events and their impact on client portfolios. This integration would help ICICI Lombard offer more informed and proactive advice, potentially leading to increased sales and customer satisfaction.",
+                "icici_entity": "ICICI Lombard",
+                "relevance_score": 85,
+                "potential_impact": "High"
+              },
+              {
+                "use_case": "ICICI Bank (Retail) can integrate HyperNorm AI into its wealth management services to provide personalized and adaptive solutions for their clients. This integration would help ICICI Bank (Retail) offer more tailored financial advice, leading to higher client satisfaction and loyalty.",
+                "icici_entity": "ICICI Bank (Retail)",
+                "relevance_score": 85,
+                "potential_impact": "High"
+              },
+              {
+                "use_case": "ICICI Bank (Corporate) can integrate HyperNorm AI into its wealth management services for corporate clients to provide personalized and adaptive solutions. This integration would help ICICI Bank (Corporate) offer more tailored financial advice, leading to higher client satisfaction and loyalty.",
+                "icici_entity": "ICICI Bank (Corporate)",
+                "relevance_score": 85,
+                "potential_impact": "High"
+              },
+              {
+                "use_case": "ICICI HFC can integrate HyperNorm AI into its home finance services to provide personalized and adaptive solutions for their clients. This integration would help ICICI HFC offer more tailored financial advice, leading to higher client satisfaction and loyalty.",
+                "icici_entity": "ICICI HFC",
+                "relevance_score": 85,
+                "potential_impact": "High"
+              }
+            ],
+            "confidence": 90
+          },
+          "industry_classification": {
+            "value": {
+              "sector": "Enterprise",
+              "industry": "BFSI",
+              "subsector": ""
+            },
+            "confidence": 95
+          }
+        },
+        "relevance_score": 76,
+        "confidence_score": 43
+      },
+      "created_at": "2026-06-10T12:28:55.644126",
+      "funding_rounds": [],
+      "total_funding": null,
+      "latest_round_stage": null,
+      "latest_round_date": null,
+      "last_funding_enriched_at": null,
+      "relevance_score": 76,
+      "signal_score": 0,
+      "deployability_score": 50,
+      "recommendation_score": 0,
+      "confidence_score": 43,
+      "recommended_action": "Monitor",
+      "priority_band": "Ignore",
+      "matched_entities": [],
+      "matched_business_teams": [],
+      "matched_business_problems": [],
+      "positive_signals": [],
+      "negative_signals": [],
+      "audit_summary": {},
+      "knowledge_version": "1.0",
+      "analysis_version": "1.0"
+    }
+  },
+  "Bucketlistt": {
+    "startup": {
+      "id": 155,
+      "startup_name": "Bucketlistt",
+      "website": "https://www.bucketlistt.com/",
+      "linkedin_url": "https://www.linkedin.com/company/bucket-listt",
+      "city": "Unknown",
+      "state": "Unknown",
+      "country": "India",
+      "sector": "Robotics",
+      "subsector": "Autonomous Systems",
+      "funding_stage": "Unknown",
+      "founded_year": null,
+      "description": "Bucketlistt is an Indian platform that partners with top adventure providers across India to offer hand-picked adventure activities such as river rafting, bungee jumping, and more. The website serves as a trusted partner for tourists and explorers looking to experience the best of India's destinations. Targeted at both solo travelers and groups, Bucketlistt provides an easy-to-use booking platform where customers can choose from various adventure activities in different cities like Rishikesh. Positive reviews highlight the site\u2019s reliability, ease of use, and customer support. The company aims to enhance the adventure travel sector by offering innovative software solutions for both consumers and operators. Despite not mentioning funding rounds or direct competitors, Bucketlistt's positive reception suggests it has established itself as a reliable platform in India's adventure tourism market.",
+      "source": "Unknown",
+      "source_url": "",
+      "created_at": "2026-06-10T12:24:20.577434",
+      "updated_at": "2026-06-10T12:24:20.577434",
+      "industry": "DeepTech",
+      "business_models": [],
+      "industry_relevance": [],
+      "tags": [],
+      "founder_name": null,
+      "founder_linkedin_url": null,
+      "priority_score": 0,
+      "priority_band": "Ignore",
+      "recommended_action": "Monitor",
+      "relevance_summary": "",
+      "relevance_score": 25,
+      "signal_score": 0,
+      "deployability_score": 50,
+      "confidence_score": 29,
+      "recommendation_score": 0,
+      "matched_entities": [],
+      "matched_business_teams": [],
+      "market_intelligence": {},
+      "total_funding": null,
+      "latest_round_stage": null,
+      "assigned_team": null,
+      "status": "Monitor",
+      "entity_relevance": "{}",
+      "recent_news": [],
+      "brand_name": "Bucketlistt",
+      "legal_name": "",
+      "identity_confidence": 0,
+      "headquarters": "Unknown"
+    },
+    "analysis": {
+      "id": 113,
+      "startup_id": 155,
+      "ai_summary": "",
+      "priority_score": 0,
+      "icici_primary_entity": "Not Relevant to any of the ICICI Group Companies",
+      "use_cases": [],
+      "co_creation_opportunities": [],
+      "analysis_json": {
+        "use_cases": [
+          {
+            "use_case": "ICICI Bank can partner with Bucketlistt to offer a unique travel insurance product for adventure seekers. This could be an add-on service where customers purchasing adventure activities through Bucketlistt would also have the option to purchase a tailored travel insurance policy from ICICI Lombard. The pilot integration could start in key cities like Rishikesh, Goa, and Kerala.",
+            "icici_entity": "ICICI Bank",
+            "relevance_score": 85,
+            "potential_impact": "High - By integrating travel insurance with adventure activities, ICICI Bank can significantly increase customer satisfaction and loyalty. It also opens up new revenue streams for both entities and aligns well with the growing trend of adventure tourism in India."
+          },
+          {
+            "use_case": "ICICI Lombard can collaborate with Bucketlistt to offer a comprehensive insurance solution for adventure activities. This could include travel, personal accident, and medical insurance packages that are specifically designed for the types of activities offered on the platform. The pilot integration would start by offering these products in key cities where Bucketlistt operates.",
+            "icici_entity": "ICICI Lombard",
+            "relevance_score": 85,
+            "potential_impact": "High - By integrating insurance solutions with adventure activities, ICICI Lombard can enhance customer trust and satisfaction. This also aligns well with their existing portfolio of insurance products and services."
+          },
+          {
+            "use_case": "ICICI Securities can partner with Bucketlistt to offer investment opportunities for adventure enthusiasts. For instance, they could create a special fund or portfolio that invests in companies related to the adventure tourism industry (e.g., travel agencies, equipment suppliers). This would be particularly relevant for corporate clients who are looking for diversified investment options.",
+            "icici_entity": "ICICI Securities",
+            "relevance_score": 85,
+            "potential_impact": "Medium - While not directly increasing revenue from existing customers, this partnership can attract new customers and diversify ICICI Securities' product offerings. It also aligns with the growing interest in adventure tourism among corporate clients."
+          },
+          {
+            "use_case": "ICICI Prudential AMC can collaborate with Bucketlistt to offer investment-linked insurance products that are specifically designed for adventure enthusiasts. These could be linked to the value of their investments in companies related to the adventure tourism industry, providing a unique and attractive product offering.",
+            "icici_entity": "ICICI Prudential AMC",
+            "relevance_score": 85,
+            "potential_impact": "High - This partnership would significantly increase customer engagement and satisfaction by offering personalized investment solutions tailored to their interests. It also aligns well with ICICI Prudential AMC's existing portfolio of insurance products."
+          },
+          {
+            "use_case": "ICICI Prudential Life can partner with Bucketlistt to offer life insurance policies that are specifically designed for adventure enthusiasts. These could be linked to the value of their investments in companies related to the adventure tourism industry, providing a unique and attractive product offering.",
+            "icici_entity": "ICICI Prudential Life",
+            "relevance_score": 85,
+            "potential_impact": "High - This partnership would significantly increase customer engagement and satisfaction by offering personalized life insurance solutions tailored to their interests. It also aligns well with ICICI Prudential Life's existing portfolio of life insurance products."
+          },
+          {
+            "use_case": "ICICI HFC can partner with Bucketlistt to offer home loans and mortgages specifically for adventure enthusiasts. This could include special rates, terms, and conditions that are tailored to the needs of customers who plan to use their homes as bases for adventure activities or to invest in related businesses.",
+            "icici_entity": "ICICI HFC",
+            "relevance_score": 85,
+            "potential_impact": "High - By offering specialized financial products for adventure enthusiasts, ICICI HFC can significantly increase customer satisfaction and loyalty. It also aligns well with their existing portfolio of home finance products."
+          }
+        ],
+        "ai_summary": "Bucketlistt is an Indian platform that partners with top adventure providers across India to offer hand-picked adventure activities such as river rafting, bungee jumping, and more. The website serves as a trusted partner for tourists and explorers looking to experience the best of India's destinations. Targeted at both solo travelers and groups, Bucketlistt provides an easy-to-use booking platform where customers can choose from various adventure activities in different cities like Rishikesh. Positive reviews highlight the site\u2019s reliability, ease of use, and customer support. The company aims to enhance the adventure travel sector by offering innovative software solutions for both consumers and operators. Despite not mentioning funding rounds or direct competitors, Bucketlistt's positive reception suggests it has established itself as a reliable platform in India's adventure tourism market.",
+        "analysis_json": {
+          "funding": {
+            "value": {
+              "investors": [],
+              "latest_round": "",
+              "total_funding": "",
+              "funding_history": [
+                ""
+              ],
+              "latest_round_date": ""
+            },
+            "confidence": 30
+          },
+          "products": {
+            "value": [
+              {
+                "name": "Bucketlistt",
+                "type": "Software / Service",
+                "description": "Your Trusted Adventure Activities Partner in India. Hand-picked experiences for tourists, explorers, and adventure seekers.",
+                "evidence_url": "https://www.bucketlistt.com",
+                "target_audience": "Travel enthusiasts, adventurers, solo travelers, corporate clients"
+              },
+              {
+                "name": "BucketList\u00ae - Together we can fulfill each other's dreams",
+                "type": "Software / Service",
+                "description": "Share your life goals and get help from family and friends to achieve them.",
+                "evidence_url": "https://bucketlist.com",
+                "target_audience": "Individuals, families, corporate clients"
+              },
+              {
+                "name": "BucketList Ideas India",
+                "type": "Software / Service",
+                "description": "Curates memorable & unique experiences for all travel and lifestyle needs.",
+                "evidence_url": "https://bucketlistideasindia.com",
+                "target_audience": "Individuals, corporate clients"
+              },
+              {
+                "name": "Small Group Travel Adventures Tours | The Bucket List Company",
+                "type": "Software / Service",
+                "description": "Offers small group travel adventures tours worldwide for an unforgettable experience.",
+                "evidence_url": "https://smallgrouptravelbucketlist.com",
+                "target_audience": "Travel enthusiasts, corporate clients"
+              }
+            ],
+            "confidence": 90
+          },
+          "investors": [],
+          "valuation": {},
+          "competitors": {
+            "value": [
+              {
+                "name": "Adventure India",
+                "reason": "Both companies offer curated adventure activities in India. Adventure India has a broader range of activities and is well-established, which overlaps with Bucketlistt's target audience.",
+                "website": "https://www.adventureindia.com/",
+                "confidence": 85,
+                "evidence_url": "https://www.adventureindia.com/"
+              },
+              {
+                "name": "Adventure Hub",
+                "reason": "Similar to Adventure India, Adventure Hub offers curated adventure activities and is a well-established platform in the Indian market. It overlaps with Bucketlistt's target audience.",
+                "website": "https://www.adventurehub.in/",
+                "confidence": 80,
+                "evidence_url": "https://www.adventurehub.in/"
+              },
+              {
+                "name": "India Adventure",
+                "reason": "India Adventure offers a variety of adventure activities and is another well-established platform in India. It overlaps with Bucketlistt's target audience.",
+                "website": "https://indiaadventure.com/",
+                "confidence": 80,
+                "evidence_url": "https://indiaadventure.com/"
+              }
+            ],
+            "confidence": 80
+          },
+          "last_enriched_at": "2026-06-10T12:24:19.979253+00:00",
+          "last_verified_at": "2026-06-10T12:24:19.979258+00:00",
+          "enrichment_version": "2.0",
+          "opportunity_mapping": {
+            "value": [
+              {
+                "use_case": "ICICI Bank can partner with Bucketlistt to offer a unique travel insurance product for adventure seekers. This could be an add-on service where customers purchasing adventure activities through Bucketlistt would also have the option to purchase a tailored travel insurance policy from ICICI Lombard. The pilot integration could start in key cities like Rishikesh, Goa, and Kerala.",
+                "icici_entity": "ICICI Bank",
+                "relevance_score": 85,
+                "potential_impact": "High - By integrating travel insurance with adventure activities, ICICI Bank can significantly increase customer satisfaction and loyalty. It also opens up new revenue streams for both entities and aligns well with the growing trend of adventure tourism in India."
+              },
+              {
+                "use_case": "ICICI Lombard can collaborate with Bucketlistt to offer a comprehensive insurance solution for adventure activities. This could include travel, personal accident, and medical insurance packages that are specifically designed for the types of activities offered on the platform. The pilot integration would start by offering these products in key cities where Bucketlistt operates.",
+                "icici_entity": "ICICI Lombard",
+                "relevance_score": 85,
+                "potential_impact": "High - By integrating insurance solutions with adventure activities, ICICI Lombard can enhance customer trust and satisfaction. This also aligns well with their existing portfolio of insurance products and services."
+              },
+              {
+                "use_case": "ICICI Securities can partner with Bucketlistt to offer investment opportunities for adventure enthusiasts. For instance, they could create a special fund or portfolio that invests in companies related to the adventure tourism industry (e.g., travel agencies, equipment suppliers). This would be particularly relevant for corporate clients who are looking for diversified investment options.",
+                "icici_entity": "ICICI Securities",
+                "relevance_score": 85,
+                "potential_impact": "Medium - While not directly increasing revenue from existing customers, this partnership can attract new customers and diversify ICICI Securities' product offerings. It also aligns with the growing interest in adventure tourism among corporate clients."
+              },
+              {
+                "use_case": "ICICI Prudential AMC can collaborate with Bucketlistt to offer investment-linked insurance products that are specifically designed for adventure enthusiasts. These could be linked to the value of their investments in companies related to the adventure tourism industry, providing a unique and attractive product offering.",
+                "icici_entity": "ICICI Prudential AMC",
+                "relevance_score": 85,
+                "potential_impact": "High - This partnership would significantly increase customer engagement and satisfaction by offering personalized investment solutions tailored to their interests. It also aligns well with ICICI Prudential AMC's existing portfolio of insurance products."
+              },
+              {
+                "use_case": "ICICI Prudential Life can partner with Bucketlistt to offer life insurance policies that are specifically designed for adventure enthusiasts. These could be linked to the value of their investments in companies related to the adventure tourism industry, providing a unique and attractive product offering.",
+                "icici_entity": "ICICI Prudential Life",
+                "relevance_score": 85,
+                "potential_impact": "High - This partnership would significantly increase customer engagement and satisfaction by offering personalized life insurance solutions tailored to their interests. It also aligns well with ICICI Prudential Life's existing portfolio of life insurance products."
+              },
+              {
+                "use_case": "ICICI HFC can partner with Bucketlistt to offer home loans and mortgages specifically for adventure enthusiasts. This could include special rates, terms, and conditions that are tailored to the needs of customers who plan to use their homes as bases for adventure activities or to invest in related businesses.",
+                "icici_entity": "ICICI HFC",
+                "relevance_score": 85,
+                "potential_impact": "High - By offering specialized financial products for adventure enthusiasts, ICICI HFC can significantly increase customer satisfaction and loyalty. It also aligns well with their existing portfolio of home finance products."
+              }
+            ],
+            "confidence": 90
+          },
+          "industry_classification": {
+            "value": {
+              "sector": "Commerce & Retail",
+              "industry": "Consumer",
+              "subsector": "E-commerce"
+            },
+            "confidence": 95
+          }
+        },
+        "relevance_score": 25,
+        "confidence_score": 29
+      },
+      "created_at": "2026-06-10T12:24:21.950378",
+      "funding_rounds": [],
+      "total_funding": null,
+      "latest_round_stage": null,
+      "latest_round_date": null,
+      "last_funding_enriched_at": null,
+      "relevance_score": 25,
+      "signal_score": 0,
+      "deployability_score": 50,
+      "recommendation_score": 0,
+      "confidence_score": 29,
+      "recommended_action": "Monitor",
+      "priority_band": "Ignore",
+      "matched_entities": [],
+      "matched_business_teams": [],
+      "matched_business_problems": [],
+      "positive_signals": [],
+      "negative_signals": [],
+      "audit_summary": {},
+      "knowledge_version": "1.0",
+      "analysis_version": "1.0"
+    }
+  }
+}

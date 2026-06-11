@@ -38,8 +38,8 @@ import {
 import { Startup, StartupScore, Assignment, Interaction, UserRole } from "../types";
 
 const FPR1_LIST = [
-  "Anurag", "Simran", "Rameez", "Shubham", "Dhanush", 
-  "Rahul", "Jayvi", "Ishan", "Utkarsh", "Shivani", 
+  "Anurag", "Simran", "Rameez", "Shubham", "Dhanush",
+  "Rahul", "Jayvi", "Ishan", "Utkarsh", "Shivani",
   "Divya", "Nikhil", "Akash", "Mohit"
 ];
 
@@ -117,10 +117,10 @@ export default function DetailModal({
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const deltaX = moveEvent.clientX - startX;
       const newWidth = startWidth - deltaX;
-      
+
       const minW = Math.floor(window.innerWidth * 0.5);
       const maxW = Math.floor(window.innerWidth * 0.95);
-      
+
       setDrawerWidth(Math.max(minW, Math.min(maxW, newWidth)));
     };
 
@@ -188,22 +188,22 @@ export default function DetailModal({
           setRecentNews(data.news);
         }
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setNewsLoading(false));
   }, [startup.id]);
 
   const rawAnalysisRecord = (startup.startup_analyses && startup.startup_analyses.length > 0)
     ? startup.startup_analyses[0]
     : (startup.startup_analysis && startup.startup_analysis.length > 0)
-    ? startup.startup_analysis[0]
-    : null;
+      ? startup.startup_analysis[0]
+      : null;
 
   const analysis = rawAnalysisRecord
     ? (((rawAnalysisRecord as any).analysis_data || (rawAnalysisRecord as any).analysis_json) as any)
     : null;
 
   // Inline edit fields form states
-  const [editingField, setEditingField] = useState<"startup_name" | "website" | "linkedin" | "founders" | "description" | "products" | "funding" | "headquarters" | "founded" | "stage" | "status" | null>(null);
+  const [editingField, setEditingField] = useState<"startup_name" | "website" | "linkedin" | "founders" | "description" | "products" | "funding" | null>(null);
   const [nameInput, setNameInput] = useState(startup.startup_name || "");
   const [websiteInput, setWebsiteInput] = useState(startup.website || "");
   const [linkedinInput, setLinkedinInput] = useState(startup.linkedin_url || "");
@@ -213,12 +213,11 @@ export default function DetailModal({
   const [fundingSeriesInput, setFundingSeriesInput] = useState("");
   const [fundingAmountInput, setFundingAmountInput] = useState("");
   const [fundingInvestorsInput, setFundingInvestorsInput] = useState("");
-  const [headquartersInput, setHeadquartersInput] = useState(startup.headquarters || "");
-  const [foundedInput, setFoundedInput] = useState(startup.founded_year ? String(startup.founded_year) : "");
-  const [stageInput, setStageInput] = useState(startup.startup_stage || startup.funding_stage || "");
-  const [statusInput, setStatusInput] = useState(startup.startup_status || startup.status || "");
   const [savingField, setSavingField] = useState(false);
-  const [recheckingField, setRecheckingField] = useState(false);
+  const [recheckingField, setRecheckingField] = useState<any>(false);
+  const isFieldSpinning = (field: string) => {
+    return recheckingField === "all" || recheckingField === field || recheckingField === true;
+  };
   const [editError, setEditError] = useState<string | null>(null);
 
   // Sync inputs on startup update
@@ -227,26 +226,22 @@ export default function DetailModal({
     setWebsiteInput(startup.website || "");
     setLinkedinInput(startup.linkedin_url || "");
     setDescriptionInput(startup.ai_summary || startup.description || "");
-    
+
     const mIntel = startup.market_intelligence || analysis?.market_intelligence || {};
     const localProducts = mIntel.products || [];
     setProductsInput(JSON.stringify(localProducts, null, 2));
-    
+
     const initialFounders = analysis?.founders || (startup.founder_name ? [{ name: startup.founder_name, role: "Founder", brief_details: "", linkedin_url: startup.founder_linkedin_url }] : []);
     setFoundersInput(JSON.stringify(initialFounders, null, 2));
-    
+
     setFundingSeriesInput(startup.latest_round_stage || analysis?.funding_stages?.series || startup.funding_stage || "");
     setFundingAmountInput(startup.total_funding || analysis?.funding_stages?.amount || startup.funding_amount || "");
     setFundingInvestorsInput((analysis?.funding_stages?.investors || []).join(", "));
-    setHeadquartersInput(startup.headquarters || "");
-    setFoundedInput(startup.founded_year ? String(startup.founded_year) : "");
-    setStageInput(startup.startup_stage || startup.funding_stage || "");
-    setStatusInput(startup.startup_status || startup.status || "");
     setEditError(null);
     setEditingField(null);
   }, [startup, analysis]);
 
-  const handleSaveField = async (field: "startup_name" | "website" | "linkedin" | "founders" | "description" | "products" | "funding" | "headquarters" | "founded" | "stage" | "status") => {
+  const handleSaveField = async (field: "startup_name" | "website" | "linkedin" | "founders" | "description" | "products" | "funding") => {
     if (!onUpdateField) return;
     setSavingField(true);
     setEditError(null);
@@ -260,14 +255,6 @@ export default function DetailModal({
         value = linkedinInput.trim();
       } else if (field === "description") {
         value = descriptionInput.trim();
-      } else if (field === "headquarters") {
-        value = headquartersInput.trim();
-      } else if (field === "founded") {
-        value = foundedInput.trim();
-      } else if (field === "stage") {
-        value = stageInput.trim();
-      } else if (field === "status") {
-        value = statusInput.trim();
       } else if (field === "products") {
         try {
           value = JSON.parse(productsInput);
@@ -311,9 +298,9 @@ export default function DetailModal({
     }
   };
 
-  const handleRecheckFieldClick = async (field: "startup_name" | "website" | "linkedin" | "founders" | "description" | "products" | "funding" | "headquarters" | "founded" | "stage" | "status") => {
+  const handleRecheckFieldClick = async (field: string) => {
     if (!onRecheckField) return;
-    setRecheckingField(true);
+    setRecheckingField(field);
     setEditError(null);
     try {
       const res = await onRecheckField(startup.id, field);
@@ -328,14 +315,6 @@ export default function DetailModal({
         setLinkedinInput(res.data?.linkedin_company_url || "");
       } else if (field === "description") {
         setDescriptionInput(res.data?.company_profile || "");
-      } else if (field === "headquarters") {
-        setHeadquartersInput(res.data?.headquarters || "");
-      } else if (field === "founded") {
-        setFoundedInput(res.data?.founded_year ? String(res.data?.founded_year) : "");
-      } else if (field === "stage") {
-        setStageInput(res.data?.startup_stage || "");
-      } else if (field === "status") {
-        setStatusInput(res.data?.startup_status || "");
       } else if (field === "products") {
         setProductsInput(JSON.stringify(res.data?.products || [], null, 2));
       } else if (field === "founders") {
@@ -459,7 +438,7 @@ export default function DetailModal({
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-end z-50 animate-fade-in" id="startup-detail-drawer">
-      <div 
+      <div
         className="bg-slate-50 h-full flex flex-col shadow-2xl relative border-l border-slate-200 w-full md:w-auto"
         style={{
           width: window.innerWidth >= 768 ? `${drawerWidth}px` : "100vw"
@@ -480,18 +459,17 @@ export default function DetailModal({
                 {startup.sector}
               </span>
               {startup.priority_band && (
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                  startup.priority_band === "Critical" ? "bg-rose-600 text-white" :
-                  startup.priority_band === "High" ? "bg-orange-600 text-white" :
-                  startup.priority_band === "Medium" ? "bg-amber-500 text-slate-950" :
-                  "bg-slate-700 text-slate-300"
-                }`}>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${startup.priority_band === "Critical" ? "bg-rose-600 text-white" :
+                    startup.priority_band === "High" ? "bg-orange-600 text-white" :
+                      startup.priority_band === "Medium" ? "bg-amber-500 text-slate-950" :
+                        "bg-slate-700 text-slate-300"
+                  }`}>
                   {startup.priority_band} Priority
                 </span>
               )}
               <span className="text-[11px] text-slate-400 font-mono">ID: {startup.id}</span>
             </div>
-            
+
             {editingField === "startup_name" ? (
               <div className="flex items-center gap-2 mt-1">
                 <input
@@ -546,7 +524,7 @@ export default function DetailModal({
                     title="AI Recheck Name"
                     disabled={recheckingField}
                   >
-                    <RefreshCw size={14} className={recheckingField ? "animate-spin" : ""} />
+                    <RefreshCw size={14} className={isFieldSpinning("startup_name") ? "animate-spin" : ""} />
                   </button>
                 )}
               </h3>
@@ -562,33 +540,30 @@ export default function DetailModal({
         <div className="bg-slate-100 border-b border-slate-200 px-6 py-2.5 flex gap-2">
           <button
             onClick={() => setActiveTab("company")}
-            className={`px-4 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all flex items-center gap-2 ${
-              activeTab === "company"
+            className={`px-4 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all flex items-center gap-2 ${activeTab === "company"
                 ? "bg-slate-900 text-white shadow-sm"
                 : "text-slate-650 hover:bg-slate-200 hover:text-slate-900"
-            }`}
+              }`}
           >
             <Building size={14} />
             Company Intelligence
           </button>
           <button
             onClick={() => setActiveTab("icici")}
-            className={`px-4 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all flex items-center gap-2 ${
-              activeTab === "icici"
+            className={`px-4 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all flex items-center gap-2 ${activeTab === "icici"
                 ? "bg-slate-900 text-white shadow-sm"
                 : "text-slate-650 hover:bg-slate-200 hover:text-slate-900"
-            }`}
+              }`}
           >
             <Award size={14} />
             ICICI Relevance
           </button>
           <button
             onClick={() => setActiveTab("workspace")}
-            className={`px-4 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all flex items-center gap-2 ${
-              activeTab === "workspace"
+            className={`px-4 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all flex items-center gap-2 ${activeTab === "workspace"
                 ? "bg-slate-900 text-white shadow-sm"
                 : "text-slate-650 hover:bg-slate-200 hover:text-slate-900"
-            }`}
+              }`}
           >
             <ClipboardList size={14} />
             Engagement Workspace
@@ -597,7 +572,7 @@ export default function DetailModal({
 
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6" id="detail-scroller">
-          
+
           {/* AI enrichment banner if pending */}
           {(!startup.recommendation_score || startup.recommendation_score === 0) && onAnalyze && (
             <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl flex items-center justify-between gap-4">
@@ -615,7 +590,7 @@ export default function DetailModal({
                 className="bg-orange-500 hover:bg-orange-600 text-slate-950 text-xs font-black px-3.5 py-2 rounded-lg shadow-sm transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer border-0"
               >
                 {analyzing ? <RefreshCw className="animate-spin" size={13} /> : <Sparkles size={13} />}
-                Enrich Workspace
+                {analyzing ? "Enriching..." : "Enrich Workspace"}
               </button>
             </div>
           )}
@@ -623,7 +598,7 @@ export default function DetailModal({
           {/* TAB 1: COMPANY INTELLIGENCE */}
           {activeTab === "company" && (
             <div className="space-y-6 animate-fade-in text-left">
-              
+
               {/* Overview Section */}
               <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm space-y-4">
                 <h4 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-2">
@@ -653,7 +628,7 @@ export default function DetailModal({
                             title="AI Recheck Website"
                             disabled={recheckingField}
                           >
-                            <RefreshCw size={10} className={recheckingField ? "animate-spin" : ""} />
+                            <RefreshCw size={10} className={isFieldSpinning("website") ? "animate-spin" : ""} />
                           </button>
                         )}
                       </span>
@@ -712,7 +687,7 @@ export default function DetailModal({
                             title="AI Recheck LinkedIn"
                             disabled={recheckingField}
                           >
-                            <RefreshCw size={10} className={recheckingField ? "animate-spin" : ""} />
+                            <RefreshCw size={10} className={isFieldSpinning("linkedin") ? "animate-spin" : ""} />
                           </button>
                         )}
                       </span>
@@ -751,222 +726,66 @@ export default function DetailModal({
                   <div>
                     <p className="text-[10px] uppercase font-bold text-slate-400 flex items-center justify-between">
                       <span>Headquarters</span>
-                      <span className="flex gap-1">
-                        {onUpdateField && (
-                          <button
-                            onClick={() => {
-                              setHeadquartersInput(startup.headquarters || "");
-                              setEditingField("headquarters");
-                            }}
-                            className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
-                            title="Edit Headquarters"
-                          >
-                            <Pencil size={10} />
-                          </button>
-                        )}
-                        {onRecheckField && (
-                          <button
-                            onClick={() => handleRecheckFieldClick("headquarters")}
-                            className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
-                            title="AI Recheck Headquarters"
-                            disabled={recheckingField}
-                          >
-                            <RefreshCw size={10} className={recheckingField ? "animate-spin" : ""} />
-                          </button>
-                        )}
-                      </span>
+                      {onRecheckField && (
+                        <button
+                          onClick={() => handleRecheckFieldClick("headquarters")}
+                          className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0 ml-1"
+                          title="AI Recheck Headquarters"
+                          disabled={recheckingField}
+                        >
+                          <RefreshCw size={8} className={isFieldSpinning("headquarters") ? "animate-spin" : ""} />
+                        </button>
+                      )}
                     </p>
-                    {editingField === "headquarters" ? (
-                      <div className="flex flex-col gap-1 mt-1">
-                        <input
-                          type="text"
-                          value={headquartersInput}
-                          onChange={(e) => setHeadquartersInput(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 text-xs rounded p-1"
-                        />
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => handleSaveField("headquarters")}
-                            className="bg-indigo-600 hover:bg-indigo-705 text-white text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer border-0"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={() => setEditingField(null)}
-                            className="bg-slate-300 hover:bg-slate-400 text-slate-700 text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer border-0"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-xs font-bold text-slate-800 mt-1">{startup.headquarters || "India"}</p>
-                    )}
+                    <p className="text-xs font-bold text-slate-800 mt-1">{startup.headquarters || "India"}</p>
                   </div>
                   <div>
                     <p className="text-[10px] uppercase font-bold text-slate-400 flex items-center justify-between">
                       <span>Founded</span>
-                      <span className="flex gap-1">
-                        {onUpdateField && (
-                          <button
-                            onClick={() => {
-                              setFoundedInput(startup.founded_year ? String(startup.founded_year) : "");
-                              setEditingField("founded");
-                            }}
-                            className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
-                            title="Edit Founded Year"
-                          >
-                            <Pencil size={10} />
-                          </button>
-                        )}
-                        {onRecheckField && (
-                          <button
-                            onClick={() => handleRecheckFieldClick("founded")}
-                            className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
-                            title="AI Recheck Founded Year"
-                            disabled={recheckingField}
-                          >
-                            <RefreshCw size={10} className={recheckingField ? "animate-spin" : ""} />
-                          </button>
-                        )}
-                      </span>
+                      {onRecheckField && (
+                        <button
+                          onClick={() => handleRecheckFieldClick("founded")}
+                          className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0 ml-1"
+                          title="AI Recheck Founded Year"
+                          disabled={recheckingField}
+                        >
+                          <RefreshCw size={8} className={isFieldSpinning("founded") ? "animate-spin" : ""} />
+                        </button>
+                      )}
                     </p>
-                    {editingField === "founded" ? (
-                      <div className="flex flex-col gap-1 mt-1">
-                        <input
-                          type="text"
-                          value={foundedInput}
-                          onChange={(e) => setFoundedInput(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 text-xs rounded p-1"
-                        />
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => handleSaveField("founded")}
-                            className="bg-indigo-600 hover:bg-indigo-705 text-white text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer border-0"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={() => setEditingField(null)}
-                            className="bg-slate-300 hover:bg-slate-400 text-slate-700 text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer border-0"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-xs font-bold text-slate-800 mt-1">{startup.founded_year || "Unknown"}</p>
-                    )}
+                    <p className="text-xs font-bold text-slate-800 mt-1">{startup.founded_year || "Unknown"}</p>
                   </div>
                   <div>
                     <p className="text-[10px] uppercase font-bold text-slate-400 flex items-center justify-between">
                       <span>Stage</span>
-                      <span className="flex gap-1">
-                        {onUpdateField && (
-                          <button
-                            onClick={() => {
-                              setStageInput(startup.startup_stage || startup.funding_stage || "");
-                              setEditingField("stage");
-                            }}
-                            className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
-                            title="Edit Stage"
-                          >
-                            <Pencil size={10} />
-                          </button>
-                        )}
-                        {onRecheckField && (
-                          <button
-                            onClick={() => handleRecheckFieldClick("stage")}
-                            className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
-                            title="AI Recheck Stage"
-                            disabled={recheckingField}
-                          >
-                            <RefreshCw size={10} className={recheckingField ? "animate-spin" : ""} />
-                          </button>
-                        )}
-                      </span>
+                      {onRecheckField && (
+                        <button
+                          onClick={() => handleRecheckFieldClick("stage")}
+                          className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0 ml-1"
+                          title="AI Recheck Stage"
+                          disabled={recheckingField}
+                        >
+                          <RefreshCw size={8} className={isFieldSpinning("stage") ? "animate-spin" : ""} />
+                        </button>
+                      )}
                     </p>
-                    {editingField === "stage" ? (
-                      <div className="flex flex-col gap-1 mt-1">
-                        <input
-                          type="text"
-                          value={stageInput}
-                          onChange={(e) => setStageInput(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 text-xs rounded p-1"
-                        />
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => handleSaveField("stage")}
-                            className="bg-indigo-600 hover:bg-indigo-705 text-white text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer border-0"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={() => setEditingField(null)}
-                            className="bg-slate-300 hover:bg-slate-400 text-slate-700 text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer border-0"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-xs font-bold text-slate-800 mt-1">{startup.startup_stage || startup.funding_stage || "Early Stage"}</p>
-                    )}
+                    <p className="text-xs font-bold text-slate-800 mt-1">{startup.startup_stage || startup.funding_stage || "Early Stage"}</p>
                   </div>
                   <div>
                     <p className="text-[10px] uppercase font-bold text-slate-400 flex items-center justify-between">
                       <span>Status</span>
-                      <span className="flex gap-1">
-                        {onUpdateField && (
-                          <button
-                            onClick={() => {
-                              setStatusInput(startup.startup_status || startup.status || "");
-                              setEditingField("status");
-                            }}
-                            className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
-                            title="Edit Status"
-                          >
-                            <Pencil size={10} />
-                          </button>
-                        )}
-                        {onRecheckField && (
-                          <button
-                            onClick={() => handleRecheckFieldClick("status")}
-                            className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
-                            title="AI Recheck Status"
-                            disabled={recheckingField}
-                          >
-                            <RefreshCw size={10} className={recheckingField ? "animate-spin" : ""} />
-                          </button>
-                        )}
-                      </span>
+                      {onRecheckField && (
+                        <button
+                          onClick={() => handleRecheckFieldClick("status")}
+                          className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0 ml-1"
+                          title="AI Recheck Status"
+                          disabled={recheckingField}
+                        >
+                          <RefreshCw size={8} className={isFieldSpinning("status") ? "animate-spin" : ""} />
+                        </button>
+                      )}
                     </p>
-                    {editingField === "status" ? (
-                      <div className="flex flex-col gap-1 mt-1">
-                        <input
-                          type="text"
-                          value={statusInput}
-                          onChange={(e) => setStatusInput(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 text-xs rounded p-1"
-                        />
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => handleSaveField("status")}
-                            className="bg-indigo-600 hover:bg-indigo-705 text-white text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer border-0"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={() => setEditingField(null)}
-                            className="bg-slate-300 hover:bg-slate-400 text-slate-700 text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer border-0"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-xs font-bold text-slate-800 mt-1">{startup.startup_status || startup.status || "Screening"}</p>
-                    )}
+                    <p className="text-xs font-bold text-slate-800 mt-1">{startup.startup_status || startup.status || "Screening"}</p>
                   </div>
                 </div>
               </div>
@@ -996,7 +815,7 @@ export default function DetailModal({
                         title="AI Recheck Founders"
                         disabled={recheckingField}
                       >
-                        <RefreshCw size={12} className={recheckingField ? "animate-spin" : ""} />
+                        <RefreshCw size={12} className={isFieldSpinning("founders") ? "animate-spin" : ""} />
                       </button>
                     )}
                   </div>
@@ -1026,7 +845,7 @@ export default function DetailModal({
                       </button>
                     </div>
                   </div>
-                ) : analysis?.founders && analysis.founders.length > 0 ? (
+                ) : Array.isArray(analysis?.founders) && analysis.founders.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {analysis.founders.map((founder: any, idx: number) => (
                       <div key={idx} className="p-3 bg-slate-50 border border-slate-200/60 rounded-xl flex items-start gap-3 hover:bg-slate-100/60 transition-colors">
@@ -1072,8 +891,18 @@ export default function DetailModal({
 
               {/* Taxonomy Chips */}
               <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm space-y-4">
-                <h4 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-2">
-                  Industry Taxonomy Mapping
+                <h4 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-2 flex items-center justify-between">
+                  <span>Industry Taxonomy Mapping</span>
+                  {onRecheckField && (
+                    <button
+                      onClick={() => handleRecheckFieldClick("industry")}
+                      className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
+                      title="AI Recheck Taxonomy Mapping"
+                      disabled={recheckingField}
+                    >
+                      <RefreshCw size={10} className={isFieldSpinning("industry") ? "animate-spin" : ""} />
+                    </button>
+                  )}
                 </h4>
                 <div className="space-y-3">
                   <div className="flex flex-wrap gap-2 items-center">
@@ -1087,7 +916,7 @@ export default function DetailModal({
                     </div>
                   </div>
 
-                  {startup.business_models && startup.business_models.length > 0 && (
+                  {Array.isArray(startup.business_models) && startup.business_models.length > 0 && (
                     <div className="flex flex-wrap gap-2 items-center">
                       <span className="text-[10px] uppercase font-bold text-slate-400 w-24">Business Models:</span>
                       <div className="flex flex-wrap gap-1">
@@ -1100,7 +929,7 @@ export default function DetailModal({
                     </div>
                   )}
 
-                  {startup.tags && startup.tags.length > 0 && (
+                  {Array.isArray(startup.tags) && startup.tags.length > 0 && (
                     <div className="flex flex-wrap gap-2 items-start">
                       <span className="text-[10px] uppercase font-bold text-slate-400 w-24 mt-1">Focus Tags:</span>
                       <div className="flex flex-wrap gap-1 flex-1">
@@ -1113,7 +942,7 @@ export default function DetailModal({
                     </div>
                   )}
 
-                  {analysis?.classification?.tags && (
+                  {Array.isArray(analysis?.classification?.tags) && analysis.classification.tags.length > 0 && (
                     <div className="flex flex-wrap gap-2 items-start pt-2 border-t border-slate-50">
                       <span className="text-[10px] uppercase font-bold text-slate-400 w-24 mt-1">Tech Stack:</span>
                       <div className="flex flex-wrap gap-1 flex-1">
@@ -1152,7 +981,7 @@ export default function DetailModal({
                         title="AI Recheck Profile"
                         disabled={recheckingField}
                       >
-                        <RefreshCw size={12} className={recheckingField ? "animate-spin" : ""} />
+                        <RefreshCw size={12} className={isFieldSpinning("description") ? "animate-spin" : ""} />
                       </button>
                     )}
                   </div>
@@ -1212,7 +1041,7 @@ export default function DetailModal({
                         title="AI Recheck Products"
                         disabled={recheckingField}
                       >
-                        <RefreshCw size={12} className={recheckingField ? "animate-spin" : ""} />
+                        <RefreshCw size={12} className={isFieldSpinning("products") ? "animate-spin" : ""} />
                       </button>
                     )}
                   </div>
@@ -1255,7 +1084,7 @@ export default function DetailModal({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-150">
-                        {products.map((prod: any, i: number) => (
+                        {Array.isArray(products) && products.map((prod: any, i: number) => (
                           <tr key={i} className="hover:bg-slate-50/50">
                             <td className="px-4 py-2.5 font-bold text-slate-800">{prod.product_name}</td>
                             <td className="px-4 py-2.5 text-slate-660 font-medium">{prod.category}</td>
@@ -1274,8 +1103,18 @@ export default function DetailModal({
 
               {/* Competitive Benchmarking */}
               <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm space-y-4">
-                <h4 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-2">
-                  Competitive Benchmarking
+                <h4 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-2 flex items-center justify-between">
+                  <span>Competitive Benchmarking</span>
+                  {onRecheckField && (
+                    <button
+                      onClick={() => handleRecheckFieldClick("competitors")}
+                      className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
+                      title="AI Recheck Competitors"
+                      disabled={recheckingField}
+                    >
+                      <RefreshCw size={10} className={isFieldSpinning("competitors") ? "animate-spin" : ""} />
+                    </button>
+                  )}
                 </h4>
                 <div className="overflow-x-auto rounded-xl border border-slate-200">
                   <table className="w-full text-left text-xs border-collapse">
@@ -1296,7 +1135,7 @@ export default function DetailModal({
                         <td className="px-4 py-3 text-slate-700 italic font-medium">Subject Company / Integration Focus</td>
                       </tr>
                       {/* Competitors below */}
-                      {competitors.map((comp: any, i: number) => (
+                      {Array.isArray(competitors) && competitors.map((comp: any, i: number) => (
                         <tr key={i} className="hover:bg-slate-50/50">
                           <td className="px-4 py-2.5 font-bold text-slate-800">{comp.company_name}</td>
                           <td className="px-4 py-2.5 text-slate-600">{comp.category}</td>
@@ -1339,7 +1178,7 @@ export default function DetailModal({
                         title="AI Recheck Funding"
                         disabled={recheckingField}
                       >
-                        <RefreshCw size={12} className={recheckingField ? "animate-spin" : ""} />
+                        <RefreshCw size={12} className={isFieldSpinning("funding") ? "animate-spin" : ""} />
                       </button>
                     )}
                   </div>
@@ -1409,7 +1248,7 @@ export default function DetailModal({
                         <p className="text-sm font-black text-slate-800 mt-1 font-mono">{startup.latest_round_date || "N/A"}</p>
                       </div>
                     </div>
-                    {investors.length > 0 ? (
+                    {Array.isArray(investors) && investors.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         {investors.map((inv: any, i: number) => (
                           <div key={i} className="p-3 bg-slate-50 border border-slate-150 rounded-xl space-y-1 hover:border-emerald-250 transition-colors text-left">
@@ -1445,7 +1284,7 @@ export default function DetailModal({
                     <p className="text-lg font-black text-slate-850 mt-1 font-mono">{valuation.revenue_multiple || "N/A"}</p>
                   </div>
                 </div>
-                {valuation.comparable_companies && valuation.comparable_companies.length > 0 && (
+                {Array.isArray(valuation?.comparable_companies) && valuation.comparable_companies.length > 0 && (
                   <div className="p-3 bg-indigo-50/30 border border-indigo-100/50 rounded-xl flex items-center gap-2 flex-wrap">
                     <span className="text-[10px] text-indigo-750 font-bold uppercase">Comps:</span>
                     {valuation.comparable_companies.map((comp: string, i: number) => (
@@ -1483,14 +1322,7 @@ export default function DetailModal({
                               <h5 className="text-[11.5px] font-black text-slate-800 leading-snug">{newsItem.headline}</h5>
                               <span className="text-[9.5px] text-slate-400 font-mono whitespace-nowrap">{dateText}</span>
                             </div>
-                            {newsItem.summary && (
-                              <p 
-                                className="text-xs text-slate-550 leading-relaxed pt-0.5 line-clamp-3 text-ellipsis overflow-hidden"
-                                style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}
-                              >
-                                {newsItem.summary}
-                              </p>
-                            )}
+                            {newsItem.summary && <p className="text-xs text-slate-550 leading-relaxed pt-0.5">{newsItem.summary}</p>}
                             {newsItem.source_url && (
                               <a href={newsItem.source_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-[10px] text-blue-600 hover:text-blue-800 font-bold pt-1.5">
                                 {newsItem.source || "View details"} <ExternalLink size={8} />
@@ -1511,7 +1343,7 @@ export default function DetailModal({
           {/* TAB 2: ICICI INTELLIGENCE */}
           {activeTab === "icici" && (
             <div className="space-y-6 animate-fade-in text-left">
-              
+
               {/* Executive Recommendation Hero Block */}
               <div className="bg-slate-900 text-white p-5 rounded-2xl border-l-8 border-orange-500 shadow-md space-y-4">
                 <div className="flex items-center justify-between flex-wrap gap-2 border-b border-slate-800 pb-3">
@@ -1581,7 +1413,7 @@ export default function DetailModal({
                 </h4>
                 <div className="space-y-2.5">
                   {startup.relevance_mapping && typeof startup.relevance_mapping === "object" && !Array.isArray(startup.relevance_mapping) && Object.keys(startup.relevance_mapping).length > 0 ? (
-                    Object.entries(startup.relevance_mapping).map(([ent, description]) => (
+                    Object.entries(startup.relevance_mapping || {}).map(([ent, description]) => (
                       <div key={ent} className="p-3 bg-blue-50/40 border border-blue-100/60 rounded-xl flex flex-col md:flex-row md:items-start justify-between gap-3 text-left">
                         <strong className="text-xs text-blue-900 font-bold whitespace-nowrap min-w-[150px]">{ent}</strong>
                         <span className="text-xs text-slate-650 leading-relaxed font-medium">{description}</span>
@@ -1595,10 +1427,20 @@ export default function DetailModal({
 
               {/* Business Problems & Teams Mapped */}
               <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm space-y-4">
-                <h4 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-2">
-                  Business Problems Mapped
+                <h4 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-2 flex items-center justify-between">
+                  <span>Business Problems Mapped</span>
+                  {onRecheckField && (
+                    <button
+                      onClick={() => handleRecheckFieldClick("opportunity_mapping")}
+                      className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
+                      title="AI Recheck Business Opportunities"
+                      disabled={recheckingField}
+                    >
+                      <RefreshCw size={10} className={isFieldSpinning("opportunity_mapping") ? "animate-spin" : ""} />
+                    </button>
+                  )}
                 </h4>
-                {analysis?.bfsi_relevance?.use_cases && analysis.bfsi_relevance.use_cases.length > 0 ? (
+                {Array.isArray(analysis?.bfsi_relevance?.use_cases) && analysis.bfsi_relevance.use_cases.length > 0 ? (
                   <div className="space-y-3">
                     {analysis.bfsi_relevance.use_cases.map((uc: any, i: number) => (
                       <div key={i} className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-left space-y-1.5 hover:border-slate-300 transition-colors">
@@ -1617,7 +1459,7 @@ export default function DetailModal({
               </div>
 
               {/* Mapped Business Teams */}
-              {startup.matched_business_teams && startup.matched_business_teams.length > 0 && (
+              {Array.isArray(startup.matched_business_teams) && startup.matched_business_teams.length > 0 && (
                 <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm space-y-3">
                   <h4 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-2">
                     Mapped Business Teams
@@ -1655,7 +1497,7 @@ export default function DetailModal({
                     <h5 className="text-[10px] font-black text-emerald-700 uppercase tracking-wider flex items-center gap-1">
                       <ThumbsUp size={11} /> Positive Signals
                     </h5>
-                    {startup.positive_signals && startup.positive_signals.length > 0 ? (
+                    {Array.isArray(startup.positive_signals) && startup.positive_signals.length > 0 ? (
                       <ul className="space-y-2">
                         {startup.positive_signals.map((sig, i) => (
                           <li key={i} className="flex gap-2 items-start p-2 bg-emerald-50/50 border border-emerald-100/50 rounded-lg text-xs text-slate-700 leading-normal text-left">
@@ -1674,7 +1516,7 @@ export default function DetailModal({
                     <h5 className="text-[10px] font-black text-rose-700 uppercase tracking-wider flex items-center gap-1">
                       <ThumbsDown size={11} /> Negative Signals / Risks
                     </h5>
-                    {startup.negative_signals && startup.negative_signals.length > 0 ? (
+                    {Array.isArray(startup.negative_signals) && startup.negative_signals.length > 0 ? (
                       <ul className="space-y-2">
                         {startup.negative_signals.map((sig, i) => (
                           <li key={i} className="flex gap-2 items-start p-2 bg-rose-50/50 border border-rose-100/50 rounded-lg text-xs text-slate-700 leading-normal text-left">
@@ -1695,13 +1537,13 @@ export default function DetailModal({
           {/* TAB 3: ENGAGEMENT WORKSPACE */}
           {activeTab === "workspace" && (
             <div className="space-y-6 animate-fade-in text-left">
-              
+
               {/* Assignment Controls */}
               <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm space-y-4">
                 <h4 className="font-black text-slate-900 text-xs uppercase tracking-widest border-b border-slate-100 pb-2">
                   Owner Assignment &amp; Routing
                 </h4>
-                
+
                 {assignment ? (
                   <div className="space-y-4 text-left">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1774,7 +1616,7 @@ export default function DetailModal({
                           ))}
                         </select>
                       </div>
-                      
+
                       <div className="flex gap-2 items-center justify-between p-2.5 bg-slate-100 rounded-lg border border-slate-200 mt-5">
                         <div className="text-left">
                           <p className="text-[8.5px] uppercase font-bold text-slate-400 leading-tight">Assignment Score / Band</p>
@@ -1859,7 +1701,7 @@ export default function DetailModal({
                         <label className="text-[9.5px] font-bold text-slate-400 block mb-1">FPR1</label>
                         <select
                           value={newAssignment.assigned_to_fpr1}
-                          onChange={(e) => setNewAssignment({...newAssignment, assigned_to_fpr1: e.target.value})}
+                          onChange={(e) => setNewAssignment({ ...newAssignment, assigned_to_fpr1: e.target.value })}
                           className="w-full bg-slate-50 border border-slate-200 text-xs p-1.5 rounded-lg"
                         >
                           {FPR1_LIST.map((fpr) => (
@@ -1871,7 +1713,7 @@ export default function DetailModal({
                         <label className="text-[9.5px] font-bold text-slate-400 block mb-1">FPR2</label>
                         <select
                           value={newAssignment.assigned_to_fpr2}
-                          onChange={(e) => setNewAssignment({...newAssignment, assigned_to_fpr2: e.target.value})}
+                          onChange={(e) => setNewAssignment({ ...newAssignment, assigned_to_fpr2: e.target.value })}
                           className="w-full bg-slate-50 border border-slate-200 text-xs p-1.5 rounded-lg"
                         >
                           {FPR2_LIST.map((fpr) => (
@@ -1884,7 +1726,7 @@ export default function DetailModal({
                       <label className="text-[9.5px] font-bold text-slate-400 block mb-1">Sponsoring Entity</label>
                       <select
                         value={newAssignment.icici_entity}
-                        onChange={(e) => setNewAssignment({...newAssignment, icici_entity: e.target.value})}
+                        onChange={(e) => setNewAssignment({ ...newAssignment, icici_entity: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 text-xs p-1.5 rounded-lg"
                       >
                         {ENTITIES_LIST.map((ent) => (
@@ -1896,7 +1738,7 @@ export default function DetailModal({
                       <label className="text-[9.5px] font-bold text-slate-400 block mb-1">Business Team</label>
                       <select
                         value={newAssignment.business_team}
-                        onChange={(e) => setNewAssignment({...newAssignment, business_team: e.target.value})}
+                        onChange={(e) => setNewAssignment({ ...newAssignment, business_team: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 text-xs p-1.5 rounded-lg"
                       >
                         {TEAMS_LIST.map((team) => (
@@ -1910,7 +1752,7 @@ export default function DetailModal({
                         required
                         rows={2}
                         value={newAssignment.notes}
-                        onChange={(e) => setNewAssignment({...newAssignment, notes: e.target.value})}
+                        onChange={(e) => setNewAssignment({ ...newAssignment, notes: e.target.value })}
                         placeholder="Add special instructions, pilot roadmap targets..."
                         className="w-full bg-slate-50 border border-slate-200 text-xs p-1.5 rounded-lg focus:outline-none"
                       />
@@ -1981,7 +1823,7 @@ export default function DetailModal({
                       <label className="text-[9.5px] font-bold text-slate-400 block mb-1">Activity Type</label>
                       <select
                         value={newInteraction.type}
-                        onChange={(e) => setNewInteraction({...newInteraction, type: e.target.value})}
+                        onChange={(e) => setNewInteraction({ ...newInteraction, type: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 text-xs p-1.5 rounded-lg focus:outline-none"
                       >
                         <option value="Introduction">Introduction</option>
@@ -1997,7 +1839,7 @@ export default function DetailModal({
                         type="text"
                         placeholder="In progress / Approved"
                         value={newInteraction.next_steps}
-                        onChange={(e) => setNewInteraction({...newInteraction, next_steps: e.target.value})}
+                        onChange={(e) => setNewInteraction({ ...newInteraction, next_steps: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 text-xs p-1.5 rounded-lg focus:outline-none"
                       />
                     </div>
@@ -2008,7 +1850,7 @@ export default function DetailModal({
                       required
                       rows={2}
                       value={newInteraction.summary}
-                      onChange={(e) => setNewInteraction({...newInteraction, summary: e.target.value})}
+                      onChange={(e) => setNewInteraction({ ...newInteraction, summary: e.target.value })}
                       placeholder="Details of the discussion, integration roadblocks, feedback..."
                       className="w-full bg-slate-50 border border-slate-200 text-xs p-1.5 rounded-lg focus:outline-none"
                     />
@@ -2122,13 +1964,17 @@ export default function DetailModal({
                   type="button"
                   onClick={() => {
                     setAnalyzing(true);
-                    onAnalyze(startup.id, true).finally(() => setAnalyzing(false));
+                    setRecheckingField("all");
+                    onAnalyze(startup.id, true).finally(() => {
+                      setAnalyzing(false);
+                      setRecheckingField(null);
+                    });
                   }}
                   disabled={analyzing || statusLoading}
                   className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 hover:border-slate-400 text-xs font-bold px-3 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                 >
                   {analyzing ? <RefreshCw className="animate-spin" size={13} /> : <Sparkles size={13} />}
-                  <span>Re-Enrich AI</span>
+                  <span>{analyzing ? "Enriching..." : "Re-Enrich AI"}</span>
                 </button>
               )}
               <button

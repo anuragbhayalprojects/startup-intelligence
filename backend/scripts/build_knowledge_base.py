@@ -302,7 +302,14 @@ def build_configs():
         "funding_round": 6,
         "accelerator_participation": 5,
         "patent_activity": 5,
-        "awards_recognition": 3
+        "awards_recognition": 3,
+        "product_launch": 7,
+        "mergers_and_acquisitions": 8,
+        "technology_innovation": 7,
+        "valuation_increase": 8,
+        "general_expansion_or_growth": 5,
+        "positive_market_sentiment": 5,
+        "sustainability_initiative": 6
       },
       "negative_signals": {
         "leadership_exits": -5,
@@ -310,7 +317,13 @@ def build_configs():
         "regulatory_issues": -9,
         "product_failure": -8,
         "major_customer_loss": -8,
-        "data_breach": -10
+        "data_breach": -10,
+        "legal_dispute": -8,
+        "security_incident": -8,
+        "financial_losses": -6,
+        "valuation_markdown": -7,
+        "negative_market_sentiment": -4,
+        "operational_halts": -7
       },
       "bands": [
         {"min": -100, "max": 20, "label": "Weak Momentum"},
@@ -348,6 +361,18 @@ def build_configs():
     with open("backend/config/scoring_weights.json", "w") as f:
         json.dump(scoring_weights, f, indent=2)
     print("✅ Generated backend/config/scoring_weights.json")
+
+    # 9. Sync and extend configurations with master taxonomy
+    try:
+        import sys
+        sys.path.append(os.getcwd())
+        from backend.config.extend_configs import extend_opportunity_matrix, extend_business_problems
+        extend_opportunity_matrix()
+        extend_business_problems()
+        print("✅ Extended business_problems.json and opportunity_matrix.json successfully.")
+    except Exception as e:
+        print(f"⚠️ Failed to extend configs in build_configs: {e}")
+
 
 def clean_text(text):
     text = re.sub(r'\s+', ' ', text)

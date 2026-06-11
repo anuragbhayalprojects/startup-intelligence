@@ -14,7 +14,7 @@ except ImportError:
 
 PROMPT_PATH = os.path.join(os.path.dirname(__file__), "../prompts/detailed_analysis_prompt.txt")
 FUNDING_PROMPT_PATH = os.path.join(os.path.dirname(__file__), "../prompts/funding_extraction_prompt.txt")
-FUNDING_SOURCES_PATH = os.path.join(os.path.dirname(__file__), "../../docs/funding_sources.json")
+FUNDING_SOURCES_PATH = os.path.join(os.path.dirname(__file__), "../config/funding_sources.json")
 
 # --- Utility Functions ---
 
@@ -101,6 +101,7 @@ def discover_startup_names(headline: str, paragraphs) -> list:
         )
         response.raise_for_status()
         result_text = response.json().get("response", "")
+        print(f"DEBUG discover_startup_names LLM raw response: {result_text}")
         cleaned_json = clean_llm_response(result_text)
         data = json.loads(cleaned_json)
         if isinstance(data, list):
@@ -391,7 +392,7 @@ def analyze_startup(startup):
 
     # 5. Load Master Taxonomy Schema JSON
     try:
-        taxonomy_path = os.path.join(os.path.dirname(__file__), "../../docs/startup_sector_mappings.json")
+        taxonomy_path = os.path.join(os.path.dirname(__file__), "../config/startup_sector_mappings.json")
         with open(taxonomy_path, "r") as tf:
             taxonomy_data = json.load(tf)
         taxonomy_str = json.dumps(taxonomy_data, indent=2)

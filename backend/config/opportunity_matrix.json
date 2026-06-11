@@ -158,5 +158,1845 @@
     "HFC": 4,
     "Pru Life": 2,
     "AMC": 3
+  },
+  "FinTech": {
+    "Bank": 8,
+    "Lombard": 5,
+    "Securities": 6,
+    "HFC": 5,
+    "Pru Life": 5,
+    "AMC": 6
+  },
+  "InsurTech": {
+    "Bank": 3,
+    "Lombard": 10,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 9,
+    "AMC": 1
+  },
+  "Capital Markets Tech": {
+    "Bank": 4,
+    "Lombard": 2,
+    "Securities": 10,
+    "HFC": 1,
+    "Pru Life": 5,
+    "AMC": 9
+  },
+  "Generative AI": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "Agentic AI": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "AI Infrastructure": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "AI Applications": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "SaaS": {
+    "Bank": 9,
+    "Lombard": 6,
+    "Securities": 6,
+    "HFC": 5,
+    "Pru Life": 6,
+    "AMC": 5
+  },
+  "Productivity": {
+    "Bank": 9,
+    "Lombard": 6,
+    "Securities": 6,
+    "HFC": 5,
+    "Pru Life": 6,
+    "AMC": 5
+  },
+  "Future of Work": {
+    "Bank": 9,
+    "Lombard": 6,
+    "Securities": 6,
+    "HFC": 5,
+    "Pru Life": 6,
+    "AMC": 5
+  },
+  "MedTech": {
+    "Bank": 3,
+    "Lombard": 9,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 8,
+    "AMC": 1
+  },
+  "Biotechnology": {
+    "Bank": 3,
+    "Lombard": 9,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 8,
+    "AMC": 1
+  },
+  "EdTech": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Corporate Learning": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "E-commerce": {
+    "Bank": 6,
+    "Lombard": 3,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "RetailTech": {
+    "Bank": 6,
+    "Lombard": 3,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "D2C Brands": {
+    "Bank": 6,
+    "Lombard": 3,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Social Platforms": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Creator Economy": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Gaming": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "TravelTech": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "ConstructionTech": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 1,
+    "HFC": 10,
+    "Pru Life": 1,
+    "AMC": 1
+  },
+  "LogisticsTech": {
+    "Bank": 7,
+    "Lombard": 5,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Mobility": {
+    "Bank": 8,
+    "Lombard": 8,
+    "Securities": 2,
+    "HFC": 3,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "ManufacturingTech": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "ClimateTech": {
+    "Bank": 6,
+    "Lombard": 9,
+    "Securities": 2,
+    "HFC": 4,
+    "Pru Life": 2,
+    "AMC": 3
+  },
+  "EnergyTech": {
+    "Bank": 6,
+    "Lombard": 9,
+    "Securities": 2,
+    "HFC": 4,
+    "Pru Life": 2,
+    "AMC": 3
+  },
+  "Agritech": {
+    "Bank": 5,
+    "Lombard": 8,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 2,
+    "AMC": 1
+  },
+  "FoodTech": {
+    "Bank": 5,
+    "Lombard": 8,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 2,
+    "AMC": 1
+  },
+  "Telecom Infrastructure": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "IoT": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "GovTech": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "DefenseTech": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "SpaceTech": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Robotics": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Quantum Computing": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Semiconductor": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Drones": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Digital Banking": {
+    "Bank": 8,
+    "Lombard": 5,
+    "Securities": 6,
+    "HFC": 5,
+    "Pru Life": 5,
+    "AMC": 6
+  },
+  "Neobanking": {
+    "Bank": 8,
+    "Lombard": 5,
+    "Securities": 6,
+    "HFC": 5,
+    "Pru Life": 5,
+    "AMC": 6
+  },
+  "Lending": {
+    "Bank": 10,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 8,
+    "Pru Life": 1,
+    "AMC": 1
+  },
+  "Consumer Lending": {
+    "Bank": 10,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 8,
+    "Pru Life": 1,
+    "AMC": 1
+  },
+  "MSME Lending": {
+    "Bank": 10,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 8,
+    "Pru Life": 1,
+    "AMC": 1
+  },
+  "Mortgage Tech": {
+    "Bank": 8,
+    "Lombard": 5,
+    "Securities": 6,
+    "HFC": 5,
+    "Pru Life": 5,
+    "AMC": 6
+  },
+  "InvestmentTech": {
+    "Bank": 6,
+    "Lombard": 2,
+    "Securities": 10,
+    "HFC": 1,
+    "Pru Life": 7,
+    "AMC": 10
+  },
+  "Stock Broking": {
+    "Bank": 6,
+    "Lombard": 2,
+    "Securities": 10,
+    "HFC": 1,
+    "Pru Life": 7,
+    "AMC": 10
+  },
+  "Payments": {
+    "Bank": 10,
+    "Lombard": 4,
+    "Securities": 4,
+    "HFC": 3,
+    "Pru Life": 3,
+    "AMC": 3
+  },
+  "UPI Infrastructure": {
+    "Bank": 10,
+    "Lombard": 4,
+    "Securities": 4,
+    "HFC": 3,
+    "Pru Life": 3,
+    "AMC": 3
+  },
+  "Cross-border Payments": {
+    "Bank": 10,
+    "Lombard": 4,
+    "Securities": 4,
+    "HFC": 3,
+    "Pru Life": 3,
+    "AMC": 3
+  },
+  "Embedded Finance": {
+    "Bank": 10,
+    "Lombard": 4,
+    "Securities": 4,
+    "HFC": 3,
+    "Pru Life": 3,
+    "AMC": 3
+  },
+  "TreasuryTech": {
+    "Bank": 6,
+    "Lombard": 2,
+    "Securities": 10,
+    "HFC": 1,
+    "Pru Life": 7,
+    "AMC": 10
+  },
+  "TaxTech": {
+    "Bank": 6,
+    "Lombard": 2,
+    "Securities": 10,
+    "HFC": 1,
+    "Pru Life": 7,
+    "AMC": 10
+  },
+  "Credit Infrastructure": {
+    "Bank": 10,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 8,
+    "Pru Life": 1,
+    "AMC": 1
+  },
+  "Collections": {
+    "Bank": 10,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 8,
+    "Pru Life": 1,
+    "AMC": 1
+  },
+  "Digital Insurance": {
+    "Bank": 3,
+    "Lombard": 10,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 9,
+    "AMC": 1
+  },
+  "Insurance Distribution": {
+    "Bank": 3,
+    "Lombard": 10,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 9,
+    "AMC": 1
+  },
+  "Insurance Infrastructure": {
+    "Bank": 3,
+    "Lombard": 10,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 9,
+    "AMC": 1
+  },
+  "Risk Analytics": {
+    "Bank": 3,
+    "Lombard": 10,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 9,
+    "AMC": 1
+  },
+  "Trading Infrastructure": {
+    "Bank": 4,
+    "Lombard": 2,
+    "Securities": 10,
+    "HFC": 1,
+    "Pru Life": 5,
+    "AMC": 9
+  },
+  "Market Data": {
+    "Bank": 4,
+    "Lombard": 2,
+    "Securities": 10,
+    "HFC": 1,
+    "Pru Life": 5,
+    "AMC": 9
+  },
+  "Investment Platforms": {
+    "Bank": 4,
+    "Lombard": 2,
+    "Securities": 10,
+    "HFC": 1,
+    "Pru Life": 5,
+    "AMC": 9
+  },
+  "Wealth Infrastructure": {
+    "Bank": 4,
+    "Lombard": 2,
+    "Securities": 10,
+    "HFC": 1,
+    "Pru Life": 5,
+    "AMC": 9
+  },
+  "Alternative Investments": {
+    "Bank": 4,
+    "Lombard": 2,
+    "Securities": 10,
+    "HFC": 1,
+    "Pru Life": 5,
+    "AMC": 9
+  },
+  "Text Generation": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "Image Generation": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "Video Generation": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "Multimodal AI": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "Customer Service Agents": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "Sales Agents": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "Coding Agents": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "Workflow Agents": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "Knowledge Agents": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "LLM Platforms": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "Vector Databases": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "Model Hosting": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "AI Observability": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "AI Security": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "AI Healthcare": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "AI FinTech": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "AI HRTech": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "AI LegalTech": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "AI SalesTech": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "AI MarketingTech": {
+    "Bank": 10,
+    "Lombard": 8,
+    "Securities": 8,
+    "HFC": 7,
+    "Pru Life": 8,
+    "AMC": 7
+  },
+  "CRM": {
+    "Bank": 9,
+    "Lombard": 6,
+    "Securities": 6,
+    "HFC": 5,
+    "Pru Life": 6,
+    "AMC": 5
+  },
+  "ERP": {
+    "Bank": 9,
+    "Lombard": 6,
+    "Securities": 6,
+    "HFC": 5,
+    "Pru Life": 6,
+    "AMC": 5
+  },
+  "Accounting": {
+    "Bank": 9,
+    "Lombard": 6,
+    "Securities": 6,
+    "HFC": 5,
+    "Pru Life": 6,
+    "AMC": 5
+  },
+  "Billing": {
+    "Bank": 9,
+    "Lombard": 6,
+    "Securities": 6,
+    "HFC": 5,
+    "Pru Life": 6,
+    "AMC": 5
+  },
+  "Procurement": {
+    "Bank": 9,
+    "Lombard": 6,
+    "Securities": 6,
+    "HFC": 5,
+    "Pru Life": 6,
+    "AMC": 5
+  },
+  "Compliance": {
+    "Bank": 9,
+    "Lombard": 6,
+    "Securities": 6,
+    "HFC": 5,
+    "Pru Life": 6,
+    "AMC": 5
+  },
+  "Workflow Automation": {
+    "Bank": 9,
+    "Lombard": 6,
+    "Securities": 6,
+    "HFC": 5,
+    "Pru Life": 6,
+    "AMC": 5
+  },
+  "Project Management": {
+    "Bank": 9,
+    "Lombard": 6,
+    "Securities": 6,
+    "HFC": 5,
+    "Pru Life": 6,
+    "AMC": 5
+  },
+  "Collaboration": {
+    "Bank": 9,
+    "Lombard": 6,
+    "Securities": 6,
+    "HFC": 5,
+    "Pru Life": 6,
+    "AMC": 5
+  },
+  "Team Communication": {
+    "Bank": 9,
+    "Lombard": 6,
+    "Securities": 6,
+    "HFC": 5,
+    "Pru Life": 6,
+    "AMC": 5
+  },
+  "Knowledge Management": {
+    "Bank": 9,
+    "Lombard": 6,
+    "Securities": 6,
+    "HFC": 5,
+    "Pru Life": 6,
+    "AMC": 5
+  },
+  "Documentation": {
+    "Bank": 9,
+    "Lombard": 6,
+    "Securities": 6,
+    "HFC": 5,
+    "Pru Life": 6,
+    "AMC": 5
+  },
+  "Workforce Productivity": {
+    "Bank": 9,
+    "Lombard": 6,
+    "Securities": 6,
+    "HFC": 5,
+    "Pru Life": 6,
+    "AMC": 5
+  },
+  "Remote Work": {
+    "Bank": 9,
+    "Lombard": 6,
+    "Securities": 6,
+    "HFC": 5,
+    "Pru Life": 6,
+    "AMC": 5
+  },
+  "Gig Economy": {
+    "Bank": 9,
+    "Lombard": 6,
+    "Securities": 6,
+    "HFC": 5,
+    "Pru Life": 6,
+    "AMC": 5
+  },
+  "Freelance Platforms": {
+    "Bank": 9,
+    "Lombard": 6,
+    "Securities": 6,
+    "HFC": 5,
+    "Pru Life": 6,
+    "AMC": 5
+  },
+  "Identity Security": {
+    "Bank": 10,
+    "Lombard": 10,
+    "Securities": 10,
+    "HFC": 9,
+    "Pru Life": 10,
+    "AMC": 9
+  },
+  "Endpoint Security": {
+    "Bank": 10,
+    "Lombard": 10,
+    "Securities": 10,
+    "HFC": 9,
+    "Pru Life": 10,
+    "AMC": 9
+  },
+  "Cloud Security": {
+    "Bank": 10,
+    "Lombard": 10,
+    "Securities": 10,
+    "HFC": 9,
+    "Pru Life": 10,
+    "AMC": 9
+  },
+  "Application Security": {
+    "Bank": 10,
+    "Lombard": 10,
+    "Securities": 10,
+    "HFC": 9,
+    "Pru Life": 10,
+    "AMC": 9
+  },
+  "Threat Intelligence": {
+    "Bank": 10,
+    "Lombard": 10,
+    "Securities": 10,
+    "HFC": 9,
+    "Pru Life": 10,
+    "AMC": 9
+  },
+  "Fraud Prevention": {
+    "Bank": 10,
+    "Lombard": 10,
+    "Securities": 10,
+    "HFC": 9,
+    "Pru Life": 10,
+    "AMC": 9
+  },
+  "Governance Risk Compliance": {
+    "Bank": 10,
+    "Lombard": 10,
+    "Securities": 10,
+    "HFC": 9,
+    "Pru Life": 10,
+    "AMC": 9
+  },
+  "Data Security": {
+    "Bank": 10,
+    "Lombard": 10,
+    "Securities": 10,
+    "HFC": 9,
+    "Pru Life": 10,
+    "AMC": 9
+  },
+  "Network Security": {
+    "Bank": 10,
+    "Lombard": 10,
+    "Securities": 10,
+    "HFC": 9,
+    "Pru Life": 10,
+    "AMC": 9
+  },
+  "Zero Trust": {
+    "Bank": 10,
+    "Lombard": 10,
+    "Securities": 10,
+    "HFC": 9,
+    "Pru Life": 10,
+    "AMC": 9
+  },
+  "Telemedicine": {
+    "Bank": 3,
+    "Lombard": 9,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 8,
+    "AMC": 1
+  },
+  "Diagnostics": {
+    "Bank": 3,
+    "Lombard": 9,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 8,
+    "AMC": 1
+  },
+  "Hospital Management": {
+    "Bank": 3,
+    "Lombard": 9,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 8,
+    "AMC": 1
+  },
+  "Healthcare SaaS": {
+    "Bank": 3,
+    "Lombard": 9,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 8,
+    "AMC": 1
+  },
+  "Mental Health": {
+    "Bank": 3,
+    "Lombard": 9,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 8,
+    "AMC": 1
+  },
+  "Women's Health": {
+    "Bank": 3,
+    "Lombard": 9,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 8,
+    "AMC": 1
+  },
+  "Wellness": {
+    "Bank": 3,
+    "Lombard": 9,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 8,
+    "AMC": 1
+  },
+  "Healthcare AI": {
+    "Bank": 3,
+    "Lombard": 9,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 8,
+    "AMC": 1
+  },
+  "Medical Devices": {
+    "Bank": 3,
+    "Lombard": 9,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 8,
+    "AMC": 1
+  },
+  "Remote Monitoring": {
+    "Bank": 3,
+    "Lombard": 9,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 8,
+    "AMC": 1
+  },
+  "Digital Therapeutics": {
+    "Bank": 3,
+    "Lombard": 9,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 8,
+    "AMC": 1
+  },
+  "Genomics": {
+    "Bank": 3,
+    "Lombard": 9,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 8,
+    "AMC": 1
+  },
+  "Drug Discovery": {
+    "Bank": 3,
+    "Lombard": 9,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 8,
+    "AMC": 1
+  },
+  "Synthetic Biology": {
+    "Bank": 3,
+    "Lombard": 9,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 8,
+    "AMC": 1
+  },
+  "Bioinformatics": {
+    "Bank": 3,
+    "Lombard": 9,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 8,
+    "AMC": 1
+  },
+  "K12": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Higher Education": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Test Preparation": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Upskilling": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Vocational Training": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Language Learning": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "LMS": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Employee Training": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Leadership Development": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Marketplaces": {
+    "Bank": 6,
+    "Lombard": 3,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "B2B Commerce": {
+    "Bank": 6,
+    "Lombard": 3,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Social Commerce": {
+    "Bank": 6,
+    "Lombard": 3,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Quick Commerce": {
+    "Bank": 6,
+    "Lombard": 3,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Cross-border Commerce": {
+    "Bank": 6,
+    "Lombard": 3,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "POS": {
+    "Bank": 6,
+    "Lombard": 3,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Inventory Management": {
+    "Bank": 6,
+    "Lombard": 3,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Retail Analytics": {
+    "Bank": 6,
+    "Lombard": 3,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Loyalty Platforms": {
+    "Bank": 6,
+    "Lombard": 3,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Fashion": {
+    "Bank": 6,
+    "Lombard": 3,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Beauty": {
+    "Bank": 6,
+    "Lombard": 3,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Personal Care": {
+    "Bank": 6,
+    "Lombard": 3,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Home & Living": {
+    "Bank": 6,
+    "Lombard": 3,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Pet Care": {
+    "Bank": 6,
+    "Lombard": 3,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Social Networks": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Communities": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Dating Platforms": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Creator Tools": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Influencer Platforms": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Content Monetization": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Mobile Gaming": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Esports": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Gaming Infrastructure": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Booking Platforms": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Corporate Travel": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Hospitality Tech": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Property Marketplace": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 1,
+    "HFC": 10,
+    "Pru Life": 1,
+    "AMC": 1
+  },
+  "Brokerage Tech": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 1,
+    "HFC": 10,
+    "Pru Life": 1,
+    "AMC": 1
+  },
+  "Rental Platforms": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 1,
+    "HFC": 10,
+    "Pru Life": 1,
+    "AMC": 1
+  },
+  "Property Management": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 1,
+    "HFC": 10,
+    "Pru Life": 1,
+    "AMC": 1
+  },
+  "Smart Buildings": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 1,
+    "HFC": 10,
+    "Pru Life": 1,
+    "AMC": 1
+  },
+  "Facility Management": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 1,
+    "HFC": 10,
+    "Pru Life": 1,
+    "AMC": 1
+  },
+  "Construction Automation": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 1,
+    "HFC": 10,
+    "Pru Life": 1,
+    "AMC": 1
+  },
+  "FreightTech": {
+    "Bank": 7,
+    "Lombard": 5,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "WarehouseTech": {
+    "Bank": 7,
+    "Lombard": 5,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Supply Chain Visibility": {
+    "Bank": 7,
+    "Lombard": 5,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Fleet Management": {
+    "Bank": 7,
+    "Lombard": 5,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "EV Platforms": {
+    "Bank": 8,
+    "Lombard": 8,
+    "Securities": 2,
+    "HFC": 3,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "EV Charging": {
+    "Bank": 8,
+    "Lombard": 8,
+    "Securities": 2,
+    "HFC": 3,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Shared Mobility": {
+    "Bank": 8,
+    "Lombard": 8,
+    "Securities": 2,
+    "HFC": 3,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Connected Vehicles": {
+    "Bank": 8,
+    "Lombard": 8,
+    "Securities": 2,
+    "HFC": 3,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Industry 4.0": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Smart Factory": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Industrial IoT": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Carbon Management": {
+    "Bank": 6,
+    "Lombard": 9,
+    "Securities": 2,
+    "HFC": 4,
+    "Pru Life": 2,
+    "AMC": 3
+  },
+  "ESG": {
+    "Bank": 6,
+    "Lombard": 9,
+    "Securities": 2,
+    "HFC": 4,
+    "Pru Life": 2,
+    "AMC": 3
+  },
+  "Circular Economy": {
+    "Bank": 6,
+    "Lombard": 9,
+    "Securities": 2,
+    "HFC": 4,
+    "Pru Life": 2,
+    "AMC": 3
+  },
+  "Waste Management": {
+    "Bank": 6,
+    "Lombard": 9,
+    "Securities": 2,
+    "HFC": 4,
+    "Pru Life": 2,
+    "AMC": 3
+  },
+  "Solar": {
+    "Bank": 6,
+    "Lombard": 9,
+    "Securities": 2,
+    "HFC": 4,
+    "Pru Life": 2,
+    "AMC": 3
+  },
+  "Wind": {
+    "Bank": 6,
+    "Lombard": 9,
+    "Securities": 2,
+    "HFC": 4,
+    "Pru Life": 2,
+    "AMC": 3
+  },
+  "Energy Storage": {
+    "Bank": 6,
+    "Lombard": 9,
+    "Securities": 2,
+    "HFC": 4,
+    "Pru Life": 2,
+    "AMC": 3
+  },
+  "Grid Technology": {
+    "Bank": 6,
+    "Lombard": 9,
+    "Securities": 2,
+    "HFC": 4,
+    "Pru Life": 2,
+    "AMC": 3
+  },
+  "Precision Agriculture": {
+    "Bank": 5,
+    "Lombard": 8,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 2,
+    "AMC": 1
+  },
+  "Farm Management": {
+    "Bank": 5,
+    "Lombard": 8,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 2,
+    "AMC": 1
+  },
+  "Agri Finance": {
+    "Bank": 9,
+    "Lombard": 7,
+    "Securities": 1,
+    "HFC": 2,
+    "Pru Life": 1,
+    "AMC": 1
+  },
+  "Farm Inputs": {
+    "Bank": 5,
+    "Lombard": 8,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 2,
+    "AMC": 1
+  },
+  "Food Delivery": {
+    "Bank": 5,
+    "Lombard": 8,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 2,
+    "AMC": 1
+  },
+  "Cloud Kitchens": {
+    "Bank": 5,
+    "Lombard": 8,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 2,
+    "AMC": 1
+  },
+  "Restaurant SaaS": {
+    "Bank": 5,
+    "Lombard": 8,
+    "Securities": 1,
+    "HFC": 1,
+    "Pru Life": 2,
+    "AMC": 1
+  },
+  "Connectivity Platforms": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "5G Infrastructure": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Network Intelligence": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Smart Cities": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Connected Devices": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Digital Governance": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Citizen Services": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Surveillance": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Battlefield Systems": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Defense AI": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Satellites": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Launch Systems": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Earth Observation": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Industrial Robotics": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Service Robotics": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Autonomous Systems": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Quantum Hardware": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Quantum Software": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Chip Design": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Semiconductor Manufacturing": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Commercial Drones": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Defense Drones": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Drone Analytics": {
+    "Bank": 3,
+    "Lombard": 2,
+    "Securities": 2,
+    "HFC": 2,
+    "Pru Life": 2,
+    "AMC": 2
+  },
+  "Financial Services": {
+    "Bank": 5,
+    "Lombard": 5,
+    "Securities": 5,
+    "HFC": 5,
+    "Pru Life": 5,
+    "AMC": 5
+  },
+  "Artificial Intelligence": {
+    "Bank": 5,
+    "Lombard": 5,
+    "Securities": 5,
+    "HFC": 5,
+    "Pru Life": 5,
+    "AMC": 5
+  },
+  "Enterprise Software": {
+    "Bank": 5,
+    "Lombard": 5,
+    "Securities": 5,
+    "HFC": 5,
+    "Pru Life": 5,
+    "AMC": 5
+  },
+  "Healthcare & Life Sciences": {
+    "Bank": 5,
+    "Lombard": 5,
+    "Securities": 5,
+    "HFC": 5,
+    "Pru Life": 5,
+    "AMC": 5
+  },
+  "Education": {
+    "Bank": 5,
+    "Lombard": 5,
+    "Securities": 5,
+    "HFC": 5,
+    "Pru Life": 5,
+    "AMC": 5
+  },
+  "Commerce & Retail": {
+    "Bank": 5,
+    "Lombard": 5,
+    "Securities": 5,
+    "HFC": 5,
+    "Pru Life": 5,
+    "AMC": 5
+  },
+  "Consumer Internet": {
+    "Bank": 5,
+    "Lombard": 5,
+    "Securities": 5,
+    "HFC": 5,
+    "Pru Life": 5,
+    "AMC": 5
+  },
+  "Real Estate & Construction": {
+    "Bank": 5,
+    "Lombard": 5,
+    "Securities": 5,
+    "HFC": 5,
+    "Pru Life": 5,
+    "AMC": 5
+  },
+  "Transportation & Logistics": {
+    "Bank": 5,
+    "Lombard": 5,
+    "Securities": 5,
+    "HFC": 5,
+    "Pru Life": 5,
+    "AMC": 5
+  },
+  "Manufacturing & Industrial": {
+    "Bank": 5,
+    "Lombard": 5,
+    "Securities": 5,
+    "HFC": 5,
+    "Pru Life": 5,
+    "AMC": 5
+  },
+  "Energy & Sustainability": {
+    "Bank": 5,
+    "Lombard": 5,
+    "Securities": 5,
+    "HFC": 5,
+    "Pru Life": 5,
+    "AMC": 5
+  },
+  "Agriculture & Food": {
+    "Bank": 5,
+    "Lombard": 5,
+    "Securities": 5,
+    "HFC": 5,
+    "Pru Life": 5,
+    "AMC": 5
+  },
+  "Telecom & Connectivity": {
+    "Bank": 5,
+    "Lombard": 5,
+    "Securities": 5,
+    "HFC": 5,
+    "Pru Life": 5,
+    "AMC": 5
+  },
+  "Government & Defense": {
+    "Bank": 5,
+    "Lombard": 5,
+    "Securities": 5,
+    "HFC": 5,
+    "Pru Life": 5,
+    "AMC": 5
+  },
+  "DeepTech": {
+    "Bank": 5,
+    "Lombard": 5,
+    "Securities": 5,
+    "HFC": 5,
+    "Pru Life": 5,
+    "AMC": 5
   }
 }

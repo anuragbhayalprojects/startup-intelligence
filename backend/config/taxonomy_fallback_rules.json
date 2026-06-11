@@ -1,0 +1,76 @@
+{
+  "fallback_rules": [
+    {
+      "keywords": ["food", "kitchen", "restaurant", "delivery", "grocery", "quick commerce", "quick-commerce", "meals"],
+      "industry": "Agriculture & Food",
+      "sector": "FoodTech",
+      "subsector": "Food Delivery"
+    },
+    {
+      "keywords": ["ev", "mobility", "vehicle", "electric two-wheeler", "car", "cab", "ride-hailing", "scooter", "charging", "battery", "logistics", "freight", "warehouse", "supply chain", "fleet", "transportation"],
+      "industry": "Transportation & Logistics",
+      "sector": "Mobility",
+      "subsector": "EV Platforms"
+    },
+    {
+      "keywords": ["space", "satellite", "rocket", "aerospace", "launch system"],
+      "industry": "DeepTech",
+      "sector": "SpaceTech",
+      "subsector": "Satellites"
+    },
+    {
+      "keywords": ["commerce", "d2c", "shopping", "marketplace", "retail", "store", "shop", "fashion", "beauty", "cosmetics"],
+      "industry": "Commerce & Retail",
+      "sector": "E-commerce",
+      "subsector": "Marketplaces"
+    },
+    {
+      "keywords": ["health", "diagnostic", "telemedicine", "mental", "clinical", "medtech", "biotech", "doctor", "patient", "medical", "wellness", "hospital"],
+      "industry": "Healthcare & Life Sciences",
+      "sector": "HealthTech",
+      "subsector": "Telemedicine"
+    },
+    {
+      "keywords": ["edtech", "learning", "upskilling", "test prep", "education", "course", "student", "school", "classroom", "k12"],
+      "industry": "Education",
+      "sector": "EdTech",
+      "subsector": "Upskilling"
+    },
+    {
+      "keywords": ["cyber", "security", "threat", "identity", "protection", "breach", "hack", "firewall", "zero trust"],
+      "industry": "Cybersecurity",
+      "sector": "Cybersecurity",
+      "subsector": "Cloud Security"
+    },
+    {
+      "keywords": ["ai", "generative", "agent", "llm", "intelligence", "gpt", "rag", "agentic", "neural", "deep learning", "machine learning"],
+      "industry": "Artificial Intelligence",
+      "sector": "Agentic AI",
+      "subsector": "Workflow Agents"
+    },
+    {
+      "keywords": ["coworking", "co-working", "workspace", "real estate", "office", "property", "rental", "brokerage", "proptech", "smart building"],
+      "industry": "Real Estate & Construction",
+      "sector": "PropTech",
+      "subsector": "Property Marketplace"
+    },
+    {
+      "keywords": ["saas", "software", "enterprise", "cloud", "erp", "crm", "workflow", "automation", "billing", "accounting", "compliance"],
+      "industry": "Enterprise Software",
+      "sector": "SaaS",
+      "subsector": "Workflow Automation"
+    },
+    {
+      "keywords": ["gaming", "game", "esports", "social network", "creator", "influencer", "content", "travel", "booking", "hotel", "flight"],
+      "industry": "Consumer Internet",
+      "sector": "Gaming",
+      "subsector": "Mobile Gaming"
+    },
+    {
+      "keywords": ["lending", "credit", "payment", "bank", "wealth", "insurtech", "insurance", "upi", "fintech", "finance", "card", "pay", "stock", "broker", "capital market", "loan", "loans"],
+      "industry": "Financial Services",
+      "sector": "FinTech",
+      "subsector": "Lending"
+    }
+  ]
+}

@@ -28,7 +28,14 @@ class SignalAgent(BaseAgent):
                     "funding_round": 6,
                     "accelerator_participation": 5,
                     "patent_activity": 5,
-                    "awards_recognition": 3
+                    "awards_recognition": 3,
+                    "product_launch": 7,
+                    "mergers_and_acquisitions": 8,
+                    "technology_innovation": 7,
+                    "valuation_increase": 8,
+                    "general_expansion_or_growth": 5,
+                    "positive_market_sentiment": 5,
+                    "sustainability_initiative": 6
                 },
                 "negative_signals": {
                     "leadership_exits": -5,
@@ -36,7 +43,13 @@ class SignalAgent(BaseAgent):
                     "regulatory_issues": -9,
                     "product_failure": -8,
                     "major_customer_loss": -8,
-                    "data_breach": -10
+                    "data_breach": -10,
+                    "legal_dispute": -8,
+                    "security_incident": -8,
+                    "financial_losses": -6,
+                    "valuation_markdown": -7,
+                    "negative_market_sentiment": -4,
+                    "operational_halts": -7
                 }
             }
             if os.path.exists(SIGNAL_CONFIG_PATH):
@@ -52,46 +65,22 @@ class SignalAgent(BaseAgent):
                 top_k=1
             )
 
-            prompt = f"""You are the ICICI Startup Signal Detector.
-Your job is to identify momentum signals for the startup '{state.startup_name}'.
-
-Here are the target positive signals you must scan for:
-{list(framework["positive_signals"].keys())}
-
-Here are the target negative signals you must scan for:
-{list(framework["negative_signals"].keys())}
-
-Startup Details:
-Sector: {state.startup_features.sector}
-Subsector: {state.startup_features.subsector}
-Article Headline: {state.article_data.get('headline', '')}
-Article Description / Summary: {state.article_data.get('description', '')}
-Enriched Raw Details: {state.article_data.get('enriched_raw', {})}
-RAG Reference Context:
-{rag_context}
-
-Analyze all text context. For each positive or negative signal identified:
-1. Specify the signal key name.
-2. Provide direct text quote from the context as evidence.
-
-Return ONLY a valid JSON object matching the schema below. Do not add notes, wrappers, or explanations.
-
-JSON Schema:
-{{
-  "detected_signals": [
-    {{
-      "signal_key": "funding_round",
-      "type": "positive",
-      "evidence": "Raised $60 million in recent Series B round."
-    }},
-    {{
-      "signal_key": "layoffs",
-      "type": "negative",
-      "evidence": "Reduced headcount by 10% in recent reorganization."
-    }}
-  ]
-}}
-"""
+            # Load prompt from external file
+            from jinja2 import Template
+            prompt_path = os.path.join(os.path.dirname(__file__), "../prompts/signal_prompt.txt")
+            with open(prompt_path, "r", encoding="utf-8") as f:
+                prompt_template = Template(f.read())
+            prompt = prompt_template.render(
+                startup_name=state.startup_name,
+                positive_signals=list(framework["positive_signals"].keys()),
+                negative_signals=list(framework["negative_signals"].keys()),
+                sector=state.startup_features.sector,
+                subsector=state.startup_features.subsector,
+                headline=state.article_data.get('headline', ''),
+                description=state.article_data.get('description', ''),
+                enriched_raw=state.article_data.get('enriched_raw', {}),
+                rag_context=rag_context
+            )
             detection = call_ollama(prompt, json_format=True)
             detected_list = detection.get("detected_signals", [])
 

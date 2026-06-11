@@ -8,10 +8,11 @@ import os
 import json
 import time
 import random
+import re
 
 def load_priority_sources():
-    """Loads priority search sources configuration from docs."""
-    config_path = "/Users/anurag/Projects/startup-intelligence/docs/search_sources_config.json"
+    """Loads priority search sources configuration from config."""
+    config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "search_sources_config.json")
     try:
         if os.path.exists(config_path):
             with open(config_path, "r") as f:
@@ -24,75 +25,46 @@ def load_priority_sources():
 def search_google(query: str) -> str:
     """
     Performs a zero-key organic HTML scrape of Google Search results.
-    Extracts titles, URLs, and snippet descriptions.
+    Optional and non-blocking.
     """
     encoded_query = urllib.parse.quote_plus(query)
     url = f"https://www.google.com/search?q={encoded_query}"
-    
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.9"
     }
     
-    # Add randomized jitter delay to prevent rate limits
-    delay = random.uniform(2.0, 5.0)
-    print(f"⏳ [Search Evasion] Delaying Google request by {delay:.2f} seconds...")
+    # Fast bypass or jitter delay
+    delay = random.uniform(1.0, 3.0)
     time.sleep(delay)
     
-    print(f"🔍 [Google Web Search] Querying Google: '{query}'...")
     try:
-        kwargs = {"headers": headers, "timeout": 10}
+        kwargs = {"headers": headers, "timeout": 5}
         try:
             response = requests.get(url, impersonate="chrome120", **kwargs)
         except TypeError:
             response = requests.get(url, **kwargs)
             
-        if response.status_code == 429:
-            print("⚠️ [Google Web Search] Google rate limited (429).")
-            return ""
-        response.raise_for_status()
-        
-        soup = BeautifulSoup(response.text, "html.parser")
-        results = []
-        
-        # Google search results are contained inside class "g" divs
-        result_divs = soup.find_all("div", class_="g")
-        for idx, div in enumerate(result_divs[:4]):
-            title_el = div.find("h3")
-            link_el = div.find("a")
-            # Google organic snippet class selectors
-            snippet_el = div.find("div", class_=lambda c: c and ("VwiC3b" in c or "yD3Yfe" in c or "muw5gc" in c))
-            if not snippet_el:
-                snippet_el = div.find("div", class_="VwiC3b") or div.find("span", class_="aCO3fc") or div.find("div", class_="kb0PBd")
-                
-            if title_el and link_el:
-                title = title_el.get_text(strip=True)
-                href = link_el.get("href", "")
-                snippet = snippet_el.get_text(strip=True) if snippet_el else "No snippet description available."
-                results.append(f"[{idx+1}] Title: {title}\nURL: {href}\nSnippet: {snippet}\n")
-                
-        # General parser fallback
-        if not results:
-            for idx, h3 in enumerate(soup.find_all("h3")[:4]):
-                parent = h3.find_parent("a")
-                if parent:
-                    href = parent.get("href", "")
-                    title = h3.get_text(strip=True)
-                    sibling = parent.find_next("div")
-                    snippet = sibling.get_text(strip=True) if sibling else "No details."
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, "html.parser")
+            results = []
+            result_divs = soup.find_all("div", class_="g")
+            for idx, div in enumerate(result_divs[:4]):
+                title_el = div.find("h3")
+                link_el = div.find("a")
+                snippet_el = div.find("div", class_=lambda c: c and ("VwiC3b" in c or "yD3Yfe" in c or "muw5gc" in c))
+                if not snippet_el:
+                    snippet_el = div.find("div", class_="VwiC3b") or div.find("span", class_="aCO3fc")
+                if title_el and link_el:
+                    title = title_el.get_text(strip=True)
+                    href = link_el.get("href", "")
+                    snippet = snippet_el.get_text(strip=True) if snippet_el else "No snippet description available."
                     results.append(f"[{idx+1}] Title: {title}\nURL: {href}\nSnippet: {snippet}\n")
-                    
-        context = "\n".join(results)
-        if context.strip():
-            print(f"✅ [Google Web Search] Scraped {len(results)} snippets.")
-            return context
-        else:
-            print("⚠️ [Google Web Search] No search results parsed on Google page.")
-            return ""
-    except Exception as e:
-        print(f"❌ [Google Web Search] Google search failed: {e}")
-        return ""
+            return "\n".join(results)
+    except Exception:
+        pass
+    return ""
 
 def search_ddg_raw(query: str) -> str:
     """
@@ -107,14 +79,11 @@ def search_ddg_raw(query: str) -> str:
         "Accept-Language": "en-US,en;q=0.5"
     }
     
-    # Add randomized jitter delay to prevent rate limits
-    delay = random.uniform(2.0, 5.0)
-    print(f"⏳ [Search Evasion] Delaying DDG request by {delay:.2f} seconds...")
+    delay = random.uniform(8.0, 15.0)
     time.sleep(delay)
     
-    print(f"🔍 [DDG Web Search] Querying DuckDuckGo: '{query}'...")
     try:
-        kwargs = {"headers": headers, "timeout": 10}
+        kwargs = {"headers": headers, "timeout": 8}
         try:
             response = requests.get(url, impersonate="chrome120", **kwargs)
         except TypeError:
@@ -123,9 +92,8 @@ def search_ddg_raw(query: str) -> str:
         
         soup = BeautifulSoup(response.text, "html.parser")
         results = []
-        
         result_divs = soup.find_all("div", class_="result")
-        for idx, div in enumerate(result_divs[:4]):
+        for idx, div in enumerate(result_divs[:5]):
             title_link = div.find("a", class_="result__a")
             snippet_link = div.find("a", class_="result__snippet")
             
@@ -134,7 +102,6 @@ def search_ddg_raw(query: str) -> str:
                 snippet = snippet_link.get_text(strip=True)
                 href = title_link.get("href", "")
                 
-                # Extract real URL from DDG redirect if present
                 parsed = urllib.parse.urlparse(href)
                 qs = urllib.parse.parse_qs(parsed.query)
                 real_url = qs.get("uddg", [None])[0] or href
@@ -143,36 +110,85 @@ def search_ddg_raw(query: str) -> str:
                 
         if not results:
             snippets = soup.find_all("a", class_="result__snippet")
-            for idx, snip in enumerate(snippets[:4]):
+            for idx, snip in enumerate(snippets[:5]):
                 snippet = snip.get_text(strip=True)
                 results.append(f"[{idx+1}] Snippet: {snippet}\n")
                 
         context = "\n".join(results)
-        if context.strip():
-            print(f"✅ [DDG Web Search] Scraped {len(results)} snippets.")
-            return context
-        else:
-            print("⚠️ [DDG Web Search] No search results found on DDG page.")
-            return "No web search snippets found."
-            
+        return context if context.strip() else "No web search snippets found."
     except Exception as e:
-        print(f"❌ [DDG Web Search] DuckDuckGo search failed: {e}")
         return f"Could not perform web search due to error: {str(e)}"
 
 def search_duckduckgo(query: str) -> str:
     """
-    Main entry point for web searches. Tries Google Search first,
-    falling back to DuckDuckGo search if Google returns no snippets or gets blocked.
+    Main entry point. DuckDuckGo is the default primary discovery engine.
+    Google searches are secondary, optional and non-blocking.
     """
-    # 1. Attempt Google Search
-    google_res = search_google(query)
-    if google_res and google_res.strip() and "Title:" in google_res:
-        return google_res
-        
-    # 2. Fallback to DuckDuckGo
-    print("🔄 [Web Search] Falling back to DuckDuckGo...")
-    return search_ddg_raw(query)
+    ddg_res = search_ddg_raw(query)
+    if ddg_res and "No web search snippets found" not in ddg_res and "error" not in ddg_res.lower():
+        return ddg_res
+    return search_google(query) or ddg_res
 
-if __name__ == "__main__":
-    test_query = "Perfios founders funding revenue investors"
-    print(search_duckduckgo(test_query))
+def classify_url(url: str) -> str:
+    """Classifies a URL into a standard target category."""
+    url_lower = url.lower()
+    if "linkedin.com/company/" in url_lower:
+        return "linkedin"
+    
+    news_domains = ["inc42.com", "entrackr.com", "yourstory.com", "techcrunch.com", "livemint.com", "economictimes", "moneycontrol"]
+    if any(nd in url_lower for nd in news_domains) or "/news/" in url_lower or "/article/" in url_lower:
+        return "news"
+        
+    funding_keywords = ["crunchbase.com", "tracxn.com", "pitchbook.com", "dealroom"]
+    if any(fk in url_lower for fk in funding_keywords):
+        return "funding_sources"
+        
+    social_domains = ["twitter.com", "x.com", "facebook.com", "youtube.com", "instagram.com", "github.com"]
+    if any(sd in url_lower for sd in social_domains):
+        return "social_profiles"
+        
+    return "official_website"
+
+def discover_search_evidence(startup_name: str) -> dict:
+    """
+    Runs multi-query discovery for a startup to collect candidate URLs,
+    page titles, and snippets.
+    """
+    queries = [
+        f"{startup_name} official website",
+        f"{startup_name} company",
+        f"{startup_name} linkedin",
+        f"{startup_name} startup",
+        f"{startup_name} products"
+    ]
+    
+    classification_map = {
+        "official_website": [],
+        "linkedin": [],
+        "news": [],
+        "funding_sources": [],
+        "directories": [],
+        "social_profiles": []
+    }
+    
+    visited_urls = set()
+    
+    for q in queries:
+        content = search_duckduckgo(q)
+        # Parse titles, URLs and snippets
+        matches = re.findall(r"\[\d+\] Title: (.*?)\nURL: (.*?)\nSnippet: (.*?)\n", content, re.DOTALL)
+        for title, url, snippet in matches:
+            url_clean = url.strip()
+            if url_clean in visited_urls:
+                continue
+            visited_urls.add(url_clean)
+            
+            cat = classify_url(url_clean)
+            record = {
+                "title": title.strip(),
+                "url": url_clean,
+                "snippet": snippet.strip()
+            }
+            classification_map[cat].append(record)
+            
+    return classification_map

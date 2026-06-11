@@ -76,6 +76,103 @@ class EnrichmentAgent(BaseAgent):
                 "extracted_funding": funding_data
             }
 
+            # 7. Generate Description, One-Liner and Corporate Identity details using local LLM
+            search_context = (
+                f"=== WEBSITE SEARCH CONTEXT ===\n{website_snippets}\n\n"
+                f"=== FOUNDERS & LEADERSHIP SEARCH CONTEXT ===\n{founders_snippets}\n\n"
+                f"=== FUNDING & METRICS SEARCH CONTEXT ===\n{funding_snippets}\n\n"
+            )
+
+            from jinja2 import Template
+            from backend.agents.utils import call_ollama
+
+            # Generate 250-300 words description
+            description = ""
+            try:
+                desc_prompt_path = os.path.join(os.path.dirname(__file__), "../prompts/description_generation_prompt.txt")
+                with open(desc_prompt_path, "r", encoding="utf-8") as f:
+                    desc_template = Template(f.read())
+                desc_prompt = desc_template.render(startup_name=clean_name, search_context=search_context)
+                description = call_ollama(desc_prompt, json_format=False)
+                if description:
+                    description = description.strip()
+            except Exception as e:
+                self.log_audit(state, f"Failed to generate 250-300 words description: {e}")
+            
+            if description:
+                state.article_data["description"] = description
+
+            # Generate 1-2 liner summary of startup
+            one_liner = ""
+            try:
+                ol_prompt_path = os.path.join(os.path.dirname(__file__), "../prompts/startup_one_liner_prompt.txt")
+                with open(ol_prompt_path, "r", encoding="utf-8") as f:
+                    ol_template = Template(f.read())
+                ol_prompt = ol_template.render(startup_name=clean_name, search_context=search_context)
+                one_liner = call_ollama(ol_prompt, json_format=False)
+                if one_liner:
+                    one_liner = one_liner.strip()
+            except Exception as e:
+                self.log_audit(state, f"Failed to generate 1-2 liner summary: {e}")
+            
+            if one_liner:
+                state.article_data["startup_one_liner"] = one_liner
+
+            # Extract corporate identity details (headquarters, founded_year, city, state, country, legal_name) if not in Tracxn
+            corp_identity = {}
+            if not tracxn_profile or not tracxn_profile.get("headquarters") or not tracxn_profile.get("founded_year") or not state.identity.get("city") or not state.identity.get("state") or state.identity.get("city") == "Unknown" or state.identity.get("state") == "Unknown":
+                try:
+                    corp_prompt_path = os.path.join(os.path.dirname(__file__), "../prompts/corporate_identity_prompt.txt")
+                    with open(corp_prompt_path, "r", encoding="utf-8") as f:
+                        corp_template = Template(f.read())
+                    corp_prompt = corp_template.render(startup_name=clean_name, search_context=search_context)
+                    corp_identity = call_ollama(corp_prompt, json_format=True) or {}
+                except Exception as e:
+                    self.log_audit(state, f"Failed to extract corporate identity: {e}")
+
+            # Update headquarters and founded_year
+            extracted_hq = corp_identity.get("headquarters")
+            extracted_founded = corp_identity.get("founded_year")
+            
+            if extracted_hq and extracted_hq != "Unknown":
+                state.startup_features.headquarters = extracted_hq
+                state.identity["headquarters"] = extracted_hq
+            elif tracxn_profile.get("headquarters"):
+                state.startup_features.headquarters = tracxn_profile.get("headquarters")
+                state.identity["headquarters"] = tracxn_profile.get("headquarters")
+
+            if extracted_founded:
+                try:
+                    state.startup_features.founded_year = int(extracted_founded)
+                    state.identity["founded_year"] = int(extracted_founded)
+                except Exception:
+                    pass
+            elif tracxn_profile.get("founded_year"):
+                try:
+                    state.startup_features.founded_year = int(tracxn_profile.get("founded_year"))
+                    state.identity["founded_year"] = int(tracxn_profile.get("founded_year"))
+                except Exception:
+                    pass
+
+            # Update city, state, country, legal_name
+            if corp_identity.get("city") and corp_identity.get("city") != "Unknown":
+                state.identity["city"] = corp_identity.get("city")
+            elif tracxn_profile.get("city"):
+                state.identity["city"] = tracxn_profile.get("city")
+                
+            if corp_identity.get("state") and corp_identity.get("state") != "Unknown":
+                state.identity["state"] = corp_identity.get("state")
+            elif tracxn_profile.get("state"):
+                state.identity["state"] = tracxn_profile.get("state")
+                
+            if corp_identity.get("country") and corp_identity.get("country") != "India":
+                state.identity["country"] = corp_identity.get("country")
+            elif tracxn_profile.get("country"):
+                state.identity["country"] = tracxn_profile.get("country")
+                
+            if corp_identity.get("legal_name"):
+                state.identity["legal_name"] = corp_identity.get("legal_name")
+
             # Update initial startup stage
             if funding_data and funding_data.get("latest_stage"):
                 state.startup_features.startup_stage = funding_data.get("latest_stage")

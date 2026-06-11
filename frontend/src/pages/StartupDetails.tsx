@@ -216,7 +216,7 @@ const AnalysisSection = ({ analysis }: { analysis: any }) => {
         <p className="text-sm mt-2"><strong>Target Audience:</strong> {analysis?.summary?.target_audience || "N/A"}</p>
       </SectionCard>
 
-      {analysis?.founders && analysis.founders.length > 0 && (
+      {Array.isArray(analysis?.founders) && analysis.founders.length > 0 && (
         <SectionCard title="Founding Leadership">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {analysis.founders.map((founder: any, index: number) => (

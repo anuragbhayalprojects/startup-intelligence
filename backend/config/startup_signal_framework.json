@@ -9,7 +9,14 @@
     "funding_round": 6,
     "accelerator_participation": 5,
     "patent_activity": 5,
-    "awards_recognition": 3
+    "awards_recognition": 3,
+    "product_launch": 7,
+    "mergers_and_acquisitions": 8,
+    "technology_innovation": 7,
+    "valuation_increase": 8,
+    "general_expansion_or_growth": 5,
+    "positive_market_sentiment": 5,
+    "sustainability_initiative": 6
   },
   "negative_signals": {
     "leadership_exits": -5,
@@ -17,7 +24,13 @@
     "regulatory_issues": -9,
     "product_failure": -8,
     "major_customer_loss": -8,
-    "data_breach": -10
+    "data_breach": -10,
+    "legal_dispute": -8,
+    "security_incident": -8,
+    "financial_losses": -6,
+    "valuation_markdown": -7,
+    "negative_market_sentiment": -4,
+    "operational_halts": -7
   },
   "bands": [
     {

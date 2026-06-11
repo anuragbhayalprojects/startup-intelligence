@@ -67,46 +67,21 @@ class RecommendationAgent(BaseAgent):
                 top_k=1
             )
 
-            prompt = f"""You are the ICICI CoE Reachout Copywriter.
-Your job is to write a highly professional corporate reachout email and a short LinkedIn connection message for the startup '{state.startup_name}'.
-
-The email should outline a proposed integration pilot/use case tailored to the startup's capabilities and matched business problems.
-The LinkedIn message should be a warm, concise 2-sentence invitation to connect.
-
-RAG Reference Context:
-{rag_context}
-
-Startup Details:
-Sector: {state.startup_features.sector}
-Subsector: {state.startup_features.subsector}
-Matched Business Problems: {state.startup_features.business_problems}
-Target Entities: {state.startup_features.relevant_entities}
-Target Business Teams: {state.startup_features.business_teams}
-Strategic Fit Score: {fit_score}
-
-Create:
-1. Proposed use cases list (each having 'use_case', 'icici_entity', and 'potential_impact').
-2. An Email reachout draft with a subject line and body.
-3. A LinkedIn connection message.
-
-Return ONLY a valid JSON object matching the schema below. Do not add notes, wrappers, or explanations.
-
-JSON Schema:
-{{
-  "use_cases": [
-    {{
-      "use_case": "Automated Claims underwriting pilot.",
-      "icici_entity": "ICICI Lombard",
-      "potential_impact": "Reduce turnaround time for claim processing."
-    }}
-  ],
-  "email_reachout_message": {{
-    "subject": "Proposed Collaboration: ICICI Group & [Startup Name]",
-    "body": "Dear [Founder], we observed your solution in claims automation..."
-  }},
-  "linkedin_reachout_message": "Hello [Founder], I am reaching out from ICICI Group. I followed your company's progress and would love to connect."
-}}
-"""
+            # Load prompt from external file
+            from jinja2 import Template
+            prompt_path = os.path.join(os.path.dirname(__file__), "../prompts/recommendation_prompt.txt")
+            with open(prompt_path, "r", encoding="utf-8") as f:
+                prompt_template = Template(f.read())
+            prompt = prompt_template.render(
+                startup_name=state.startup_name,
+                rag_context=rag_context,
+                sector=state.startup_features.sector,
+                subsector=state.startup_features.subsector,
+                business_problems=state.startup_features.business_problems,
+                relevant_entities=state.startup_features.relevant_entities,
+                business_teams=state.startup_features.business_teams,
+                fit_score=fit_score
+            )
             extraction = call_ollama(prompt, json_format=True)
             
             use_cases = extraction.get("use_cases", [])

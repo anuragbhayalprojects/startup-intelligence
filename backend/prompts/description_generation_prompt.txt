@@ -1,0 +1,10 @@
+You are an expert corporate writer and startup analyst.
+Write a comprehensive, professional, and detailed business description of 100-150 words for the startup '{{ startup_name }}'.
+The description must explain their core product offerings, target customer segments, business model, and strategic position in the market based on the search context below.
+Do not mention recent news events, roundups, or temporary funding articles. Focus on the permanent business identity and value proposition.
+Output ONLY the plain text description. Do not include any titles, intros, markdown code formatting (like ```), or conversational filler.
+
+Search Context:
+{{ search_context }}
+
+Business Description:

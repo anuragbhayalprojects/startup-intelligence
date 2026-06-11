@@ -1,0 +1,18 @@
+You are a precise corporate database parsing assistant.
+Analyze the search snippets below and extract the corporate identity details for the company '{{ startup_name }}'.
+Return ONLY a valid JSON block matching the specified schema. Do not output any notes, commentary, markdown wrapping, or wrapper text.
+
+JSON Schema:
+{
+  "legal_name": "Official registered legal name of the entity (e.g. 'One97 Communications Limited', or 'Zepto Private Limited'). If not found, use empty string.",
+  "headquarters": "Full headquarters address or city/state/country string (e.g., 'Mumbai, Maharashtra, India'). If not found, use 'Unknown'.",
+  "founded_year": 2021, // Year the company was established (integer). If not found, use null.
+  "city": "HQ City (e.g. 'Mumbai'). If not found, use 'Unknown'.",
+  "state": "HQ State (e.g. 'Maharashtra'). If not found, use 'Unknown'.",
+  "country": "HQ Country (e.g. 'India'). If not found, use 'India'."
+}
+
+Search Snippets:
+{{ search_context }}
+
+Begin parsing:

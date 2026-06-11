@@ -53,8 +53,8 @@ export default function Scraping({
     { name: "Entrackr", url: "https://entrackr.com/rss", is_custom: false },
     { name: "PitchBook", url: "https://pitchbook.com", is_custom: true }
   ]);
-  const [selectedSources, setSelectedSources] = useState<string[]>(["Inc42"]);
-  const [limit, setLimit] = useState(5);
+  const [selectedSources, setSelectedSources] = useState<string[]>([]);
+  const [limit, setLimit] = useState(1);
   const [industry, setIndustry] = useState("All Industries");
   const [sector, setSector] = useState("");
   const [subsector, setSubsector] = useState("");
@@ -115,6 +115,7 @@ export default function Scraping({
 
   const handleScrape = async () => {
     if (selectedSources.length === 0) {
+      alert("Please select at least one discovery source first!");
       setError("Please select at least one source.");
       return;
     }
@@ -335,10 +336,10 @@ export default function Scraping({
               <div>
                 <div className="flex justify-between items-center mb-1">
                   <label htmlFor="limit" className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    Discovery Target Volume Limit
+                    Articles to Process
                   </label>
                   <span className="text-xs bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded font-mono">
-                    {limit} Startups
+                    {limit} {limit === 1 ? "Article" : "Articles"}
                   </span>
                 </div>
                 <input 
@@ -352,7 +353,7 @@ export default function Scraping({
                   className="w-full accent-amber-500 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
                 />
                 <span className="text-[10px] text-slate-400">
-                  The scraper continues running articles until it successfully enriches this number of new fintech ventures.
+                  The scraper will process this number of articles from the selected feeds/sources.
                 </span>
               </div>
 
@@ -424,7 +425,7 @@ export default function Scraping({
               <div className="flex justify-end pt-2 border-t border-slate-100">
                 <button 
                   onClick={handleScrape} 
-                  disabled={scrapingActive || selectedSources.length === 0} 
+                  disabled={scrapingActive} 
                   className="px-6 py-3 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10 active:scale-95 transition-all"
                 >
                   {scrapingActive ? (

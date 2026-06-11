@@ -1,0 +1,9 @@
+You are an expert startup analyst.
+Write a concise, professional 1-2 sentence (one-liner) summary of what the company does/its core business for the startup '{{ startup_name }}'.
+Do NOT summarize the news article, funding round, acquisitions, or recent financial events. Focus strictly on the startup's permanent business function (e.g., 'A digital general insurance aggregator providing cloud-based claims settlement').
+Output ONLY the plain text one-liner. Do not include any titles, intros, markdown, or conversational filler.
+
+Search Context:
+{{ search_context }}
+
+One-Liner:

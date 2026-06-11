@@ -20,33 +20,18 @@ class ClassificationAgent(BaseAgent):
             # 2. Get RAG context for sector classifications
             rag_context = get_rag_context(state.startup_name, category_filter="Knowledge", top_k=2)
             
-            prompt = f"""You are a precise startup classification engine.
-Your task is to classify the startup '{state.startup_name}' using standard corporate sector mappings.
-
-Start by reviewing the ICICI Group Master Taxonomy JSON:
-{taxonomy_str}
-
-Use the RAG Reference Context:
-{rag_context}
-
-Startup Description / Article details:
-Headline: {state.article_data.get('headline', '')}
-Summary: {state.article_data.get('description', '')}
-
-Based on these details, classify this company under exactly one Industry, one primary Sector, and one Subsector from the Taxonomy.
-Identify all applicable business models (e.g. B2B, SaaS, B2C, Marketplace, Transaction-Based) and relevant tags.
-
-Return ONLY a valid JSON object matching the schema below. Do not add markdown wrappers (no ```json code blocks), notes, or explanations.
-
-JSON Schema:
-{{
-  "industry": "Financial Services",
-  "sector": "FinTech",
-  "subsector": "Lending",
-  "business_models": ["B2B", "SaaS"],
-  "tags": ["retail-lending", "credit-scoring"]
-}}
-"""
+            # Load prompt from external file
+            from jinja2 import Template
+            prompt_path = os.path.join(os.path.dirname(__file__), "../prompts/classification_prompt.txt")
+            with open(prompt_path, "r", encoding="utf-8") as f:
+                prompt_template = Template(f.read())
+            prompt = prompt_template.render(
+                startup_name=state.startup_name,
+                taxonomy_str=taxonomy_str,
+                rag_context=rag_context,
+                headline=state.article_data.get('headline', ''),
+                description=state.article_data.get('description', '')
+            )
             classification = call_ollama(prompt, json_format=True)
             
             # 3. Populate state features

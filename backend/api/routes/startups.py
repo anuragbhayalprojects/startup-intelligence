@@ -218,11 +218,11 @@ def run_scrape_background(sources: List[str], limit: int, industry: str, sector:
     import feedparser
     from bs4 import BeautifulSoup
     
-    add_scrape_log(f"Starting discovery run for sources: {sources} (Target: {limit} startups)")
+    add_scrape_log(f"Starting discovery run for sources: {sources} (Target: {limit} articles to process)")
     
     try:
         # Load custom scrapers config to resolve URLs
-        config_path = os.path.join(PROJECT_ROOT, "docs", "custom_scrapers_config.json")
+        config_path = os.path.join(PROJECT_ROOT, "backend", "config", "custom_scrapers_config.json")
         sources_map = {}
         if os.path.exists(config_path):
             try:
@@ -234,11 +234,11 @@ def run_scrape_background(sources: List[str], limit: int, industry: str, sector:
                 add_scrape_log(f"⚠️ Failed to parse custom scrapers config: {e}")
 
         from backend.workflows.startup_pipeline import process_startup
+        processed_articles_count = 0
 
         for src in sources:
-            with status_lock:
-                if SCRAPE_STATUS["discovered_count"] >= limit:
-                    break
+            if processed_articles_count >= limit:
+                break
                 
             add_scrape_log(f"Processing source: {src}...")
             update_scrape_status(current_step=f"Scraping {src}...")
@@ -249,10 +249,10 @@ def run_scrape_background(sources: List[str], limit: int, industry: str, sector:
                 data = scrape_inc42(30)
                 add_scrape_log(f"Found {len(data)} feed articles on Inc42. Commencing extraction...")
                 for item in data:
-                    with status_lock:
-                        if SCRAPE_STATUS["discovered_count"] >= limit:
-                            break
-                    add_scrape_log(f"Discovering startups from: '{item['startup_name']}'")
+                    if processed_articles_count >= limit:
+                        break
+                    processed_articles_count += 1
+                    add_scrape_log(f"Discovering startups from article {processed_articles_count}/{limit}: '{item['startup_name']}'")
                     res = process_startup(item, industry, sector, subsector)
                     if res:
                         for startup_dict in res:
@@ -266,10 +266,10 @@ def run_scrape_background(sources: List[str], limit: int, industry: str, sector:
                 data = scrape_entrackr(30)
                 add_scrape_log(f"Found {len(data)} feed articles on Entrackr. Commencing extraction...")
                 for item in data:
-                    with status_lock:
-                        if SCRAPE_STATUS["discovered_count"] >= limit:
-                            break
-                    add_scrape_log(f"Discovering startups from: '{item['startup_name']}'")
+                    if processed_articles_count >= limit:
+                        break
+                    processed_articles_count += 1
+                    add_scrape_log(f"Discovering startups from article {processed_articles_count}/{limit}: '{item['startup_name']}'")
                     res = process_startup(item, industry, sector, subsector)
                     if res:
                         for startup_dict in res:
@@ -324,10 +324,10 @@ def run_scrape_background(sources: List[str], limit: int, industry: str, sector:
                             
                 add_scrape_log(f"Parsed {len(articles)} search updates. Initiating pipeline...")
                 for art in articles:
-                    with status_lock:
-                        if SCRAPE_STATUS["discovered_count"] >= limit:
-                            break
-                    add_scrape_log(f"Processing search item: '{art['startup_name']}'")
+                    if processed_articles_count >= limit:
+                        break
+                    processed_articles_count += 1
+                    add_scrape_log(f"Processing search article {processed_articles_count}/{limit}: '{art['startup_name']}'")
                     res = process_startup(art, industry, sector, subsector)
                     if res:
                         for startup_dict in res:
@@ -370,9 +370,9 @@ def run_scrape_background(sources: List[str], limit: int, industry: str, sector:
                         soup = BeautifulSoup(content_text, "html.parser")
                         seen_links = set()
                         for a in soup.find_all("a"):
-                            title = a.get_text(strip=True)
-                            link = a.get("href")
-                            if title and link and len(title) > 20 and not link.startswith("#") and not any(k in link.lower() for k in ["about", "contact", "privacy", "terms"]):
+                          title = a.get_text(strip=True)
+                          link = a.get("href")
+                          if title and link and len(title) > 20 and not link.startswith("#") and not any(k in link.lower() for k in ["about", "contact", "privacy", "terms"]):
                                 if link.startswith("/"):
                                     parsed_uri = urllib.parse.urlparse(custom_url)
                                     link = f"{parsed_uri.scheme}://{parsed_uri.netloc}{link}"
@@ -382,14 +382,14 @@ def run_scrape_background(sources: List[str], limit: int, industry: str, sector:
                                     
                     add_scrape_log(f"Commencing extraction on {len(parsed_entries)} discovered articles...")
                     for entry in parsed_entries:
-                        with status_lock:
-                            if SCRAPE_STATUS["discovered_count"] >= limit:
-                                break
+                        if processed_articles_count >= limit:
+                            break
+                        processed_articles_count += 1
                         title = entry["title"]
                         link = entry["link"]
                         description = entry["summary"]
                         
-                        add_scrape_log(f"Discovering startups from: '{title}'")
+                        add_scrape_log(f"Discovering startups from article {processed_articles_count}/{limit}: '{title}'")
                         
                         if link.startswith("http"):
                             delay = random.uniform(1.0, 3.0)
@@ -427,7 +427,7 @@ def run_scrape_background(sources: List[str], limit: int, industry: str, sector:
                     add_scrape_log(f"⚠️ Unknown source '{src}'. Skipping.")
 
         # Complete
-        add_scrape_log(f"Discovery pipeline finished. Total startups found: {SCRAPE_STATUS['discovered_count']}/{limit}")
+        add_scrape_log(f"Discovery pipeline finished. Total articles processed: {processed_articles_count}/{limit}")
         update_scrape_status(current_step="Idle", active=False)
         
     except Exception as e:
@@ -471,7 +471,7 @@ async def get_scrape_status():
 @router.get("/scrape/sources")
 async def get_scrape_sources():
     """Returns the list of configured scraper targets (standard + custom RSS feeds)."""
-    config_path = os.path.join(PROJECT_ROOT, "docs", "custom_scrapers_config.json")
+    config_path = os.path.join(PROJECT_ROOT, "backend", "config", "custom_scrapers_config.json")
     if not os.path.exists(config_path):
         return []
     try:
@@ -510,7 +510,7 @@ async def add_scrape_source(req: Dict[str, Any] = Body(...)):
         raise HTTPException(status_code=400, detail=f"Target URL is unreachable or returned an error: {e}. Please check the URL and try again.")
         
     # Save custom source
-    config_path = os.path.join(PROJECT_ROOT, "docs", "custom_scrapers_config.json")
+    config_path = os.path.join(PROJECT_ROOT, "backend", "config", "custom_scrapers_config.json")
     try:
         sources = []
         if os.path.exists(config_path):
@@ -631,7 +631,8 @@ async def get_startups():
             "recommendation_score, confidence_score, recommended_action, priority_band, priority_score, "
             "matched_entities, matched_business_teams, matched_business_problems, positive_signals, "
             "negative_signals, audit_summary, knowledge_version, analysis_version, analysis_json, "
-            "funding_rounds, total_funding, latest_round_stage, latest_round_date)"
+            "funding_rounds, total_funding, latest_round_stage, latest_round_date), "
+            "startup_news(id, headline, summary, source, source_url, published_at)"
         ).order("created_at", desc=True).execute()
         raw_startups = response.data or []
 
@@ -1174,6 +1175,8 @@ async def generate_insights():
         
         # Call Ollama
         try:
+            from backend.utils.ollama_helper import ensure_ollama_running
+            ensure_ollama_running()
             resp = requests.post(
                 f"{OLLAMA_BASE_URL}/api/generate",
                 json={
@@ -1185,7 +1188,7 @@ async def generate_insights():
                     }
                 },
                 headers={"Content-Type": "application/json"},
-                timeout=40.0
+                timeout=90.0
             )
             resp.raise_for_status()
             result_text = resp.json().get("response", "")
@@ -1247,6 +1250,8 @@ async def chat_assistant(req: ChatRequest = Body(...)):
         
         # Call Ollama
         try:
+            from backend.utils.ollama_helper import ensure_ollama_running
+            ensure_ollama_running()
             resp = requests.post(
                 f"{OLLAMA_BASE_URL}/api/chat",
                 json={
@@ -1258,7 +1263,7 @@ async def chat_assistant(req: ChatRequest = Body(...)):
                     }
                 },
                 headers={"Content-Type": "application/json"},
-                timeout=30.0
+                timeout=90.0
             )
             resp.raise_for_status()
             result = resp.json()
@@ -1325,8 +1330,8 @@ async def update_startup_field(id: str, req: FieldUpdateRequest = Body(...)):
         startup_cols = [
             "website", "founder_name", "founder_linkedin_url", "funding_stage", 
             "sector", "subsector", "description", "startup_name", "linkedin_url",
-            "brand_name", "legal_name", "company_profile", "products_services",
-            "headquarters", "founded_year", "startup_stage", "startup_status"
+            "brand_name", "legal_name", "headquarters", "founded_year", "status",
+            "industry", "city", "state", "country"
         ]
         
         # Normalize UI/JS field names to exact DB column names
@@ -1334,15 +1339,13 @@ async def update_startup_field(id: str, req: FieldUpdateRequest = Body(...)):
         if field == "linkedin":
             db_field = "linkedin_url"
         elif field == "profile":
-            db_field = "company_profile"
-        elif field == "products":
-            db_field = "products_services"
+            db_field = "description"
         elif field == "founded":
             db_field = "founded_year"
         elif field == "stage":
-            db_field = "startup_stage"
+            db_field = "funding_stage"
         elif field == "status":
-            db_field = "startup_status"
+            db_field = "status"
             
         if db_field in startup_cols:
             if db_field == "founded_year" and value:
@@ -1380,6 +1383,35 @@ async def update_startup_field(id: str, req: FieldUpdateRequest = Body(...)):
                 if "market_intelligence" not in analysis_json:
                     analysis_json["market_intelligence"] = {}
                 analysis_json["market_intelligence"]["products"] = parsed_val
+                
+                # Sync to main startups table column
+                try:
+                    s_data = supabase.table("startups").select("market_intelligence").eq("id", int_id).execute()
+                    m_intel = s_data.data[0].get("market_intelligence") or {} if s_data.data else {}
+                    m_intel["products"] = parsed_val
+                    supabase.table("startups").update({"market_intelligence": m_intel}).eq("id", int_id).execute()
+                except Exception as mie:
+                    print(f"⚠️ Failed to sync products to startups market_intelligence: {mie}")
+            elif field == "competitors":
+                if isinstance(value, str):
+                    try:
+                        parsed_val = json.loads(value)
+                    except Exception:
+                        parsed_val = [{"company_name": value, "category": "FinTech", "positioning": value}]
+                else:
+                    parsed_val = value
+                if "market_intelligence" not in analysis_json:
+                    analysis_json["market_intelligence"] = {}
+                analysis_json["market_intelligence"]["competitors"] = parsed_val
+                
+                # Sync to main startups table column
+                try:
+                    s_data = supabase.table("startups").select("market_intelligence").eq("id", int_id).execute()
+                    m_intel = s_data.data[0].get("market_intelligence") or {} if s_data.data else {}
+                    m_intel["competitors"] = parsed_val
+                    supabase.table("startups").update({"market_intelligence": m_intel}).eq("id", int_id).execute()
+                except Exception as mie:
+                    print(f"⚠️ Failed to sync competitors to startups market_intelligence: {mie}")
             elif field == "founders":
                 analysis_json["founders"] = value
                 # Sync first founder's name to startups table
@@ -1434,7 +1466,24 @@ async def update_startup_field(id: str, req: FieldUpdateRequest = Body(...)):
                 analysis_json["funding_stages"]["series"] = value
             elif field in ["status", "startup_status"]:
                 analysis_json["recommended_action"] = value
-                analysis_json["startup_status"] = value
+            elif field == "city":
+                analysis_json["city"] = value
+            elif field == "state":
+                analysis_json["state"] = value
+            elif field == "country":
+                analysis_json["country"] = value
+            elif field == "industry":
+                if "classification" not in analysis_json:
+                    analysis_json["classification"] = {}
+                analysis_json["classification"]["industry"] = value
+            elif field == "sector":
+                if "classification" not in analysis_json:
+                    analysis_json["classification"] = {}
+                analysis_json["classification"]["sector"] = value
+            elif field == "subsector":
+                if "classification" not in analysis_json:
+                    analysis_json["classification"] = {}
+                analysis_json["classification"]["subsector"] = value
                 
             # Update startup_analysis record
             supabase.table("startup_analysis").update({
@@ -1466,7 +1515,9 @@ async def recheck_startup_field(id: str, req: FieldRecheckRequest = Body(...)):
             "website", "founders", "funding", "linkedin", "linkedin_url", 
             "startup_name", "brand_name", "profile", "description", 
             "products", "products_services",
-            "headquarters", "hq", "founded", "founded_year", "stage", "startup_stage", "status", "startup_status"
+            "headquarters", "hq", "founded", "founded_year", "stage", "startup_stage", "status", "startup_status",
+            "city", "state", "country", "industry", "sector", "subsector", "competitors",
+            "opportunity_mapping", "opportunities", "use_cases"
         ]
         if field not in valid_rechecks:
             raise HTTPException(status_code=400, detail=f"Targeted recheck is not supported for field '{field}'.")
@@ -1687,6 +1738,30 @@ Search Snippets:
 Begin parsing:
 """
 
+        elif field in ["city", "state", "country"]:
+            search_query = f"{clean_name} headquarters city state location India"
+            try:
+                search_context = search_duckduckgo(search_query)
+            except Exception as se:
+                search_context = f"Search failed: {se}"
+                
+            prompt = f"""You are a precise database parsing assistant.
+Analyze the search snippets below and extract the city, state, and country location for the headquarters of the company '{clean_name}'.
+Return ONLY a valid JSON block containing "city", "state", and "country" keys. Do not output any notes, commentary, or wrapper text.
+
+JSON Schema:
+{{
+  "city": "HQ City",
+  "state": "HQ State",
+  "country": "India"
+}}
+
+Search Snippets:
+{search_context}
+
+Begin parsing:
+"""
+
         elif field in ["founded", "founded_year"]:
             search_query = f"{clean_name} company founded year established date"
             try:
@@ -1755,10 +1830,115 @@ Search Snippets:
 Begin parsing:
 """
 
+        elif field == "competitors":
+            search_query = f"{clean_name} company main competitors comparable companies"
+            try:
+                search_context = search_duckduckgo(search_query)
+            except Exception as se:
+                search_context = f"Search failed: {se}"
+                
+            prompt = f"""You are a precise database parsing assistant.
+Analyze the search snippets below and extract the top 3-4 competitors or comparable companies for the company '{clean_name}'.
+For each competitor, provide: company_name, category, and a brief sentence description of their positioning.
+Return ONLY a valid JSON block containing the "competitors" key. Do not output any notes, commentary, or wrapper text.
+
+JSON Schema:
+{{
+  "competitors": [
+    {{
+      "company_name": "Competitor Name",
+      "category": "Market Category",
+      "positioning": "Brief description of their positioning relative to '{clean_name}'."
+    }}
+  ]
+}}
+
+Search Snippets:
+{search_context}
+
+Begin parsing:
+"""
+
+        elif field in ["industry", "sector", "subsector"]:
+            search_query = f"{clean_name} company overview business description sector"
+            try:
+                search_context = search_duckduckgo(search_query)
+            except Exception as se:
+                search_context = f"Search failed: {se}"
+                
+            # Load master taxonomy config
+            taxonomy_path = "backend/config/startup_taxonomy.json"
+            taxonomy_str = "{}"
+            if os.path.exists(taxonomy_path):
+                with open(taxonomy_path, "r") as f:
+                    taxonomy_str = f.read()
+                    
+            prompt = f"""You are a precise database parsing assistant.
+Analyze the search snippets below and classify the company '{clean_name}' into our exact taxonomy structure:
+Taxonomy tree:
+{taxonomy_str}
+
+Return ONLY a valid JSON block containing the "industry", "sector", and "subsector" keys. Do not output any notes, commentary, or wrapper text.
+
+JSON Schema:
+{{
+  "industry": "Industry Name from Tree",
+  "sector": "Sector Name from Tree",
+  "subsector": "Subsector Name from Tree"
+}}
+
+Search Snippets:
+{search_context}
+
+Begin parsing:
+"""
+        elif field in ["opportunity_mapping", "opportunities", "use_cases"]:
+            # Load current description and products from analysis_json if possible
+            desc = startup.get("description") or ""
+            products_text = ""
+            analysis_res = supabase.table("startup_analysis").select("*").eq("startup_id", int_id).execute()
+            if analysis_res.data:
+                analysis_json = analysis_res.data[0].get("analysis_json") or {}
+                if "description" in analysis_json:
+                    desc = analysis_json["description"]
+                p_data = analysis_json.get("market_intelligence", {}).get("products") or analysis_json.get("products")
+                if p_data:
+                    products_text = json.dumps(p_data)
+            
+            prompt = f"""You are a strategic partnership head for ICICI Group.
+Analyze the startup '{clean_name}' details and generate specific co-creation or pilot integration opportunities for ICICI Group companies:
+- ICICI Bank (Retail, Corporate, SME banking)
+- ICICI Lombard (General insurance)
+- ICICI Securities (Wealth, trading, equity)
+- ICICI Prudential AMC (Asset management)
+- ICICI Prudential Life (Life insurance)
+- ICICI HFC (Home finance)
+
+Description:
+{desc}
+
+Products:
+{products_text}
+
+Your response should contain concrete, feasible opportunities. Return ONLY a valid JSON object matching the following structure:
+{{
+  "opportunity_mapping": [
+    {{
+      "icici_entity": "Must be EXACTLY one of: ICICI Bank, ICICI Lombard, ICICI Securities, ICICI Prudential AMC, ICICI Prudential Life, ICICI HFC",
+      "use_case": "Explain the sandbox integration pilot",
+      "potential_impact": "Describe business impact (High/Medium/Low with rationale)",
+      "relevance_score": 85
+    }}
+  ]
+}}
+"""
+
         # Call local Ollama model
         from backend.ai.startup_analyzer import clean_llm_response
         
         try:
+            from backend.utils.ollama_helper import ensure_ollama_running
+            ensure_ollama_running()
             response = requests.post(
                 f"{OLLAMA_BASE_URL}/api/generate",
                 json={
@@ -1770,7 +1950,7 @@ Begin parsing:
                     }
                 },
                 headers={"Content-Type": "application/json"},
-                timeout=30.0
+                timeout=90.0
             )
             response.raise_for_status()
             result_text = response.json().get("response", "")
@@ -1813,15 +1993,14 @@ Begin parsing:
                 if "summary" not in analysis_json:
                     analysis_json["summary"] = {}
                 analysis_json["summary"]["business_model"] = extracted_val
-                supabase.table("startups").update({"description": extracted_val, "company_profile": extracted_val}).eq("id", int_id).execute()
+                supabase.table("startups").update({"description": extracted_val}).eq("id", int_id).execute()
                 
             elif field in ["products", "products_services"]:
                 extracted_val = data.get("products") or []
                 if "market_intelligence" not in analysis_json:
                     analysis_json["market_intelligence"] = {}
                 analysis_json["market_intelligence"]["products"] = extracted_val
-                products_str = json.dumps(extracted_val)
-                supabase.table("startups").update({"products_services": products_str}).eq("id", int_id).execute()
+                # products_services is dropped, so we don't update it. save_startup_analysis will sync market_intelligence JSONB.
                 
             elif field == "founders":
                 extracted_val = data.get("founders") or []
@@ -1863,7 +2042,7 @@ Begin parsing:
                 analysis_json["headquarters"] = extracted_val
                 supabase.table("startups").update({"headquarters": extracted_val}).eq("id", int_id).execute()
                 data = {"headquarters": extracted_val}
-
+ 
             elif field in ["founded", "founded_year"]:
                 extracted_val = data.get("founded_year")
                 try:
@@ -1873,23 +2052,63 @@ Begin parsing:
                 analysis_json["founded_year"] = extracted_val
                 supabase.table("startups").update({"founded_year": extracted_val}).eq("id", int_id).execute()
                 data = {"founded_year": extracted_val}
-
+ 
             elif field in ["stage", "startup_stage", "funding_stage"]:
                 extracted_val = data.get("startup_stage") or ""
                 analysis_json["startup_stage"] = extracted_val
                 if "funding_stages" not in analysis_json:
                     analysis_json["funding_stages"] = {}
                 analysis_json["funding_stages"]["series"] = extracted_val
-                supabase.table("startups").update({"startup_stage": extracted_val, "funding_stage": extracted_val}).eq("id", int_id).execute()
+                supabase.table("startups").update({"funding_stage": extracted_val}).eq("id", int_id).execute()
                 data = {"startup_stage": extracted_val}
-
+ 
             elif field in ["status", "startup_status"]:
                 extracted_val = data.get("startup_status") or ""
-                analysis_json["startup_status"] = extracted_val
                 analysis_json["recommended_action"] = extracted_val
-                supabase.table("startups").update({"startup_status": extracted_val}).eq("id", int_id).execute()
+                supabase.table("startups").update({"status": extracted_val}).eq("id", int_id).execute()
                 data = {"startup_status": extracted_val}
 
+            elif field in ["city", "state", "country"]:
+                city_val = data.get("city") or ""
+                state_val = data.get("state") or ""
+                country_val = data.get("country") or "India"
+                analysis_json["city"] = city_val
+                analysis_json["state"] = state_val
+                analysis_json["country"] = country_val
+                supabase.table("startups").update({
+                    "city": city_val,
+                    "state": state_val,
+                    "country": country_val
+                }).eq("id", int_id).execute()
+                data = {"city": city_val, "state": state_val, "country": country_val}
+
+            elif field in ["industry", "sector", "subsector"]:
+                ind_val = data.get("industry") or "Financial Services"
+                sec_val = data.get("sector") or "Unknown"
+                sub_val = data.get("subsector") or "Unknown"
+                if "classification" not in analysis_json:
+                    analysis_json["classification"] = {}
+                analysis_json["classification"]["industry"] = ind_val
+                analysis_json["classification"]["sector"] = sec_val
+                analysis_json["classification"]["subsector"] = sub_val
+                supabase.table("startups").update({
+                    "industry": ind_val,
+                    "sector": sec_val,
+                    "subsector": sub_val
+                }).eq("id", int_id).execute()
+            elif field in ["opportunity_mapping", "opportunities", "use_cases"]:
+                extracted_val = data.get("opportunity_mapping") or []
+                if "market_intelligence" not in analysis_json:
+                    analysis_json["market_intelligence"] = {}
+                analysis_json["market_intelligence"]["opportunity_mapping"] = {
+                    "value": extracted_val,
+                    "confidence": 90
+                }
+                analysis_json["opportunity_mapping"] = {
+                    "value": extracted_val,
+                    "confidence": 90
+                }
+                data = {"opportunity_mapping": extracted_val}
             supabase.table("startup_analysis").update({"analysis_json": analysis_json}).eq("id", analysis_rec["id"]).execute()
             
         from backend.services.supabase_service import save_startup_analysis

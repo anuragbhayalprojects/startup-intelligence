@@ -27,45 +27,20 @@ class BusinessProblemAgent(BaseAgent):
                 top_k=3
             )
 
-            prompt = f"""You are the ICICI Business Problem Mapping Agent.
-Your job is to identify which internal ICICI Bank or Group business problems are solved by the startup '{state.startup_name}'.
-
-Here is the list of structured business problems:
-{problems_serialized}
-
-Here is additional RAG context regarding corporate challenges:
-{rag_context}
-
-Startup Details:
-Sector: {state.startup_features.sector}
-Subsector: {state.startup_features.subsector}
-Headline: {state.article_data.get('headline', '')}
-Summary: {state.article_data.get('description', '')}
-
-Evaluate which business problems from the JSON list are directly addressed by this startup's core product/service.
-CRITICAL CONSTRAINT: Do not make creative leaps to find remote relevance (e.g., matching a food recipe generator to customer intelligence, or a travel app to data leakage). Only match if the startup's core business matches. If none match, return empty business_problems and mappings.
-
-For each match:
-1. Provide the exact `problem_id`.
-2. Extract the matching `entity` and `business_team`.
-3. Provide a clear, factual explanation of how the startup resolves it.
-
-Return ONLY a valid JSON object matching the schema below. Do not add notes, wrappers, or explanations.
-
-JSON Schema:
-{{
-  "business_problems": ["problem_id_1", "problem_id_2"],
-  "confidence": 0.85,
-  "mappings": [
-    {{
-      "problem_id": "problem_id_1",
-      "entity": "ICICI Bank",
-      "business_team": "Retail Banking",
-      "explanation": "Provides digital onboarding KYC to lower drop-off rates."
-    }}
-  ]
-}}
-"""
+            # Load prompt from external file
+            from jinja2 import Template
+            prompt_path = os.path.join(os.path.dirname(__file__), "../prompts/business_problem_prompt.txt")
+            with open(prompt_path, "r", encoding="utf-8") as f:
+                prompt_template = Template(f.read())
+            prompt = prompt_template.render(
+                startup_name=state.startup_name,
+                problems_serialized=problems_serialized,
+                rag_context=rag_context,
+                sector=state.startup_features.sector,
+                subsector=state.startup_features.subsector,
+                headline=state.article_data.get('headline', ''),
+                description=state.article_data.get('description', '')
+            )
             result = call_ollama(prompt, json_format=True)
             
             # 3. Filter matched problems and mappings in Python to avoid hallucinations
@@ -94,6 +69,37 @@ JSON Schema:
                         valid_mappings.append(m)
                     else:
                         print(f"🚫 Discarding matched problem '{prob_id}' for startup '{state.startup_name}' due to category mismatch. Allowed: {allowed_cats}, Sector: '{sect}'")
+
+            # Fallback heuristic: if no problems matched/validated, check keywords directly
+            if not valid_mappings:
+                desc = state.article_data.get("description", "")
+                for prob_cfg in problems_list:
+                    prob_id = prob_cfg["problem_id"]
+                    keywords = [kw.lower() for kw in prob_cfg.get("keywords", [])]
+                    desc_lower = desc.lower()
+                    name_lower = state.startup_name.lower()
+                    
+                    has_kw_match = any(kw in desc_lower or kw in name_lower for kw in keywords)
+                    if has_kw_match:
+                        allowed_cats = [cat.lower() for cat in prob_cfg.get("startup_categories", [])]
+                        sect = state.startup_features.sector.lower()
+                        sub = state.startup_features.subsector.lower()
+                        
+                        is_valid = False
+                        for cat in allowed_cats:
+                            if cat in sect or sect in cat or cat in sub or sub in cat:
+                                is_valid = True
+                                break
+                                
+                        if is_valid:
+                            matched_problems.append(prob_id)
+                            matching_kw = [kw for kw in keywords if kw in desc_lower or kw in name_lower][0]
+                            valid_mappings.append({
+                                "problem_id": prob_id,
+                                "entity": prob_cfg.get("entity", "ICICI Bank"),
+                                "business_team": prob_cfg.get("business_team", "Unknown"),
+                                "explanation": f"Auto-matched via keyword correlation: '{matching_kw}'"
+                            })
 
             state.startup_features.business_problems = matched_problems
             

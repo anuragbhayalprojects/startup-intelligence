@@ -1,0 +1,20 @@
+{
+  "confidence_weights": {
+    "website_name_match": 25,
+    "linkedin_name_match": 25,
+    "website_linkedin_desc_similarity": 20,
+    "linkedin_website_domain_match": 15,
+    "industry_match": 10,
+    "founder_validation": 5
+  },
+  "verification_thresholds": {
+    "verified": 90,
+    "likely_match": 75,
+    "partial_match": 50,
+    "needs_review": 0
+  },
+  "crawler_targets": {
+    "identity_pages": ["", "/about", "/contact", "/privacy-policy", "/terms-and-conditions", "/about-us", "/terms-of-use", "/privacy-policy"],
+    "product_pages": ["/products", "/product", "/platform", "/solutions", "/services", "/offerings", "/use-cases"]
+  }
+}
