@@ -5,6 +5,101 @@ except ImportError:
 from bs4 import BeautifulSoup
 import re
 
+def extract_clean_text_from_html(html_text: str) -> str:
+    """
+    Parses HTML, removes boilerplates, computes link density per block,
+    and filters out low-density blocks or matches against boilerplate patterns.
+    """
+    import os
+    import json
+    
+    # Load defaults
+    rules_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "crawler_rules.json")
+    link_density_threshold = 0.3
+    min_block_length = 20
+    boilerplate_patterns = []
+
+    if os.path.exists(rules_path):
+        try:
+            with open(rules_path, "r", encoding="utf-8") as f:
+                config = json.load(f)
+                link_density_threshold = config.get("link_density_threshold", link_density_threshold)
+                min_block_length = config.get("min_block_length", min_block_length)
+                boilerplate_patterns = config.get("boilerplate_patterns", boilerplate_patterns)
+        except Exception:
+            pass
+
+    soup = BeautifulSoup(html_text, "html.parser")
+    # Decompose script, style, noscript, iframe, header, footer elements
+    for el in soup(["script", "style", "noscript", "iframe", "header", "footer"]):
+        el.decompose()
+
+    # Identify blocks (paragraphs, divs, list items, headers, sections, articles)
+    blocks = soup.find_all(["p", "div", "li", "h1", "h2", "h3", "h4", "h5", "h6", "section", "article"])
+    cleaned_blocks = []
+
+    # Compile boilerplate patterns for faster execution
+    compiled_patterns = [re.compile(pat, re.IGNORECASE) for pat in boilerplate_patterns]
+
+    for block in blocks:
+        # Only process block element if it does not contain nested block elements that we'll process separately.
+        if block.name == "div" and block.find(["p", "div", "section", "article"]):
+            continue
+
+        text = block.get_text(" ", strip=True)
+        if len(text) < min_block_length:
+            continue
+
+        # Calculate Link Density
+        links = block.find_all("a")
+        link_text_len = sum(len(a.get_text(strip=True)) for a in links)
+        total_text_len = len(text)
+        
+        link_density = link_text_len / total_text_len if total_text_len > 0 else 0.0
+        if link_density > link_density_threshold:
+            continue
+
+        # Check Boilerplate Keywords
+        is_boilerplate = False
+        for pat in compiled_patterns:
+            if pat.search(text):
+                is_boilerplate = True
+                break
+        
+        if is_boilerplate:
+            continue
+
+        # Clean whitespace
+        text = re.sub(r"\s+", " ", text).strip()
+        cleaned_blocks.append(text)
+
+    # Fallback to get_text if block extraction yields nothing
+    if not cleaned_blocks:
+        text = soup.get_text(separator=" ", strip=True)
+        text = re.sub(r"\s+", " ", text).strip()
+        
+        lines = []
+        for line in text.split(". "):
+            is_bp = False
+            for pat in compiled_patterns:
+                if pat.search(line):
+                    is_bp = True
+                    break
+            if not is_bp and len(line) >= min_block_length:
+                lines.append(line)
+        return ". ".join(lines)
+
+    # Deduplicate blocks while preserving order
+    seen = set()
+    unique_blocks = []
+    for b in cleaned_blocks:
+        if b not in seen:
+            seen.add(b)
+            unique_blocks.append(b)
+
+    return " ".join(unique_blocks)
+
+
 def scrape_page(url: str, timeout: float = 3.5) -> dict:
     """Scrapes a URL page content and returns meta metadata and text blocks."""
     headers = {
@@ -40,13 +135,8 @@ def scrape_page(url: str, timeout: float = 3.5) -> dict:
             if meta_desc:
                 result["meta_description"] = meta_desc.get("content", "").strip()
                 
-            # Decompose scripts and styling elements
-            for el in soup(["script", "style", "noscript", "iframe", "header", "footer"]):
-                el.decompose()
-                
-            text = soup.get_text(separator=" ", strip=True)
-            # Remove redundant blank lines and spaces
-            text = re.sub(r"\s+", " ", text)
+            # Extract pure text content using the density calculator and boilerplate filter
+            text = extract_clean_text_from_html(resp.text)
             result["text_content"] = text[:3000] # Cap text snippet content size
             
             # Check for legal suffixes Pvt. Ltd / Private Limited / Inc / LLC

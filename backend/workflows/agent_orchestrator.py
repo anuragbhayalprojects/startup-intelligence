@@ -65,7 +65,7 @@ class AgentOrchestrator:
         state = StartupState(
             startup_name=raw_startup.get("startup_name", "Unknown"),
             article_data={
-                "headline": raw_startup.get("startup_name", ""),
+                "headline": raw_startup.get("headline") or raw_startup.get("startup_name", ""),
                 "description": raw_startup.get("description", ""),
                 "source": raw_startup.get("source", "Unknown"),
                 "source_url": raw_startup.get("source_url", "")
@@ -96,9 +96,144 @@ class AgentOrchestrator:
         state = self.legal_name_agent.run(state)
         state = self.identity_resolution_agent.run(state)
 
+        # ---------------------------------------------------------
+        # Playwright Fallback Check for dynamic JS-heavy sites
+        # ---------------------------------------------------------
+        confidence = state.identity.get("identity_confidence", 0)
+        website_url = ""
+        website_field = state.identity.get("website")
+        if isinstance(website_field, dict):
+            website_url = website_field.get("value") or ""
+        elif isinstance(website_field, str):
+            website_url = website_field
+
+        existing_text = state.article_data.get("text_content", "") or state.article_data.get("crawled_content", {}).get("homepage", {}).get("text_content", "")
+        
+        # Load trigger rule threshold (default: confidence < 50, min text len < 200)
+        low_trust_threshold = 50
+        playwright_min_text_len = 200
+        rules_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "crawler_rules.json")
+        if os.path.exists(rules_path):
+            try:
+                with open(rules_path, "r", encoding="utf-8") as f:
+                    rules_cfg = json.load(f)
+                    low_trust_threshold = rules_cfg.get("low_trust_threshold", low_trust_threshold)
+                    playwright_min_text_len = rules_cfg.get("playwright_min_text_len", playwright_min_text_len)
+            except Exception:
+                pass
+
+        if confidence < low_trust_threshold and website_url and len(existing_text) < playwright_min_text_len:
+            print(f"🔄 [AgentOrchestrator] Trust score is low ({confidence}) and website text content is sparse ({len(existing_text)} chars). Triggering dynamic Playwright fallback...")
+            import time
+            import gc
+            
+            # GC and sleep to safeguard Macbook Air M2 8GB RAM memory floor
+            gc.collect()
+            time.sleep(1.0)
+            
+            start_time = time.perf_counter()
+            playwright_success = False
+            dynamic_html = ""
+            
+            try:
+                # Lazy load playwright sync module inside dynamic execution path to reduce baseline RAM footprint
+                from playwright.sync_api import sync_playwright
+                
+                playwright_timeout = 5000
+                if os.path.exists(rules_path):
+                    try:
+                        with open(rules_path, "r", encoding="utf-8") as f:
+                            rules_cfg = json.load(f)
+                            playwright_timeout = rules_cfg.get("playwright_timeout_ms", playwright_timeout)
+                    except Exception:
+                        pass
+                
+                with sync_playwright() as p:
+                    browser = p.chromium.launch(headless=True)
+                    page = browser.new_page()
+                    page.set_default_navigation_timeout(playwright_timeout)
+                    
+                    # Navigate and wait for DOM network idle state
+                    page.goto(website_url, wait_until="networkidle")
+                    dynamic_html = page.content()
+                    browser.close()
+                    playwright_success = True
+            except Exception as pe:
+                print(f"⚠️ Playwright fallback crawl failed: {pe}")
+                state.errors.append(f"Playwright fallback crawl failed: {str(pe)}")
+            finally:
+                # Force browser cleanup GC
+                gc.collect()
+                duration_ms = (time.perf_counter() - start_time) * 1000.0
+                
+                # Tracing telemetry hook integration
+                try:
+                    from backend.utils.tracing import log_agent_execution, generate_uuid
+                    exec_id = "EXE_" + generate_uuid()
+                    log_agent_execution(
+                        exec_id=exec_id,
+                        agent_name="PlaywrightFallback",
+                        input_payload={"website": website_url, "previous_confidence": confidence},
+                        output_payload={"success": playwright_success, "html_length": len(dynamic_html) if dynamic_html else 0},
+                        duration_ms=duration_ms
+                    )
+                except Exception as te:
+                    print(f"⚠️ Tracing logger failed for PlaywrightFallback: {te}")
+            
+            # If dynamic content was fetched successfully, extract clean text using website density rules
+            if dynamic_html:
+                try:
+                    from backend.utils.crawler import extract_clean_text_from_html
+                    clean_text = extract_clean_text_from_html(dynamic_html)
+                    
+                    # Truncate to first 3000 characters and write back to state
+                    truncated_text = clean_text[:3000]
+                    state.article_data["text_content"] = truncated_text
+                    
+                    # Sync to crawled_content block so downstream agents see it
+                    if "crawled_content" not in state.article_data:
+                        state.article_data["crawled_content"] = {}
+                    if "homepage" not in state.article_data["crawled_content"]:
+                        state.article_data["crawled_content"]["homepage"] = {}
+                    
+                    state.article_data["crawled_content"]["homepage"]["text_content"] = truncated_text
+                    
+                    # Re-run Phase 1 agents to re-compute trust index
+                    state = self.legal_name_agent.run(state)
+                    state = self.identity_resolution_agent.run(state)
+                    print(f"✅ Re-ran Phase 1 verification. New identity trust score is: {state.identity.get('identity_confidence', 0)}")
+                except Exception as re:
+                    print(f"⚠️ Failed to parse dynamic html or re-verify: {re}")
+                    state.errors.append(f"Playwright post-crawl processing failed: {str(re)}")
+
         # Log resolution status and proceed with downstream enrichment
         status = state.identity.get("verification_status", "NEEDS_REVIEW")
         confidence = state.identity.get("identity_confidence", 0)
+        
+        # Abort Phase 2 processing on active semantic mismatch
+        if status == "MISMATCHED":
+            mismatch_reason = state.identity.get("mismatch_reason", "Active contradiction between sources.")
+            self.log_orchestrator_completion(state, f"⚠️ Semantic mismatch detected: {mismatch_reason}. Aborting pipeline enrichment.")
+            
+            # Set state scoring variables to 10/0/Ignore
+            state.confidence_score = 10
+            state.recommendation_score = 10
+            state.priority_band = "Ignore"
+            state.relevance["score"] = 0
+            state.strategic_fit["score"] = 0
+            state.signals["score"] = 0
+            
+            state.startup_features.startup_status = "Needs Review"
+            state.recommendation["recommended_action"] = "Needs Review"
+            
+            # Store standardized production-grade analysis_json payload metadata
+            state.market_intelligence["enrichment_version"] = "2.0"
+            state.market_intelligence["last_enriched_at"] = datetime.now(timezone.utc).isoformat()
+            state.market_intelligence["last_verified_at"] = datetime.now(timezone.utc).isoformat()
+            
+            self.persist_to_database(state)
+            return state
+
         self.log_orchestrator_completion(state, f"Identity status: '{status}' (Confidence: {confidence}). Continuing pipeline enrichment...")
 
         # ---------------------------------------------------------
@@ -209,6 +344,7 @@ class AgentOrchestrator:
                 "startup_name": state.startup_name,
                 "website": state.identity.get("website", {}).get("value", ""),
                 "linkedin_url": state.identity.get("linkedin_company_url", {}).get("value", ""),
+                "linkedin_company_url": state.identity.get("linkedin_company_url", {}).get("value", ""),
                 "legal_name": state.identity.get("legal_name", {}).get("value", ""),
                 "description": state.article_data.get("business_description") or state.article_data.get("description", ""),
                 "industry": state.startup_features.industry,
@@ -224,7 +360,8 @@ class AgentOrchestrator:
                 "headquarters": state.identity.get("headquarters") or state.startup_features.headquarters or "Unknown",
                 "founded_year": state.identity.get("founded_year") or state.startup_features.founded_year,
                 "funding_stage": state.startup_features.startup_stage,
-                "status": state.startup_features.startup_status or "Screening"
+                "status": state.startup_features.startup_status or "Screening",
+                "verification_notes": state.identity.get("verification_notes") or ""
             }
             res = upsert_startup(payload)
             if res:
@@ -239,8 +376,12 @@ class AgentOrchestrator:
                 analysis_payload = {
                     "summary": {
                         "one_liner": state.article_data.get("business_description") or state.article_data.get("description", ""),
-                        "business_model": ""  # Can be filled or derived
+                        "business_model": "",  # Can be filled or derived
+                        "verification_notes": state.identity.get("verification_notes") or "",
+                        "mismatch_reason": state.identity.get("mismatch_reason") or ""
                     },
+                    "verification_notes": state.identity.get("verification_notes") or "",
+                    "mismatch_reason": state.identity.get("mismatch_reason") or "",
                     "bfsi_relevance": {
                         "is_relevant": state.relevance.get("score", 0) >= 30,
                         "relevance_score": state.relevance.get("score", 0),

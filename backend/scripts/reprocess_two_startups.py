@@ -31,8 +31,18 @@ def reprocess_startups():
         if res.data:
             s = res.data[0]
             startup_id = s["id"]
+            # Fetch latest news headline as actual headline if available
+            headline = s["startup_name"]
+            try:
+                news_resp = supabase.table("startup_news").select("headline").eq("startup_id", startup_id).order("published_at", desc=True).limit(1).execute()
+                if news_resp.data and news_resp.data[0].get("headline"):
+                    headline = news_resp.data[0]["headline"]
+            except Exception:
+                pass
+
             raw_startup = {
                 "startup_name": s["startup_name"],
+                "headline": headline,
                 "description": s["description"] or "",
                 "source": s.get("source") or "Manual Recheck",
                 "source_url": s.get("source_url") or ""

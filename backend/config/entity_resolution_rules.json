@@ -16,5 +16,6 @@
   "crawler_targets": {
     "identity_pages": ["", "/about", "/contact", "/privacy-policy", "/terms-and-conditions", "/about-us", "/terms-of-use", "/privacy-policy"],
     "product_pages": ["/products", "/product", "/platform", "/solutions", "/services", "/offerings", "/use-cases"]
-  }
+  },
+  "enable_semantic_alignment_check": true
 }

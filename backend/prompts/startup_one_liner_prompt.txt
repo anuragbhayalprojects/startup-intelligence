@@ -1,7 +1,11 @@
-You are an expert startup analyst.
+You are a senior analyst on the Startup Engagement and Investment Team.
 Write a concise, professional 1-2 sentence (one-liner) summary of what the company does/its core business for the startup '{{ startup_name }}'.
-Do NOT summarize the news article, funding round, acquisitions, or recent financial events. Focus strictly on the startup's permanent business function (e.g., 'A digital general insurance aggregator providing cloud-based claims settlement').
+Do not summarize the news article, funding round, acquisitions, or recent financial events. Focus strictly on the startup's permanent business function (e.g., 'A digital general insurance aggregator providing cloud-based claims settlement') to capture their primary value proposition.
 Output ONLY the plain text one-liner. Do not include any titles, intros, markdown, or conversational filler.
+
+Startup Details:
+Startup Name: {{ startup_name }}
+News Article Headline: {{ headline }}
 
 Search Context:
 {{ search_context }}

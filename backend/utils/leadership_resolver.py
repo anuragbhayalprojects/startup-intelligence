@@ -231,17 +231,20 @@ def resolve_founders(
     if startup_id and not skip_registry:
         try:
             from backend.services.supabase_service import supabase
-            res = supabase.table("startup_identity").select("leadership, primary_founder_name, primary_founder_linkedin, primary_founder_title").eq("startup_id", startup_id).execute()
+            res = supabase.table("startups").select("leadership, primary_founder_name, founder_name, primary_founder_linkedin, founder_linkedin_url, primary_founder_title").eq("id", startup_id).execute()
             if res.data:
                 row = res.data[0]
                 registry_leadership = row.get("leadership") or []
                 if registry_leadership:
                     return _sort_by_role_priority(registry_leadership)[:max_founders]
-                if row.get("primary_founder_name"):
+                
+                founder_name = row.get("primary_founder_name") or row.get("founder_name")
+                founder_linkedin = row.get("primary_founder_linkedin") or row.get("founder_linkedin_url")
+                if founder_name:
                     return [{
-                        "name": row["primary_founder_name"],
+                        "name": founder_name,
                         "role": row.get("primary_founder_title") or "Founder",
-                        "linkedin_url": row.get("primary_founder_linkedin") or "",
+                        "linkedin_url": founder_linkedin or "",
                         "brief_details": "",
                     }]
         except Exception as e:

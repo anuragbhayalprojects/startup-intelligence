@@ -203,8 +203,10 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
 
   // Funding Stage Resolution with AI override & smart guess fallback
   let rawFundingStage = s.funding_stage || "";
-  if ((!rawFundingStage || rawFundingStage.toLowerCase() === "unknown") && analysis?.funding_stages?.series) {
-    rawFundingStage = analysis?.funding_stages?.series;
+  const nestedFundingInfo = analysis?.market_intelligence?.funding?.value || {};
+  
+  if ((!rawFundingStage || rawFundingStage.toLowerCase() === "unknown") && (analysis?.funding_stages?.series || nestedFundingInfo.latest_round)) {
+    rawFundingStage = analysis?.funding_stages?.series || nestedFundingInfo.latest_round;
   }
   if (!rawFundingStage || rawFundingStage.toLowerCase() === "unknown") {
     rawFundingStage = guessFundingStage(rawName, s.description || "");
@@ -215,8 +217,8 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
 
   // Funding Amount Resolution with AI override & smart guess fallback
   let rawFundingAmount = s.funding_amount || "";
-  if ((!rawFundingAmount || rawFundingAmount.toLowerCase() === "unknown" || rawFundingAmount === "$1.2M" || rawFundingAmount === "$1.5M") && analysis?.funding_stages?.amount) {
-    rawFundingAmount = analysis?.funding_stages?.amount;
+  if ((!rawFundingAmount || rawFundingAmount.toLowerCase() === "unknown" || rawFundingAmount === "$1.2M" || rawFundingAmount === "$1.5M") && (analysis?.funding_stages?.amount || nestedFundingInfo.total_funding)) {
+    rawFundingAmount = analysis?.funding_stages?.amount || nestedFundingInfo.total_funding;
   }
   if (!rawFundingAmount || rawFundingAmount.toLowerCase() === "unknown" || rawFundingAmount === "$1.2M" || rawFundingAmount === "$1.5M") {
     rawFundingAmount = guessFundingAmount(rawName, s.description || "");
@@ -331,10 +333,10 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
     recent_news: s.startup_news || s.recent_news || [],
 
     // Pass 3 Funding Rounds & Summary Mapping
-    funding_rounds: rawAnalysisRecord?.funding_rounds || s.funding_rounds || [],
-    total_funding: rawAnalysisRecord?.total_funding || s.total_funding || "",
-    latest_round_stage: rawAnalysisRecord?.latest_round_stage || s.latest_round_stage || "",
-    latest_round_date: rawAnalysisRecord?.latest_round_date || s.latest_round_date || "",
+    funding_rounds: rawAnalysisRecord?.funding_rounds || s.funding_rounds || nestedFundingInfo.funding_history || [],
+    total_funding: s.total_funding || rawAnalysisRecord?.total_funding || nestedFundingInfo.total_funding || rawFundingAmount || "",
+    latest_round_stage: s.latest_round_stage || rawAnalysisRecord?.latest_round_stage || nestedFundingInfo.latest_round || rawFundingStage || "",
+    latest_round_date: s.latest_round_date || rawAnalysisRecord?.latest_round_date || nestedFundingInfo.latest_round_date || "",
 
     // Analytical tags derived from live analysis or seed maps
     priority_score: rawPriorityScore,

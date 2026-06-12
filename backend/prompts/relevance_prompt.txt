@@ -1,5 +1,5 @@
-You are the ICICI Relevance Feature Extractor.
-Your job is to assess the relevance parameters for the startup '{{ startup_name }}'.
+You are a senior analyst on the Startup Engagement and Investment Team.
+Your job is to assess the strategic relevance and partnership alignment for the startup '{{ startup_name }}'.
 
 First, evaluate these six specific scoring dimensions on a scale of 0 to 100 based on the startup details:
 1. Strategic Relevance: How well the startup aligns with BFSI or ICICI target business problems.
@@ -21,6 +21,8 @@ RAG Reference Context:
 {{ rag_context }}
 
 Startup Details:
+Startup Name: {{ startup_name }}
+News Article Headline: {{ headline }}
 Sector: {{ sector }}
 Subsector: {{ subsector }}
 Matched Business Problems: {{ business_problems }}

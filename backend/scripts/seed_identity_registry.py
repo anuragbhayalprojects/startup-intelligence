@@ -50,7 +50,7 @@ def log(msg: str, verbose: bool = True):
 
 def upsert_identity_record(record: dict, dry_run: bool = False, verbose: bool = False) -> bool:
     """
-    Upserts a single startup_identity record.
+    Upserts a single identity record directly to the startups table.
     Returns True if a record was created/updated.
     """
     startup_id = record.get("startup_id")
@@ -62,28 +62,48 @@ def upsert_identity_record(record: dict, dry_run: bool = False, verbose: bool = 
         return True
 
     try:
-        # Check if record exists
-        existing = supabase.table("startup_identity").select("id, identity_confidence, evidence_count").eq("startup_id", startup_id).execute()
+        # Check if record exists in startups
+        existing = supabase.table("startups").select("id, identity_confidence, evidence_count").eq("id", startup_id).execute()
 
+        record = dict(record)
         record["updated_at"] = get_now_iso()
+        record.pop("startup_id", None)
+        record.pop("id", None)
+
+        # Synchronize duplicate/aliased columns
+        if "linkedin_company_url" in record and record["linkedin_company_url"]:
+            record["linkedin_url"] = record["linkedin_company_url"]
+        elif "linkedin_url" in record and record["linkedin_url"]:
+            record["linkedin_company_url"] = record["linkedin_url"]
+
+        if "primary_founder_name" in record and record["primary_founder_name"]:
+            record["founder_name"] = record["primary_founder_name"]
+        elif "founder_name" in record and record["founder_name"]:
+            record["primary_founder_name"] = record["founder_name"]
+
+        if "primary_founder_linkedin" in record and record["primary_founder_linkedin"]:
+            record["founder_linkedin_url"] = record["primary_founder_linkedin"]
+        elif "founder_linkedin_url" in record and record["founder_linkedin_url"]:
+            record["primary_founder_linkedin"] = record["founder_linkedin_url"]
 
         if existing.data:
             existing_rec = existing.data[0]
             # Only update if new confidence is higher OR force flag is set
-            if record.get("identity_confidence", 0) >= existing_rec.get("identity_confidence", 0):
+            if (record.get("identity_confidence") or 0.0) >= (existing_rec.get("identity_confidence") or 0.0):
                 # Merge evidence_count
                 record["evidence_count"] = max(
-                    record.get("evidence_count", 1),
-                    existing_rec.get("evidence_count", 0)
+                    record.get("evidence_count", 1) or 1,
+                    existing_rec.get("evidence_count", 0) or 0
                 )
-                supabase.table("startup_identity").update(record).eq("id", existing_rec["id"]).execute()
+                supabase.table("startups").update(record).eq("id", existing_rec["id"]).execute()
                 log(f"  ✅ Updated: {record.get('startup_name')} (startup_id={startup_id})", verbose)
             else:
                 log(f"  ⏭️  Skipped (lower confidence): {record.get('startup_name')}", verbose)
                 return False
         else:
+            record["id"] = startup_id
             record["created_at"] = get_now_iso()
-            supabase.table("startup_identity").insert(record).execute()
+            supabase.table("startups").insert(record).execute()
             log(f"  ✨ Inserted: {record.get('startup_name')} (startup_id={startup_id})", verbose)
 
         return True
@@ -264,7 +284,7 @@ def seed_from_known_domain_registry(dry_run: bool, verbose: bool) -> int:
     print("\n🌐 [Priority 4] Enriching from KNOWN_DOMAINS registry...")
     count = 0
 
-    identity_resp = supabase.table("startup_identity").select("id, startup_id, startup_name, website").execute()
+    identity_resp = supabase.table("startups").select("id, startup_name, website, identity_confidence").execute()
     if not identity_resp.data:
         print("  → No identity records to enrich.")
         return 0
@@ -277,9 +297,9 @@ def seed_from_known_domain_registry(dry_run: bool, verbose: bool) -> int:
         for key, url in KNOWN_DOMAINS.items():
             if key == name_lower or key in name_lower:
                 if not dry_run:
-                    supabase.table("startup_identity").update({
+                    supabase.table("startups").update({
                         "website": url,
-                        "identity_confidence": max(rec.get("identity_confidence", 0.70), 0.88),
+                        "identity_confidence": max(rec.get("identity_confidence", 0.70) or 0.70, 0.88),
                         "source": "known_domain_registry",
                         "updated_at": get_now_iso(),
                     }).eq("id", rec["id"]).execute()
@@ -299,13 +319,13 @@ def seed_from_known_founders(dry_run: bool, verbose: bool) -> int:
     print("\n👥 [Priority 5] Enriching from KNOWN_FOUNDERS registry...")
     count = 0
 
-    identity_resp = supabase.table("startup_identity").select("id, startup_id, startup_name, primary_founder_name").execute()
+    identity_resp = supabase.table("startups").select("id, startup_name, primary_founder_name, founder_name").execute()
     if not identity_resp.data:
         print("  → No identity records to enrich.")
         return 0
 
     for rec in identity_resp.data:
-        if rec.get("primary_founder_name"):
+        if rec.get("primary_founder_name") or rec.get("founder_name"):
             continue  # Already has a founder
 
         name_lower = rec.get("startup_name", "").strip().lower()
@@ -313,9 +333,11 @@ def seed_from_known_founders(dry_run: bool, verbose: bool) -> int:
             if key == name_lower or key in name_lower:
                 primary = founders[0]
                 if not dry_run:
-                    supabase.table("startup_identity").update({
+                    supabase.table("startups").update({
                         "primary_founder_name": primary.get("name", ""),
+                        "founder_name": primary.get("name", ""),
                         "primary_founder_linkedin": primary.get("linkedin_url", ""),
+                        "founder_linkedin_url": primary.get("linkedin_url", ""),
                         "primary_founder_title": primary.get("role", "Founder"),
                         "leadership": founders,
                         "updated_at": get_now_iso(),

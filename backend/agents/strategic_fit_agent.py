@@ -9,8 +9,8 @@ FIT_CONFIG_PATH = "backend/config/strategic_fit.json"
 class StrategicFitAgent(BaseAgent):
     def run(self, state: StartupState) -> StartupState:
         # Check relevance gate
-        if state.relevance.get("score", 0) < 50:
-            self.log_audit(state, "Skipping Strategic Fit Assessment (Relevance score < 50 gate applied)")
+        if state.relevance.get("score", 0) < 20:
+            self.log_audit(state, "Skipping Strategic Fit Assessment (Relevance score < 20 gate applied)")
             return state
             
         self.log_audit(state, "Starting Strategic Fit Assessment...")
@@ -32,14 +32,14 @@ class StrategicFitAgent(BaseAgent):
                 with open(FIT_CONFIG_PATH, "r") as f:
                     config = json.load(f)
                     weights = config.get("weights", weights)
-
+ 
             # 2. Get RAG context for strategic fit
             rag_context = get_rag_context(
                 state.startup_name + " strategic fit evaluation dimensions", 
                 category_filter="Scoring", 
                 top_k=3
             )
-
+ 
             # Load prompt from external file
             from jinja2 import Template
             prompt_path = os.path.join(os.path.dirname(__file__), "../prompts/strategic_fit_prompt.txt")
@@ -47,6 +47,7 @@ class StrategicFitAgent(BaseAgent):
                 prompt_template = Template(f.read())
             prompt = prompt_template.render(
                 startup_name=state.startup_name,
+                headline=state.article_data.get("headline", ""),
                 rag_context=rag_context,
                 sector=state.startup_features.sector,
                 subsector=state.startup_features.subsector,

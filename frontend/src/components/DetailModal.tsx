@@ -220,6 +220,66 @@ export default function DetailModal({
   };
   const [editError, setEditError] = useState<string | null>(null);
 
+  // Resizable products table states
+  const [colWidths, setColWidths] = useState<number[]>([150, 150, 300, 150, 150]);
+  const [rowHeights, setRowHeights] = useState<Record<number, number>>({});
+
+  const startResizeCol = (index: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = colWidths[index];
+    
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientX - startX;
+      setColWidths(prev => {
+        const next = [...prev];
+        next[index] = Math.max(80, startWidth + delta);
+        return next;
+      });
+    };
+
+    const handleMouseUp = () => {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  };
+
+  const startResizeRow = (index: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startHeight = rowHeights[index] || 45; // default row height
+    
+    document.body.style.cursor = "row-resize";
+    document.body.style.userSelect = "none";
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientY - startY;
+      setRowHeights(prev => ({
+        ...prev,
+        [index]: Math.max(30, startHeight + delta)
+      }));
+    };
+
+    const handleMouseUp = () => {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  };
+
+
   // Sync inputs on startup update
   useEffect(() => {
     setNameInput(startup.startup_name || "");
@@ -228,15 +288,44 @@ export default function DetailModal({
     setDescriptionInput(startup.ai_summary || startup.description || "");
 
     const mIntel = startup.market_intelligence || analysis?.market_intelligence || {};
-    const localProducts = mIntel.products || [];
+    
+    // Unpack products for edit input text area
+    const rawProducts = mIntel.products;
+    const unpackedProducts = Array.isArray(rawProducts)
+      ? rawProducts
+      : (rawProducts && typeof rawProducts === "object" && Array.isArray((rawProducts as any).value))
+        ? (rawProducts as any).value
+        : [];
+    const localProducts = unpackedProducts.map((prod: any) => ({
+      product_name: prod.product_name || prod.name || "",
+      category: prod.category || prod.type || "",
+      description: prod.description || "",
+      target: prod.target || prod.target_audience || "",
+      deployment: prod.deployment || prod.evidence_url || ""
+    }));
     setProductsInput(JSON.stringify(localProducts, null, 2));
 
     const initialFounders = analysis?.founders || (startup.founder_name ? [{ name: startup.founder_name, role: "Founder", brief_details: "", linkedin_url: startup.founder_linkedin_url }] : []);
     setFoundersInput(JSON.stringify(initialFounders, null, 2));
 
-    setFundingSeriesInput(startup.latest_round_stage || analysis?.funding_stages?.series || startup.funding_stage || "");
-    setFundingAmountInput(startup.total_funding || analysis?.funding_stages?.amount || startup.funding_amount || "");
-    setFundingInvestorsInput((analysis?.funding_stages?.investors || []).join(", "));
+    // Unpack funding for edit inputs
+    const fundingInfo = mIntel.funding && typeof mIntel.funding === "object" && "value" in mIntel.funding
+      ? (mIntel.funding as any).value
+      : mIntel.funding || {};
+    
+    const fundingSeries = startup.latest_round_stage || fundingInfo.latest_round || analysis?.funding_stages?.series || startup.funding_stage || "";
+    const fundingAmount = startup.total_funding || fundingInfo.total_funding || analysis?.funding_stages?.amount || startup.funding_amount || "";
+    
+    const rawInvestorsList = fundingInfo.investors || analysis?.funding_stages?.investors || [];
+    const fundingInvestors = Array.isArray(rawInvestorsList)
+      ? rawInvestorsList.join(", ")
+      : typeof rawInvestorsList === "string"
+        ? rawInvestorsList
+        : "";
+
+    setFundingSeriesInput(fundingSeries);
+    setFundingAmountInput(fundingAmount);
+    setFundingInvestorsInput(fundingInvestors);
     setEditError(null);
     setEditingField(null);
   }, [startup, analysis]);
@@ -410,10 +499,83 @@ export default function DetailModal({
 
   // Extract products, competitors, valuation, investors from nested market intelligence structure
   const mIntel = startup.market_intelligence || analysis?.market_intelligence || {};
-  const products = mIntel.products || [];
-  const competitors = mIntel.competitors || [];
-  const valuation = mIntel.valuation || {};
-  const investors = mIntel.investors || [];
+  
+  // Unpack products and support both agent schema (name, type) and legacy/UI schema (product_name, category)
+  const rawProducts = mIntel.products;
+  const productsList = Array.isArray(rawProducts) 
+    ? rawProducts 
+    : (rawProducts && typeof rawProducts === "object" && Array.isArray((rawProducts as any).value))
+      ? (rawProducts as any).value
+      : [];
+  const products = productsList.map((prod: any) => ({
+    product_name: prod.product_name || prod.name || "",
+    category: prod.category || prod.type || "",
+    description: prod.description || "",
+    target: prod.target || prod.target_audience || "",
+    deployment: prod.deployment || prod.evidence_url || ""
+  }));
+
+  // Unpack competitors and support both agent schema (name, reason) and legacy/UI schema (company_name, positioning)
+  const rawCompetitors = mIntel.competitors;
+  const competitorsList = Array.isArray(rawCompetitors)
+    ? rawCompetitors
+    : (rawCompetitors && typeof rawCompetitors === "object" && Array.isArray((rawCompetitors as any).value))
+      ? (rawCompetitors as any).value
+      : [];
+  const competitors = competitorsList.map((comp: any) => ({
+    company_name: comp.company_name || comp.name || "",
+    category: comp.category || (comp.website ? comp.website.replace("https://", "").replace("http://", "").replace("www.", "") : "Competitor"),
+    positioning: comp.positioning || comp.reason || ""
+  }));
+
+  // Valuation
+  const rawValuation = mIntel.valuation;
+  const valuation = (rawValuation && typeof rawValuation === "object" && !("value" in rawValuation))
+    ? rawValuation
+    : (rawValuation && typeof rawValuation === "object" && "value" in rawValuation)
+      ? (rawValuation as any).value
+      : {};
+
+  // Funding
+  const fundingInfo = mIntel.funding && typeof mIntel.funding === "object" && "value" in mIntel.funding
+    ? (mIntel.funding as any).value
+    : mIntel.funding || {};
+
+  // Build structured investors list from funding_history or flat investors list
+  let investors: any[] = [];
+  if (Array.isArray(mIntel.investors) && mIntel.investors.length > 0) {
+    investors = mIntel.investors;
+  } else if (Array.isArray(fundingInfo.funding_history)) {
+    const list: any[] = [];
+    fundingInfo.funding_history.forEach((roundInfo: any) => {
+      const round = roundInfo.round || "Funding Round";
+      const date = roundInfo.date || "Date Unspecified";
+      const roundInvestors = roundInfo.investors || [];
+      if (Array.isArray(roundInvestors)) {
+        roundInvestors.forEach((invName: any) => {
+          list.push({
+            round,
+            investor_name: typeof invName === "string" ? invName : (invName.name || "Unknown"),
+            date
+          });
+        });
+      } else if (typeof roundInvestors === "string") {
+        list.push({
+          round,
+          investor_name: roundInvestors,
+          date
+        });
+      }
+    });
+    investors = list;
+  } else if (Array.isArray(fundingInfo.investors)) {
+    investors = fundingInfo.investors.map((name: any) => ({
+      round: "Investor",
+      investor_name: String(name),
+      date: ""
+    }));
+  }
+
   const strategicPositioning = mIntel.strategic_positioning || "";
 
   // Dynamic status color helper
@@ -1073,24 +1235,84 @@ export default function DetailModal({
                   </div>
                 ) : products.length > 0 ? (
                   <div className="overflow-x-auto rounded-xl border border-slate-200">
-                    <table className="w-full text-left text-xs border-collapse">
+                    <table className="w-full text-left text-xs border-collapse" style={{ tableLayout: "fixed" }}>
                       <thead>
                         <tr className="bg-slate-50 border-b border-slate-200">
-                          <th className="px-4 py-2.5 font-bold text-slate-500 uppercase text-[9px] tracking-wider">Product</th>
-                          <th className="px-4 py-2.5 font-bold text-slate-500 uppercase text-[9px] tracking-wider">Category</th>
-                          <th className="px-4 py-2.5 font-bold text-slate-500 uppercase text-[9px] tracking-wider">Description</th>
-                          <th className="px-4 py-2.5 font-bold text-slate-500 uppercase text-[9px] tracking-wider">Target</th>
-                          <th className="px-4 py-2.5 font-bold text-slate-500 uppercase text-[9px] tracking-wider">Deployment</th>
+                          <th className="px-4 py-2.5 font-bold text-slate-500 uppercase text-[9px] tracking-wider relative group/col" style={{ width: colWidths[0] }}>
+                            <span>Product</span>
+                            <div 
+                              onMouseDown={(e) => startResizeCol(0, e)}
+                              className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize bg-transparent group-hover/col:bg-slate-300 hover:!bg-indigo-500 transition-colors z-20"
+                            />
+                          </th>
+                          <th className="px-4 py-2.5 font-bold text-slate-500 uppercase text-[9px] tracking-wider relative group/col" style={{ width: colWidths[1] }}>
+                            <span>Category</span>
+                            <div 
+                              onMouseDown={(e) => startResizeCol(1, e)}
+                              className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize bg-transparent group-hover/col:bg-slate-300 hover:!bg-indigo-500 transition-colors z-20"
+                            />
+                          </th>
+                          <th className="px-4 py-2.5 font-bold text-slate-500 uppercase text-[9px] tracking-wider relative group/col" style={{ width: colWidths[2] }}>
+                            <span>Description</span>
+                            <div 
+                              onMouseDown={(e) => startResizeCol(2, e)}
+                              className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize bg-transparent group-hover/col:bg-slate-300 hover:!bg-indigo-500 transition-colors z-20"
+                            />
+                          </th>
+                          <th className="px-4 py-2.5 font-bold text-slate-500 uppercase text-[9px] tracking-wider relative group/col" style={{ width: colWidths[3] }}>
+                            <span>Target</span>
+                            <div 
+                              onMouseDown={(e) => startResizeCol(3, e)}
+                              className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize bg-transparent group-hover/col:bg-slate-300 hover:!bg-indigo-500 transition-colors z-20"
+                            />
+                          </th>
+                          <th className="px-4 py-2.5 font-bold text-slate-500 uppercase text-[9px] tracking-wider relative group/col" style={{ width: colWidths[4] }}>
+                            <span>Deployment</span>
+                            <div 
+                              onMouseDown={(e) => startResizeCol(4, e)}
+                              className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize bg-transparent group-hover/col:bg-slate-300 hover:!bg-indigo-500 transition-colors z-20"
+                            />
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-150">
                         {Array.isArray(products) && products.map((prod: any, i: number) => (
-                          <tr key={i} className="hover:bg-slate-50/50">
-                            <td className="px-4 py-2.5 font-bold text-slate-800">{prod.product_name}</td>
-                            <td className="px-4 py-2.5 text-slate-660 font-medium">{prod.category}</td>
-                            <td className="px-4 py-2.5 text-slate-500 max-w-xs truncate" title={prod.description}>{prod.description}</td>
-                            <td className="px-4 py-2.5 text-slate-650">{prod.target_customer}</td>
-                            <td className="px-4 py-2.5 text-slate-500">{prod.deployment_model}</td>
+                          <tr key={i} className="hover:bg-slate-50/50 group/row" style={{ height: rowHeights[i] ? `${rowHeights[i]}px` : undefined }}>
+                            <td className="px-4 py-2.5 font-bold text-slate-800 relative select-none truncate" title={prod.product_name}>
+                              {prod.product_name}
+                              <div 
+                                onMouseDown={(e) => startResizeRow(i, e)}
+                                className="absolute bottom-0 left-0 right-0 h-1.5 cursor-row-resize bg-transparent group-hover/row:bg-slate-200 hover:!bg-indigo-500 transition-colors z-10"
+                              />
+                            </td>
+                            <td className="px-4 py-2.5 text-slate-660 font-medium relative select-none truncate" title={prod.category}>
+                              {prod.category}
+                              <div 
+                                onMouseDown={(e) => startResizeRow(i, e)}
+                                className="absolute bottom-0 left-0 right-0 h-1.5 cursor-row-resize bg-transparent group-hover/row:bg-slate-200 hover:!bg-indigo-500 transition-colors z-10"
+                              />
+                            </td>
+                            <td className="px-4 py-2.5 text-slate-500 relative select-none truncate" title={prod.description}>
+                              {prod.description}
+                              <div 
+                                onMouseDown={(e) => startResizeRow(i, e)}
+                                className="absolute bottom-0 left-0 right-0 h-1.5 cursor-row-resize bg-transparent group-hover/row:bg-slate-200 hover:!bg-indigo-500 transition-colors z-10"
+                              />
+                            </td>
+                            <td className="px-4 py-2.5 text-slate-650 relative select-none truncate" title={prod.target_customer}>
+                              {prod.target_customer}
+                              <div 
+                                onMouseDown={(e) => startResizeRow(i, e)}
+                                className="absolute bottom-0 left-0 right-0 h-1.5 cursor-row-resize bg-transparent group-hover/row:bg-slate-200 hover:!bg-indigo-500 transition-colors z-10"
+                              />
+                            </td>
+                            <td className="px-4 py-2.5 text-slate-500 relative select-none truncate" title={prod.deployment_model}>
+                              {prod.deployment_model}
+                              <div 
+                                onMouseDown={(e) => startResizeRow(i, e)}
+                                className="absolute bottom-0 left-0 right-0 h-1.5 cursor-row-resize bg-transparent group-hover/row:bg-slate-200 hover:!bg-indigo-500 transition-colors z-10"
+                              />
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1160,11 +1382,22 @@ export default function DetailModal({
                     {onUpdateField && (
                       <button
                         onClick={() => {
-                          setFundingSeriesInput(startup.latest_round_stage || analysis?.funding_stages?.series || startup.funding_stage || "");
-                          setFundingAmountInput(startup.total_funding || analysis?.funding_stages?.amount || startup.funding_amount || "");
-                          setFundingInvestorsInput((analysis?.funding_stages?.investors || []).join(", "));
+                          const mIntel = startup.market_intelligence || analysis?.market_intelligence || {};
+                          const fundingInfo = mIntel.funding && typeof mIntel.funding === "object" && "value" in mIntel.funding
+                            ? (mIntel.funding as any).value
+                            : mIntel.funding || {};
+                          const rawInvestorsList = fundingInfo.investors || analysis?.funding_stages?.investors || [];
+                          const fundingInvestors = Array.isArray(rawInvestorsList)
+                            ? rawInvestorsList.join(", ")
+                            : typeof rawInvestorsList === "string"
+                              ? rawInvestorsList
+                              : "";
+                          setFundingSeriesInput(startup.latest_round_stage || fundingInfo.latest_round || analysis?.funding_stages?.series || startup.funding_stage || "");
+                          setFundingAmountInput(startup.total_funding || fundingInfo.total_funding || analysis?.funding_stages?.amount || startup.funding_amount || "");
+                          setFundingInvestorsInput(fundingInvestors);
                           setEditingField(editingField === "funding" ? null : "funding");
                         }}
+
                         className="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
                         title="Edit Funding"
                       >

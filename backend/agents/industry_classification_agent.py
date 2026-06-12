@@ -29,7 +29,11 @@ class IndustryClassificationAgent(BaseAgent):
         if isinstance(products_data, dict) and products_data.get("value"):
             products_text = json.dumps(products_data["value"])
 
-        prompt_template = """You are a taxonomy mapping utility. Your goal is to map the company to the allowed master taxonomy.
+        prompt_template = """You are a taxonomy mapping analyst on the Startup Engagement and Investment Team. Your goal is to map the company to the allowed master taxonomy to keep our deal flow pipeline categorized.
+
+Startup Details:
+Startup Name: {{ startup_name }}
+News Article Headline: {{ headline }}
 
 Master Taxonomy Options:
 {{ taxonomy_context }}
@@ -51,6 +55,8 @@ Return ONLY a valid JSON object matching this structure:
 """
         try:
             prompt = Template(prompt_template).render(
+                startup_name=state.startup_name,
+                headline=state.article_data.get("headline", ""),
                 taxonomy_context=taxonomy_context,
                 description=desc,
                 products_text=products_text

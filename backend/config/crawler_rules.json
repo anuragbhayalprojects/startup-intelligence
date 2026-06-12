@@ -1,0 +1,19 @@
+{
+  "low_trust_threshold": 50,
+  "playwright_min_text_len": 200,
+  "playwright_timeout_ms": 5000,
+  "link_density_threshold": 0.3,
+  "min_block_length": 20,
+  "boilerplate_patterns": [
+    "cookie(s)?",
+    "use cookies",
+    "privacy policy",
+    "terms (of service|of use|and conditions)",
+    "agree to (our|the) terms",
+    "subscribe to",
+    "click here to",
+    "all rights reserved",
+    "newsletter",
+    "follow us on"
+  ]
+}

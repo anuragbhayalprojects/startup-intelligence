@@ -861,8 +861,19 @@ async def trigger_startup_analysis(id: str, force: bool = False):
                     return {"analysis_data": record.get("analysis_json")}
         
         print(f"Triggering manual AI analysis for startup: {startup.get('startup_name')}")
+        
+        # Fetch latest news headline as actual headline if available
+        headline = startup.get("startup_name", "")
+        try:
+            news_resp = supabase.table("startup_news").select("headline").eq("startup_id", int_id).order("published_at", desc=True).limit(1).execute()
+            if news_resp.data and news_resp.data[0].get("headline"):
+                headline = news_resp.data[0]["headline"]
+        except Exception:
+            pass
+
         raw_startup = {
             "startup_name": startup.get("startup_name", ""),
+            "headline": headline,
             "description": startup.get("description", ""),
             "source": startup.get("source", "Manual Check"),
             "source_url": startup.get("source_url", "")
@@ -1363,7 +1374,14 @@ async def update_startup_field(id: str, req: FieldUpdateRequest = Body(...)):
                     value = int(value)
                 except Exception:
                     value = None
-            supabase.table("startups").update({db_field: value}).eq("id", int_id).execute()
+            payload = {db_field: value}
+            if db_field == "linkedin_url":
+                payload["linkedin_company_url"] = value
+            elif db_field == "founder_name":
+                payload["primary_founder_name"] = value
+            elif db_field == "founder_linkedin_url":
+                payload["primary_founder_linkedin"] = value
+            supabase.table("startups").update(payload).eq("id", int_id).execute()
             
         # 2. Update the nested analysis_json inside startup_analysis
         analysis_res = supabase.table("startup_analysis").select("*").eq("startup_id", int_id).execute()
@@ -1433,33 +1451,42 @@ async def update_startup_field(id: str, req: FieldUpdateRequest = Body(...)):
                         "founder_linkedin_url": founder_linkedin
                     }).eq("id", int_id).execute()
             elif field == "funding":
-                # Run Pass 3 for real-time funding enrichment on manual edit
-                from backend.ai.startup_analyzer import collect_funding_snippets, extract_funding_rounds
-                startup_name = supabase.table("startups").select("startup_name").eq("id", int_id).execute()
-                sname = startup_name.data[0].get("startup_name", "") if startup_name.data else ""
-                if sname:
-                    funding_snippets = collect_funding_snippets(sname)
-                    funding_result = extract_funding_rounds(sname, funding_snippets)
-                    if funding_result:
-                        analysis_json["funding_rounds"] = funding_result.get("rounds", [])
-                        analysis_json["funding_stages"] = {
-                            "series": funding_result.get("latest_stage", value.get("series", "")),
-                            "amount": funding_result.get("total_funding", value.get("amount", "")),
-                            "investors": [
-                                r.get("lead_investor", "") for r in funding_result.get("rounds", []) if r.get("lead_investor")
-                            ]
-                        }
-                        # Persist to dedicated columns
-                        analysis_row = supabase.table("startup_analysis").select("id").eq("startup_id", int_id).execute()
-                        aid = analysis_row.data[0]["id"] if analysis_row.data else None
-                        save_funding_rounds(int_id, funding_result, aid)
-                    else:
-                        # Fallback to manual value if Pass 3 finds nothing
-                        analysis_json["funding_stages"] = value
-                # Sync stage to startups table
-                supabase.table("startups").update({
-                    "funding_stage": analysis_json.get("funding_stages", {}).get("series", "")
-                }).eq("id", int_id).execute()
+                # Save manual edit directly instead of running real-time AI enrichment
+                analysis_json["funding_stages"] = value
+                
+                # Construct rounds list for manual entry
+                rounds = [{
+                    "stage": value.get("series", ""),
+                    "amount": value.get("amount", ""),
+                    "date": "",
+                    "lead_investor": value.get("investors", [])[0] if value.get("investors", []) else "",
+                    "co_investors": value.get("investors", [])[1:] if len(value.get("investors", [])) > 1 else []
+                }]
+                
+                # Update market_intelligence JSON structure for fallback consistency
+                if "market_intelligence" not in analysis_json or not isinstance(analysis_json["market_intelligence"], dict):
+                    analysis_json["market_intelligence"] = {}
+                analysis_json["market_intelligence"]["funding"] = {
+                    "value": {
+                        "total_funding": value.get("amount", ""),
+                        "latest_round": value.get("series", ""),
+                        "latest_round_date": "",
+                        "investors": value.get("investors", []),
+                        "funding_history": rounds
+                    },
+                    "confidence": 100
+                }
+                
+                # Persist to dedicated columns
+                analysis_row = supabase.table("startup_analysis").select("id").eq("startup_id", int_id).execute()
+                aid = analysis_row.data[0]["id"] if analysis_row.data else None
+                save_funding_rounds(int_id, {
+                    "rounds": rounds,
+                    "total_funding": value.get("amount", ""),
+                    "latest_stage": value.get("series", ""),
+                    "latest_date": ""
+                }, aid)
+
             elif field == "valuation":
                 analysis_json["valuation_metrics"] = value
             elif field in ["headquarters", "hq"]:
@@ -1994,7 +2021,7 @@ Your response should contain concrete, feasible opportunities. Return ONLY a val
             elif field in ["linkedin", "linkedin_url"]:
                 extracted_val = data.get("linkedin_company_url") or ""
                 analysis_json["linkedin_company_url"] = extracted_val
-                supabase.table("startups").update({"linkedin_url": extracted_val}).eq("id", int_id).execute()
+                supabase.table("startups").update({"linkedin_url": extracted_val, "linkedin_company_url": extracted_val}).eq("id", int_id).execute()
                 
             elif field in ["startup_name", "brand_name"]:
                 extracted_val = data.get("brand_name") or clean_name
@@ -2024,7 +2051,9 @@ Your response should contain concrete, feasible opportunities. Return ONLY a val
                     founder_linkedin = extracted_val[0].get("linkedin_url", "")
                     supabase.table("startups").update({
                         "founder_name": founder_name,
-                        "founder_linkedin_url": founder_linkedin
+                        "primary_founder_name": founder_name,
+                        "founder_linkedin_url": founder_linkedin,
+                        "primary_founder_linkedin": founder_linkedin
                     }).eq("id", int_id).execute()
                     
             elif field == "funding":
@@ -2045,11 +2074,27 @@ Your response should contain concrete, feasible opportunities. Return ONLY a val
                                 [inv for r in rounds for inv in r.get("co_investors", [])]
                             ))
                         }
+                        
+                        # Update market_intelligence JSON structure for consistency
+                        if "market_intelligence" not in analysis_json or not isinstance(analysis_json["market_intelligence"], dict):
+                            analysis_json["market_intelligence"] = {}
+                        analysis_json["market_intelligence"]["funding"] = {
+                            "value": {
+                                "total_funding": funding_result.get("total_funding", ""),
+                                "latest_round": funding_result.get("latest_stage", ""),
+                                "latest_round_date": funding_result.get("latest_date", ""),
+                                "investors": analysis_json["funding_stages"]["investors"],
+                                "funding_history": rounds
+                            },
+                            "confidence": 95
+                        }
+                        
                         supabase.table("startups").update({
                             "funding_stage": funding_result.get("latest_stage", "")
                         }).eq("id", int_id).execute()
                         save_funding_rounds(int_id, funding_result, analysis_rec.get("id"))
                         data = {"funding_stages": analysis_json["funding_stages"], "funding_rounds": rounds}
+
                 
             elif field in ["headquarters", "hq"]:
                 extracted_val = data.get("headquarters") or ""

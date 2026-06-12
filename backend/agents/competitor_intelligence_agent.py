@@ -26,7 +26,11 @@ class CompetitorIntelligenceAgent(BaseAgent):
             for rec in records:
                 search_snippets += f"- {rec.get('title')}: {rec.get('snippet')}\n"
 
-        prompt_template = """You are an industry competitor analyst. Analyze the business details and product offerings of the startup, and identify direct competitors.
+        prompt_template = """You are a senior analyst on the Startup Engagement and Investment Team. Analyze the business details and product offerings of the startup, and identify direct competitors to evaluate market position and differentiators.
+
+Startup Details:
+Startup Name: {{ startup_name }}
+News Article Headline: {{ headline }}
 
 Startup Description:
 {{ description }}
@@ -53,6 +57,8 @@ Return ONLY a valid JSON object matching the following structure:
 """
         try:
             prompt = Template(prompt_template).render(
+                startup_name=state.startup_name,
+                headline=state.article_data.get("headline", ""),
                 description=desc,
                 products_text=products_text,
                 search_snippets=search_snippets

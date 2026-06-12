@@ -46,9 +46,9 @@ except ImportError:
 _NAME_RULES_CACHE: dict | None = None
 _HEADLINE_PATTERNS_CACHE: dict | None = None
 
-def load_name_discovery_rules() -> dict:
+def load_name_resolution_rules() -> dict:
     """
-    Loads name discovery rules from backend/config/name_resolution_rules.json.
+    Loads name resolution rules from backend/config/name_resolution_rules.json.
     Results are cached in-process to avoid repeated file I/O.
     """
     global _NAME_RULES_CACHE
@@ -60,7 +60,7 @@ def load_name_discovery_rules() -> dict:
             _NAME_RULES_CACHE = json.load(f)
     except Exception as e:
         # Graceful fallback to empty config — hardcoded defaults inside functions still apply
-        print(f"⚠️ [Pipeline] Could not load name_discovery_rules.json: {e}")
+        print(f"⚠️ [Pipeline] Could not load name_resolution_rules.json: {e}")
         _NAME_RULES_CACHE = {}
     return _NAME_RULES_CACHE
 
@@ -219,7 +219,7 @@ def clean_string(text):
     if not text:
         return ""
     
-    rules = load_name_discovery_rules()
+    rules = load_name_resolution_rules()
     verbs = rules.get("verbs", [])
     prefixes = rules.get("prefixes", [])
     
@@ -263,7 +263,7 @@ def get_clean_startup_name(headline, extracted_name, source=None, source_url=Non
         backend/config/name_resolution_rules.json
     """
     # Load rules from external config (cached after first call)
-    rules = load_name_discovery_rules()
+    rules = load_name_resolution_rules()
 
     generic_placeholders = rules.get("generic_placeholders", [])
     replacements = rules.get("replacements", {})
@@ -621,6 +621,7 @@ def process_startup(startup, industry_filter: str = "", sector_filter: str = "",
         # Build individual startup item for Pass 2 enrichment
         startup_item = {
             "startup_name": clean_name,
+            "headline": original_headline,
             "description": original_description,
             "source": startup.get("source", "Unknown"),
             "source_url": startup.get("source_url", "")

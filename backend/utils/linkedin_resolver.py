@@ -19,40 +19,26 @@ import re
 from typing import Optional
 
 # --------------------------------------------------------------------------- #
-# Known LinkedIn company page slugs
+# Known LinkedIn company page slugs loader
 # --------------------------------------------------------------------------- #
 
-KNOWN_LINKEDIN: dict[str, str] = {
-    "razorpay": "https://www.linkedin.com/company/razorpay",
-    "zerodha": "https://www.linkedin.com/company/zerodha",
-    "cred": "https://www.linkedin.com/company/getcred",
-    "groww": "https://www.linkedin.com/company/groww-in",
-    "meesho": "https://www.linkedin.com/company/meesho",
-    "nykaa": "https://www.linkedin.com/company/nykaa",
-    "byjus": "https://www.linkedin.com/company/byjus",
-    "byju's": "https://www.linkedin.com/company/byjus",
-    "unacademy": "https://www.linkedin.com/company/unacademy",
-    "swiggy": "https://www.linkedin.com/company/swiggy-in",
-    "zomato": "https://www.linkedin.com/company/zomato",
-    "paytm": "https://www.linkedin.com/company/paytm",
-    "phonepe": "https://www.linkedin.com/company/phonepe-internet",
-    "freshworks": "https://www.linkedin.com/company/freshworks",
-    "perfios": "https://www.linkedin.com/company/perfios",
-    "digit insurance": "https://www.linkedin.com/company/digit-insurance",
-    "godigit": "https://www.linkedin.com/company/digit-insurance",
-    "artivatic.ai": "https://www.linkedin.com/company/artivatic",
-    "artivatic": "https://www.linkedin.com/company/artivatic",
-    "juspay": "https://www.linkedin.com/company/juspay",
-    "signzy": "https://www.linkedin.com/company/signzy",
-    "yubi": "https://www.linkedin.com/company/yubi-formerly-credavenue",
-    "m2p fintech": "https://www.linkedin.com/company/m2p-solutions",
-    "m2p": "https://www.linkedin.com/company/m2p-solutions",
-    "setu": "https://www.linkedin.com/company/setu-api",
-    "decentro": "https://www.linkedin.com/company/decentro-tech",
-    "smallcase": "https://www.linkedin.com/company/smallcase",
-    "zepto": "https://www.linkedin.com/company/zepto",
-    "innovaccer": "https://www.linkedin.com/company/innovaccer",
-}
+_KNOWN_LINKEDIN_CACHE = None
+
+def load_known_linkedin() -> dict[str, str]:
+    global _KNOWN_LINKEDIN_CACHE
+    if _KNOWN_LINKEDIN_CACHE is not None:
+        return _KNOWN_LINKEDIN_CACHE
+    config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "known_linkedin.json")
+    try:
+        with open(config_path, "r") as f:
+            _KNOWN_LINKEDIN_CACHE = json.load(f)
+    except Exception as e:
+        print(f"⚠️ [LinkedInResolver] Failed to load known_linkedin.json: {e}")
+        _KNOWN_LINKEDIN_CACHE = {}
+    return _KNOWN_LINKEDIN_CACHE
+
+
+KNOWN_LINKEDIN = load_known_linkedin()
 
 
 _LINKEDIN_URL_PATTERN = re.compile(
@@ -84,9 +70,12 @@ def resolve_linkedin_company_url(
     if startup_id and not skip_registry:
         try:
             from backend.services.supabase_service import supabase
-            res = supabase.table("startup_identity").select("linkedin_company_url").eq("startup_id", startup_id).execute()
-            if res.data and res.data[0].get("linkedin_company_url"):
-                return res.data[0]["linkedin_company_url"]
+            res = supabase.table("startups").select("linkedin_company_url, linkedin_url").eq("id", startup_id).execute()
+            if res.data:
+                row = res.data[0]
+                url = row.get("linkedin_company_url") or row.get("linkedin_url")
+                if url:
+                    return url
         except Exception as e:
             print(f"⚠️ [LinkedInResolver] Registry lookup failed: {e}")
 

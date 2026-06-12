@@ -184,7 +184,7 @@ def resolve_website(
     if startup_id and not skip_registry:
         try:
             from backend.services.supabase_service import supabase
-            res = supabase.table("startup_identity").select("website").eq("startup_id", startup_id).execute()
+            res = supabase.table("startups").select("website").eq("id", startup_id).execute()
             if res.data and res.data[0].get("website"):
                 url = res.data[0]["website"]
                 if _is_likely_official_url(url):

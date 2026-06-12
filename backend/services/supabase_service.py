@@ -40,7 +40,8 @@ def map_startup_data(raw_data):
     return {
         "startup_name": raw_data.get("startup_name"),
         "website": raw_data.get("website"),
-        "linkedin_url": raw_data.get("linkedin_url"),
+        "linkedin_url": raw_data.get("linkedin_url") or raw_data.get("linkedin_company_url"),
+        "linkedin_company_url": raw_data.get("linkedin_company_url") or raw_data.get("linkedin_url"),
         "city": raw_data.get("city") or "Unknown",
         "state": raw_data.get("state") or "Unknown",
         "country": raw_data.get("country") or "India",
@@ -60,7 +61,8 @@ def map_startup_data(raw_data):
         "brand_name": raw_data.get("brand_name") or raw_data.get("startup_name"),
         "legal_name": raw_data.get("legal_name") or "",
         "identity_confidence": raw_data.get("identity_confidence") or 0.0,
-        "status": raw_data.get("status") or raw_data.get("startup_status") or "Screening"
+        "status": raw_data.get("status") or raw_data.get("startup_status") or "Screening",
+        "verification_notes": raw_data.get("verification_notes") or ""
     }
 
 
@@ -223,6 +225,26 @@ def save_startup_analysis(startup_id, analysis_json):
     scoring = analysis_json.get("scoring", {})
     classification = analysis_json.get("classification", {})
     
+    # Extract funding fields
+    mintel = analysis_json.get("market_intelligence", {})
+    funding_val = {}
+    if isinstance(mintel, dict):
+        funding_entry = mintel.get("funding", {})
+        if isinstance(funding_entry, dict):
+            if "value" in funding_entry:
+                funding_val = funding_entry.get("value") or {}
+            else:
+                funding_val = funding_entry
+    
+    total_funding = analysis_json.get("total_funding") or funding_val.get("total_funding") or ""
+    latest_round_stage = analysis_json.get("latest_stage") or funding_val.get("latest_round") or analysis_json.get("funding_stages", {}).get("series") or ""
+    latest_round_date = analysis_json.get("latest_funding_date") or funding_val.get("latest_round_date") or ""
+    
+    funding_rounds = analysis_json.get("funding_rounds") or funding_val.get("funding_history") or []
+    if isinstance(funding_rounds, list):
+        funding_rounds = [r for r in funding_rounds if r and isinstance(r, dict)]
+
+    
     # Map integration feasibility string to score
     feasibility_map = {"high": 100, "medium": 50, "low": 10}
     feasibility_str = str(fit.get("integration_feasibility", "Medium")).lower()
@@ -293,6 +315,12 @@ def save_startup_analysis(startup_id, analysis_json):
         "use_cases": use_cases,
         "co_creation_opportunities": [fit.get("partnership_opportunity")] if fit.get("partnership_opportunity") else [],
         "analysis_json": analysis_json,
+        
+        # Funding fields
+        "funding_rounds": funding_rounds,
+        "total_funding": total_funding,
+        "latest_round_stage": latest_round_stage,
+        "latest_round_date": latest_round_date,
         
         # New operational scoring fields
         "relevance_score": to_int(analysis_json.get("relevance_score") or bfsi.get("relevance_score")),
@@ -372,9 +400,13 @@ def save_startup_analysis(startup_id, analysis_json):
         startup_updates["tags"] = get_canonical_tags(startup_name, tags)
         
     funding_stages_info = analysis_json.get("funding_stages", {})
-    series = funding_stages_info.get("series")
+    series = funding_stages_info.get("series") or latest_round_stage
     if series and series != "Unknown":
         startup_updates["funding_stage"] = series
+        startup_updates["latest_round_stage"] = series
+    if total_funding:
+        startup_updates["total_funding"] = total_funding
+
         
     # Apply canonical funding stage overrides if present in taxonomy mapper overloads
     if startup_name:
@@ -595,17 +627,22 @@ def save_funding_rounds(startup_id: int, funding_data: dict, analysis_id: int = 
 
 
 # =============================================================================
-# Identity Registry CRUD (startup_identity table)
+# Identity Registry CRUD (merged into startups table)
 # =============================================================================
 
 def get_identity_record(startup_id: int) -> dict | None:
     """
-    Fetches the identity registry record for a given startup_id.
+    Fetches the identity registry record (now merged into startups table) for a given startup_id.
     Returns the record dict or None if not found.
     """
     try:
-        res = supabase.table("startup_identity").select("*").eq("startup_id", startup_id).execute()
-        return res.data[0] if res.data else None
+        res = supabase.table("startups").select("*").eq("id", startup_id).execute()
+        if res.data:
+            row = res.data[0]
+            # Maintain backward compatibility for callers expecting startup_id key
+            row["startup_id"] = row["id"]
+            return row
+        return None
     except Exception as e:
         logging.warning(f"[IdentityRegistry] get_identity_record failed for startup_id={startup_id}: {e}")
         return None
@@ -618,12 +655,18 @@ def get_identity_by_name(startup_name: str) -> dict | None:
     """
     try:
         # Exact match first
-        res = supabase.table("startup_identity").select("*").ilike("startup_name", startup_name.strip()).execute()
+        res = supabase.table("startups").select("*").ilike("startup_name", startup_name.strip()).execute()
         if res.data:
-            return res.data[0]
+            row = res.data[0]
+            row["startup_id"] = row["id"]
+            return row
         # Brand name fallback
-        res2 = supabase.table("startup_identity").select("*").ilike("brand_name", startup_name.strip()).execute()
-        return res2.data[0] if res2.data else None
+        res2 = supabase.table("startups").select("*").ilike("brand_name", startup_name.strip()).execute()
+        if res2.data:
+            row = res2.data[0]
+            row["startup_id"] = row["id"]
+            return row
+        return None
     except Exception as e:
         logging.warning(f"[IdentityRegistry] get_identity_by_name failed for '{startup_name}': {e}")
         return None
@@ -631,8 +674,8 @@ def get_identity_by_name(startup_name: str) -> dict | None:
 
 def upsert_identity_record(startup_id: int, identity_data: dict) -> dict | None:
     """
-    Upserts an identity record for a startup. If one exists, it is updated
-    only when the new record has equal or higher confidence.
+    Upserts identity details directly in the startups table.
+    If the record exists, it is updated only when the new confidence is equal or higher.
 
     identity_data keys:
       startup_name, brand_name, website, linkedin_company_url, primary_founder_name,
@@ -640,7 +683,7 @@ def upsert_identity_record(startup_id: int, identity_data: dict) -> dict | None:
       headquarters, city, country, founded_year, founded_year_confidence,
       identity_confidence, source, evidence_count, verification_notes
 
-    Returns the upserted/updated record or None on failure.
+    Returns the updated/upserted record or None on failure.
     """
     from datetime import datetime, timezone
 
@@ -649,34 +692,64 @@ def upsert_identity_record(startup_id: int, identity_data: dict) -> dict | None:
 
     try:
         now = datetime.now(timezone.utc).isoformat()
-        identity_data["startup_id"] = startup_id
-        identity_data["updated_at"] = now
+        
+        # Clean identity data to copy
+        payload = dict(identity_data)
+        payload.pop("startup_id", None)
+        payload.pop("id", None)
+        payload["updated_at"] = now
 
-        existing = supabase.table("startup_identity").select("id, identity_confidence, evidence_count").eq("startup_id", startup_id).execute()
+        # Synchronize duplicate/aliased columns
+        if "linkedin_company_url" in payload and payload["linkedin_company_url"]:
+            payload["linkedin_url"] = payload["linkedin_company_url"]
+        elif "linkedin_url" in payload and payload["linkedin_url"]:
+            payload["linkedin_company_url"] = payload["linkedin_url"]
+
+        if "primary_founder_name" in payload and payload["primary_founder_name"]:
+            payload["founder_name"] = payload["primary_founder_name"]
+        elif "founder_name" in payload and payload["founder_name"]:
+            payload["primary_founder_name"] = payload["founder_name"]
+
+        if "primary_founder_linkedin" in payload and payload["primary_founder_linkedin"]:
+            payload["founder_linkedin_url"] = payload["primary_founder_linkedin"]
+        elif "founder_linkedin_url" in payload and payload["founder_linkedin_url"]:
+            payload["primary_founder_linkedin"] = payload["founder_linkedin_url"]
+
+        existing = supabase.table("startups").select("id, identity_confidence, evidence_count").eq("id", startup_id).execute()
 
         if existing.data:
             existing_rec = existing.data[0]
-            new_confidence = identity_data.get("identity_confidence", 0)
-            old_confidence = existing_rec.get("identity_confidence", 0)
+            new_confidence = payload.get("identity_confidence", 0.0) or 0.0
+            old_confidence = existing_rec.get("identity_confidence", 0.0) or 0.0
 
             # Merge evidence count upward
-            identity_data["evidence_count"] = max(
-                identity_data.get("evidence_count", 0),
-                existing_rec.get("evidence_count", 0)
+            payload["evidence_count"] = max(
+                payload.get("evidence_count", 0) or 0,
+                existing_rec.get("evidence_count", 0) or 0
             )
 
             if new_confidence >= old_confidence:
-                res = supabase.table("startup_identity").update(identity_data).eq("id", existing_rec["id"]).execute()
-                logging.info(f"[IdentityRegistry] Updated identity for startup_id={startup_id}")
-                return res.data[0] if res.data else None
+                res = supabase.table("startups").update(payload).eq("id", startup_id).execute()
+                logging.info(f"[IdentityRegistry] Updated identity for startup_id={startup_id} in startups table")
+                if res.data:
+                    row = res.data[0]
+                    row["startup_id"] = row["id"]
+                    return row
+                return None
             else:
                 logging.info(f"[IdentityRegistry] Skipped update (lower confidence) for startup_id={startup_id}")
+                existing_rec["startup_id"] = existing_rec["id"]
                 return existing_rec
         else:
-            identity_data["created_at"] = now
-            res = supabase.table("startup_identity").insert(identity_data).execute()
-            logging.info(f"[IdentityRegistry] Inserted identity for startup_id={startup_id}")
-            return res.data[0] if res.data else None
+            payload["id"] = startup_id
+            payload["created_at"] = now
+            res = supabase.table("startups").insert(payload).execute()
+            logging.info(f"[IdentityRegistry] Inserted identity for startup_id={startup_id} in startups table")
+            if res.data:
+                row = res.data[0]
+                row["startup_id"] = row["id"]
+                return row
+            return None
 
     except Exception as e:
         logging.warning(f"[IdentityRegistry] upsert_identity_record failed for startup_id={startup_id}: {e}")
@@ -685,7 +758,7 @@ def upsert_identity_record(startup_id: int, identity_data: dict) -> dict | None:
 
 def update_identity_field(startup_id: int, field: str, value, bump_evidence: bool = True) -> bool:
     """
-    Updates a single field on the startup_identity record.
+    Updates a single field on the startups record (identity registry).
     Optionally bumps evidence_count by 1.
     Returns True on success.
     """
@@ -694,13 +767,27 @@ def update_identity_field(startup_id: int, field: str, value, bump_evidence: boo
     try:
         payload = {field: value, "updated_at": datetime.now(timezone.utc).isoformat()}
 
+        # Synchronize duplicate/aliased columns
+        if field == "linkedin_company_url":
+            payload["linkedin_url"] = value
+        elif field == "linkedin_url":
+            payload["linkedin_company_url"] = value
+        elif field == "primary_founder_name":
+            payload["founder_name"] = value
+        elif field == "founder_name":
+            payload["primary_founder_name"] = value
+        elif field == "primary_founder_linkedin":
+            payload["founder_linkedin_url"] = value
+        elif field == "founder_linkedin_url":
+            payload["primary_founder_linkedin"] = value
+
         if bump_evidence:
-            existing = supabase.table("startup_identity").select("evidence_count").eq("startup_id", startup_id).execute()
+            existing = supabase.table("startups").select("evidence_count").eq("id", startup_id).execute()
             if existing.data:
                 old_count = existing.data[0].get("evidence_count", 0) or 0
                 payload["evidence_count"] = old_count + 1
 
-        res = supabase.table("startup_identity").update(payload).eq("startup_id", startup_id).execute()
+        res = supabase.table("startups").update(payload).eq("id", startup_id).execute()
         return bool(res.data)
     except Exception as e:
         logging.warning(f"[IdentityRegistry] update_identity_field '{field}' failed for startup_id={startup_id}: {e}")

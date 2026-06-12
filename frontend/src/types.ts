@@ -31,6 +31,8 @@ export interface Startup {
   source_url?: string;
   created_at: string;
   updated_at?: string;
+  linkedin_url?: string;
+  linkedin_company_url?: string;
 
   ai_summary?: string;
   relevance_summary?: string;

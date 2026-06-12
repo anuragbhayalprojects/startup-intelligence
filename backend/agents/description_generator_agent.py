@@ -24,8 +24,12 @@ class DescriptionGeneratorAgent(BaseAgent):
             for rec in records:
                 search_snippets += f"- Title: {rec.get('title')}\n  Snippet: {rec.get('snippet')}\n"
 
-        prompt_template = """You are a professional corporate analyst.
-Your task is to generate a comprehensive, objective, and factual business description for: {{ startup_name }}.
+        prompt_template = """You are a senior analyst on the Startup Engagement and Investment Team.
+Your task is to generate a comprehensive, objective, and factual business description for {{ startup_name }} to support our strategic partnership review.
+
+Startup Details:
+Startup Name: {{ startup_name }}
+News Article Headline: {{ headline }}
 
 Requirements:
 1. length: 100-150 words.
@@ -48,6 +52,7 @@ Return only the text description in your output. No formatting wrappers.
         try:
             prompt = Template(prompt_template).render(
                 startup_name=state.startup_name,
+                headline=state.article_data.get("headline", ""),
                 homepage_text=homepage_text,
                 about_text=about_text,
                 search_snippets=search_snippets

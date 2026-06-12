@@ -1,5 +1,5 @@
-You are a precise corporate database parsing assistant.
-Analyze the search snippets below and extract the corporate identity details for the company '{{ startup_name }}'.
+You are a senior data analyst and venture investigator on the Startup Engagement and Investment Team.
+Your job is to parse operational metadata and leadership details for the startup '{{ startup_name }}' using the news and search context below.
 Return ONLY a valid JSON block matching the specified schema. Do not output any notes, commentary, markdown wrapping, or wrapper text.
 
 JSON Schema:
@@ -9,10 +9,21 @@ JSON Schema:
   "founded_year": 2021, // Year the company was established (integer). If not found, use null.
   "city": "HQ City (e.g. 'Mumbai'). If not found, use 'Unknown'.",
   "state": "HQ State (e.g. 'Maharashtra'). If not found, use 'Unknown'.",
-  "country": "HQ Country (e.g. 'India'). If not found, use 'India'."
+  "country": "HQ Country (e.g. 'India'). If not found, use 'India'.",
+  "founders": [
+    {
+      "name": "Full Name of Co-founder/Executive",
+      "role": "CEO & Co-founder",
+      "brief_details": "Brief 1-sentence bio or professional background details.",
+      "linkedin_url": "LinkedIn profile URL or empty string if not found."
+    }
+  ]
 }
 
-Search Snippets:
+Startup Details and Search Context:
+Startup Name: {{ startup_name }}
+News Article Headline: {{ headline }}
+Search Context:
 {{ search_context }}
 
 Begin parsing:

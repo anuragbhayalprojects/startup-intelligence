@@ -20,7 +20,7 @@ class OpportunityMappingAgent(BaseAgent):
         if isinstance(products_data, dict) and products_data.get("value"):
             products_text = json.dumps(products_data["value"])
 
-        prompt_template = """You are a strategic partnership head for ICICI Group.
+        prompt_template = """You are the head of strategic partnerships on the Startup Engagement and Investment Team at ICICI Group.
 Analyze the startup's details and generate specific co-creation or pilot integration opportunities for ICICI Group companies:
 - ICICI Bank (Retail, Corporate, SME banking)
 - ICICI Lombard (General insurance)
@@ -28,6 +28,10 @@ Analyze the startup's details and generate specific co-creation or pilot integra
 - ICICI Prudential AMC (Asset management)
 - ICICI Prudential Life (Life insurance)
 - ICICI HFC (Home finance)
+
+Startup Details:
+Startup Name: {{ startup_name }}
+News Article Headline: {{ headline }}
 
 Description:
 {{ description }}
@@ -49,6 +53,8 @@ Your response should contain concrete, feasible opportunities. Return ONLY a val
 """
         try:
             prompt = Template(prompt_template).render(
+                startup_name=state.startup_name,
+                headline=state.article_data.get("headline", ""),
                 description=desc,
                 products_text=products_text
             )

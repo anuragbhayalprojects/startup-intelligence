@@ -27,11 +27,13 @@ class LegalNameAgent(BaseAgent):
                 search_snippets += f"- Title: {rec.get('title')}\n  Snippet: {rec.get('snippet')}\n"
                 
         # Gather original news article details
-        article_headline = state.article_data.get("headline") or state.article_data.get("startup_name") or ""
+        article_headline = state.article_data.get("headline") or ""
         article_desc = state.article_data.get("description") or ""
         article_paragraphs = " ".join(state.article_data.get("paragraphs") or [])
         
         search_context = (
+            f"=== TARGET STARTUP NAME ===\n"
+            f"{state.startup_name}\n\n"
             f"=== SOURCE NEWS ARTICLE ===\n"
             f"Headline: {article_headline}\n"
             f"Description: {article_desc}\n"
@@ -40,47 +42,22 @@ class LegalNameAgent(BaseAgent):
             f"=== SEARCH SNIPPETS ===\n{search_snippets[:2000]}\n"
         )
         
-        # 2. Extract Corporate Identity (legal_name, headquarters, founded_year, city, state, country)
+        # 2. Extract Corporate Identity & Founders (single LLM call)
         corp_identity = {}
         try:
             corp_prompt_path = os.path.join(os.path.dirname(__file__), "../prompts/corporate_identity_prompt.txt")
             with open(corp_prompt_path, "r", encoding="utf-8") as f:
                 corp_template = Template(f.read())
-            corp_prompt = corp_template.render(startup_name=state.startup_name, search_context=search_context)
+            corp_prompt = corp_template.render(
+                startup_name=state.startup_name,
+                headline=state.article_data.get("headline", ""),
+                search_context=search_context
+            )
             corp_identity = call_ollama(corp_prompt, json_format=True) or {}
         except Exception as e:
-            self.log_audit(state, f"Corporate identity LLM extraction failed: {e}")
+            self.log_audit(state, f"Corporate identity/leadership LLM extraction failed: {e}")
             
-        # 3. Extract Founders & Leadership
-        founders_data = {}
-        try:
-            founders_prompt = f"""You are a precise database parsing assistant.
-Analyze the search snippets below and extract the list of corporate co-founders for the company '{state.startup_name}'.
-For each founder, extract their full name, role/title, a brief 1-sentence bio, and LinkedIn profile URL (or empty string if not found).
-Return ONLY a valid JSON block containing the "founders" key. Do not output any notes, commentary, or wrapper text.
-
-JSON Schema:
-{{
-  "founders": [
-    {{
-      "name": "Full Name",
-      "role": "CEO & Co-founder",
-      "brief_details": "Brief background info details.",
-      "linkedin_url": "https://www.linkedin.com/in/username"
-    }}
-  ]
-}}
-
-Search Snippets:
-{search_context}
-
-Begin parsing:
-"""
-            founders_data = call_ollama(founders_prompt, json_format=True) or {}
-        except Exception as e:
-            self.log_audit(state, f"Founders LLM extraction failed: {e}")
-            
-        # 4. Map values to state fields
+        # 3. Map values to state fields
         legal_name = corp_identity.get("legal_name") or ""
         # Regex fallback for legal name if LLM returned nothing
         if not legal_name:
@@ -127,7 +104,7 @@ Begin parsing:
                 pass
                 
         # Founders mapping
-        founders_list = founders_data.get("founders") or []
+        founders_list = corp_identity.get("founders") or []
         if isinstance(founders_list, list):
             state.startup_features.leadership = founders_list
             if founders_list:

@@ -100,7 +100,11 @@ class EnrichmentAgent(BaseAgent):
                 desc_prompt_path = os.path.join(os.path.dirname(__file__), "../prompts/description_generation_prompt.txt")
                 with open(desc_prompt_path, "r", encoding="utf-8") as f:
                     desc_template = Template(f.read())
-                desc_prompt = desc_template.render(startup_name=clean_name, search_context=search_context)
+                desc_prompt = desc_template.render(
+                    startup_name=clean_name,
+                    headline=state.article_data.get("headline", ""),
+                    search_context=search_context
+                )
                 description = call_ollama(desc_prompt, json_format=False)
                 if description:
                     description = description.strip()
@@ -116,7 +120,11 @@ class EnrichmentAgent(BaseAgent):
                 ol_prompt_path = os.path.join(os.path.dirname(__file__), "../prompts/startup_one_liner_prompt.txt")
                 with open(ol_prompt_path, "r", encoding="utf-8") as f:
                     ol_template = Template(f.read())
-                ol_prompt = ol_template.render(startup_name=clean_name, search_context=search_context)
+                ol_prompt = ol_template.render(
+                    startup_name=clean_name,
+                    headline=state.article_data.get("headline", ""),
+                    search_context=search_context
+                )
                 one_liner = call_ollama(ol_prompt, json_format=False)
                 if one_liner:
                     one_liner = one_liner.strip()
@@ -133,7 +141,11 @@ class EnrichmentAgent(BaseAgent):
                     corp_prompt_path = os.path.join(os.path.dirname(__file__), "../prompts/corporate_identity_prompt.txt")
                     with open(corp_prompt_path, "r", encoding="utf-8") as f:
                         corp_template = Template(f.read())
-                    corp_prompt = corp_template.render(startup_name=clean_name, search_context=search_context)
+                    corp_prompt = corp_template.render(
+                        startup_name=clean_name,
+                        headline=state.article_data.get("headline", ""),
+                        search_context=search_context
+                    )
                     corp_identity = call_ollama(corp_prompt, json_format=True) or {}
                 except Exception as e:
                     self.log_audit(state, f"Failed to extract corporate identity: {e}")

@@ -20,10 +20,10 @@ class FundingIntelligenceAgent(BaseAgent):
                 if cat in ["news", "funding_sources"]:
                     search_snippets += f"- {rec.get('title')}: {rec.get('snippet')}\n"
 
-        prompt_template = """You are an investment analyst. Look at the news article details and the web search snippets, and extract the latest funding round and history if present.
+        prompt_template = """You are a venture analyst on the Startup Engagement and Investment Team. Review the target startup info, news headline, and search snippets to extract the latest funding round and capital history.
 
-News Article:
-Headline: {{ headline }}
+Target Startup Name: {{ startup_name }}
+News Article Headline: {{ headline }}
 Description: {{ description }}
 
 Search Context:
@@ -51,6 +51,7 @@ If no details are present, return empty strings or lists.
             # Safe truncation to prevent context overflow/timeout
             search_snippets = search_snippets[:2000]
             prompt = Template(prompt_template).render(
+                startup_name=state.startup_name,
                 headline=state.article_data.get("headline") or state.article_data.get("startup_name") or "",
                 description=state.article_data.get("description", ""),
                 search_snippets=search_snippets

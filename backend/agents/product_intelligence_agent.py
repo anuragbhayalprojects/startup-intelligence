@@ -35,7 +35,11 @@ class ProductIntelligenceAgent(BaseAgent):
             for rec in records:
                 search_snippets += f"- {rec.get('title')}: {rec.get('snippet')}\n"
 
-        prompt_template = """You are an AI Product Analyst. Analyze the company's product pages or search snippets and extract their product and services intelligence.
+        prompt_template = """You are a senior product analyst on the Startup Engagement and Investment Team. Analyze the company's product pages or search snippets and extract their product and services intelligence to evaluate pilot alignment.
+
+Startup Details:
+Startup Name: {{ startup_name }}
+News Article Headline: {{ headline }}
 
 Evidence:
 === Crawled product subpages / Homepage ===
@@ -68,6 +72,8 @@ Return ONLY a valid JSON object matching the following structure:
 """
         try:
             prompt = Template(prompt_template).render(
+                startup_name=state.startup_name,
+                headline=state.article_data.get("headline", ""),
                 scraped_products_text=scraped_products_text,
                 search_snippets=search_snippets
             )

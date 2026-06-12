@@ -39,6 +39,7 @@ class RelevanceAgent(BaseAgent):
                 prompt_template = Template(f.read())
             prompt = prompt_template.render(
                 startup_name=state.startup_name,
+                headline=state.article_data.get("headline", ""),
                 rag_context=rag_context,
                 sector=state.startup_features.sector,
                 subsector=state.startup_features.subsector,

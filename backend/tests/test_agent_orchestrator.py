@@ -59,3 +59,41 @@ def test_pipeline_full_run_high_relevance():
     # Check that audit trail has records from Strategic Fit and Signals
     assert any("FitAgent" in log["agent"] or "StrategicFitAgent" in log["agent"] for log in state.audit_trail)
     assert any("SignalAgent" in log["agent"] for log in state.audit_trail)
+
+def test_pipeline_semantic_alignment_mismatch():
+    # Test a startup where Phase 1 semantic mismatch check flags a contradiction
+    mismatched_startup = {
+        "startup_name": "Cred",
+        "description": "Cred raises $100M in Series D for its credit card bill payment platform.",
+        "source": "Manual Test",
+        "source_url": "https://cred.club"
+    }
+    
+    orchestrator = AgentOrchestrator()
+    
+    from unittest.mock import patch
+    with patch("backend.agents.utils.call_ollama") as mock_call:
+        # Mock responses:
+        # 1. Clean brand name: "Cred"
+        # 2. Semantic alignment check: MISMATCHED
+        mock_call.side_effect = [
+            {"brand_name": "Cred"},
+            {
+                "alignment_status": "MISMATCHED",
+                "canonical_name": "Cred",
+                "mismatch_reason": "The website describes a luxury fashion app, but the news details a fintech app."
+            }
+        ]
+        
+        state = orchestrator.run_pipeline(mismatched_startup)
+        
+        # Verify it aborted and mapped properly
+        assert state.identity["verification_status"] == "MISMATCHED"
+        assert state.confidence_score == 10
+        assert state.priority_band == "Ignore"
+        assert state.relevance["score"] == 0
+        assert state.strategic_fit["score"] == 0
+        assert state.startup_features.startup_status == "Needs Review"
+        assert state.recommendation["recommended_action"] == "Needs Review"
+        assert any("Semantic mismatch detected" in log["message"] for log in state.audit_trail)
+
