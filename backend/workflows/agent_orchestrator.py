@@ -149,15 +149,23 @@ class AgentOrchestrator:
                         pass
                 
                 with sync_playwright() as p:
-                    browser = p.chromium.launch(headless=True)
-                    page = browser.new_page()
-                    page.set_default_navigation_timeout(playwright_timeout)
-                    
-                    # Navigate and wait for DOM network idle state
-                    page.goto(website_url, wait_until="networkidle")
-                    dynamic_html = page.content()
-                    browser.close()
-                    playwright_success = True
+                    browser = None
+                    try:
+                        browser = p.chromium.launch(headless=True)
+                        page = browser.new_page()
+                        page.set_default_navigation_timeout(playwright_timeout)
+                        
+                        # Navigate and wait for DOM network idle state
+                        page.goto(website_url, wait_until="networkidle")
+                        dynamic_html = page.content()
+                        playwright_success = True
+                    finally:
+                        if browser:
+                            try:
+                                browser.close()
+                            except Exception:
+                                pass
+
             except Exception as pe:
                 print(f"⚠️ Playwright fallback crawl failed: {pe}")
                 state.errors.append(f"Playwright fallback crawl failed: {str(pe)}")

@@ -44,8 +44,14 @@ app.add_middleware(
 
 @app.middleware("http")
 async def tracing_middleware(request: Request, call_next):
-    # Don't trace static/docs or option request
-    if request.method == "OPTIONS" or request.url.path.startswith("/docs") or request.url.path.startswith("/openapi.json"):
+    # Don't trace static/docs, options, scrape status polling, or observability event logging to prevent connection/write bottlenecks
+    if (
+        request.method == "OPTIONS"
+        or request.url.path.startswith("/docs")
+        or request.url.path.startswith("/openapi.json")
+        or request.url.path == "/api/scrape/status"
+        or request.url.path.startswith("/api/observability")
+    ):
         return await call_next(request)
 
     # Retrieve X-Trace-ID or generate one
