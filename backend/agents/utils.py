@@ -7,8 +7,18 @@ from typing import Any
 from backend.rag.retriever import get_retriever
 from backend.utils.tracing import generate_uuid, log_prompt_ledger
 
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
+_CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "llm_config.json")
+_LLM_CFG = {}
+if os.path.exists(_CONFIG_PATH):
+    try:
+        with open(_CONFIG_PATH, "r", encoding="utf-8") as f:
+            _LLM_CFG = json.load(f)
+    except Exception as e:
+        print(f"⚠️ Failed to load llm_config.json: {e}")
+
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL") or _LLM_CFG.get("ollama_base_url") or "http://localhost:11434"
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL") or _LLM_CFG.get("ollama_model") or "qwen2.5:3b"
+OLLAMA_TIMEOUT = float(_LLM_CFG.get("request_timeout_seconds", 180.0))
 
 def clean_llm_response(response_text: str) -> str:
     """Extracts JSON block from the LLM response text."""
@@ -83,7 +93,7 @@ def call_ollama(prompt: str, json_format: bool = True, num_ctx: int = 4096, temp
             f"{OLLAMA_BASE_URL}/api/generate",
             json=payload,
             headers={"Content-Type": "application/json"},
-            timeout=90.0
+            timeout=OLLAMA_TIMEOUT
         )
         resp.raise_for_status()
         text = resp.json().get("response", "").strip()

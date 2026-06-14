@@ -135,9 +135,20 @@ def scrape_page(url: str, timeout: float = 3.5) -> dict:
             if meta_desc:
                 result["meta_description"] = meta_desc.get("content", "").strip()
                 
+            import os
+            import json
+            max_page_cap = 3000
+            rules_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "crawler_rules.json")
+            if os.path.exists(rules_path):
+                try:
+                    with open(rules_path, "r", encoding="utf-8") as rf:
+                        max_page_cap = json.load(rf).get("max_page_character_cap", max_page_cap)
+                except Exception:
+                    pass
+
             # Extract pure text content using the density calculator and boilerplate filter
             text = extract_clean_text_from_html(resp.text)
-            result["text_content"] = text[:3000] # Cap text snippet content size
+            result["text_content"] = text[:max_page_cap] # Cap text snippet content size
             
             # Check for legal suffixes Pvt. Ltd / Private Limited / Inc / LLC
             legal_pattern = re.compile(r"\b([A-Z][a-zA-Z\s,]{2,40}?\s+(?:Pvt\.?\s*Ltd\.?|Private\s+Limited|Inc\.?|LLC))\b")
@@ -206,4 +217,15 @@ def crawl_product_pages(homepage_url: str) -> str:
             if len(collected_texts) >= 3: # Cap subpage crawls to prevent timeouts
                 break
                 
-    return "\n\n".join(collected_texts)
+    import os
+    import json
+    max_total_cap = 10000
+    rules_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "crawler_rules.json")
+    if os.path.exists(rules_path):
+        try:
+            with open(rules_path, "r", encoding="utf-8") as rf:
+                max_total_cap = json.load(rf).get("max_total_product_crawl_cap", max_total_cap)
+        except Exception:
+            pass
+
+    return "\n\n".join(collected_texts)[:max_total_cap]

@@ -64,3 +64,9 @@ def test_extract_clean_text_decomposes():
     assert "body { color: red; }" not in text
     assert "Welcome to our site" not in text
     assert "actual page content that matters" in text
+
+def test_scrape_page_basic():
+    from backend.utils.crawler import scrape_page
+    res = scrape_page("https://example.com")
+    assert "SecurePay is a fintech startup" in res["text_content"]
+
