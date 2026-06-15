@@ -10,7 +10,7 @@ import json
 import requests
 import threading
 from datetime import datetime
-from backend.utils.config import OLLAMA_BASE_URL, OLLAMA_MODEL
+from backend.utils.config import OLLAMA_BASE_URL, OLLAMA_MODEL, OLLAMA_TIMEOUT
 
 router = APIRouter()
 
@@ -1204,12 +1204,13 @@ async def generate_insights():
                     "model": OLLAMA_MODEL,
                     "prompt": prompt,
                     "stream": False,
+                    "format": "json",
                     "options": {
                         "num_ctx": 8192
                     }
                 },
                 headers={"Content-Type": "application/json"},
-                timeout=90.0
+                timeout=OLLAMA_TIMEOUT
             )
             resp.raise_for_status()
             result_text = resp.json().get("response", "")
@@ -1986,12 +1987,13 @@ Your response should contain concrete, feasible opportunities. Return ONLY a val
                     "model": OLLAMA_MODEL,
                     "prompt": prompt,
                     "stream": False,
+                    "format": "json",
                     "options": {
                         "num_ctx": 4096
                     }
                 },
                 headers={"Content-Type": "application/json"},
-                timeout=90.0
+                timeout=OLLAMA_TIMEOUT
             )
             response.raise_for_status()
             result_text = response.json().get("response", "")

@@ -18,9 +18,15 @@
   "leadership_resolver": {
     "funding_articles_query": "\"{brand_name}\" founder OR CEO site:inc42.com OR site:yourstory.com",
     "founder_search": {
-      "v1": ["{brand_name} founder co-founder LinkedIn"],
-      "v2": ["\"{brand_name}\" CEO founder site:linkedin.com"],
-      "v3": ["\"{brand_name}\" co-founder site:crunchbase.com OR site:tracxn.com"]
+      "v1": [
+        "{brand_name} founder co-founder LinkedIn"
+      ],
+      "v2": [
+        "\"{brand_name}\" CEO founder site:linkedin.com"
+      ],
+      "v3": [
+        "\"{brand_name}\" co-founder site:crunchbase.com OR site:tracxn.com"
+      ]
     }
   },
   "enrichment_agent": {
@@ -52,6 +58,6 @@
     "industry": "{clean_name} company overview business description sector"
   },
   "custom_web_search": {
-    "suffix": "startup news funding India 2026"
+    "suffix": "startup news"
   }
 }
