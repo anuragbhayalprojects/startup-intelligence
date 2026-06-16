@@ -1,0 +1,462 @@
+{
+  "communities": {
+    "0": [
+      "backgroundtasks",
+      "basemodel",
+      "routes_startups",
+      "routes_startups_assign_fprs_for_startup",
+      "routes_startups_assignmentcreaterequest",
+      "routes_startups_assignmentupdaterequest",
+      "routes_startups_backfill_unassigned_startups",
+      "routes_startups_chat_assistant",
+      "routes_startups_chatrequest",
+      "routes_startups_create_assignment",
+      "routes_startups_create_interaction",
+      "routes_startups_create_startup",
+      "routes_startups_format_outreach_message",
+      "routes_startups_get_assignments",
+      "routes_startups_get_interactions",
+      "routes_startups_get_scrape_sources",
+      "routes_startups_get_scrape_status",
+      "routes_startups_interactioncreaterequest",
+      "routes_startups_message",
+      "routes_startups_rationale_1014",
+      "routes_startups_rationale_1026",
+      "routes_startups_rationale_1330",
+      "routes_startups_rationale_432",
+      "routes_startups_rationale_458",
+      "routes_startups_rationale_464",
+      "routes_startups_rationale_558",
+      "routes_startups_rationale_599",
+      "routes_startups_rationale_735",
+      "routes_startups_rationale_774",
+      "routes_startups_rationale_792",
+      "routes_startups_rationale_807",
+      "routes_startups_rationale_838",
+      "routes_startups_rationale_953",
+      "routes_startups_reset_database",
+      "routes_startups_run_sql",
+      "routes_startups_scrape",
+      "routes_startups_scraperequest",
+      "routes_startups_searchrequest",
+      "routes_startups_semantic_search",
+      "routes_startups_sqlrequest",
+      "routes_startups_startupcreaterequest",
+      "routes_startups_startupupdaterequest",
+      "routes_startups_update_assignment",
+      "routes_startups_update_startup_details",
+      "services_supabase_service_insert_startup"
+    ],
+    "1": [
+      "ai_startup_analyzer",
+      "ai_startup_analyzer_analyze_startup",
+      "ai_startup_analyzer_build_filtered_query",
+      "ai_startup_analyzer_build_funding_queries",
+      "ai_startup_analyzer_clean_llm_response",
+      "ai_startup_analyzer_collect_funding_snippets",
+      "ai_startup_analyzer_discover_startup_names",
+      "ai_startup_analyzer_extract_funding_rounds",
+      "ai_startup_analyzer_generate_news_summary",
+      "ai_startup_analyzer_load_funding_sources",
+      "ai_startup_analyzer_load_prompt_template",
+      "ai_startup_analyzer_py_str",
+      "ai_startup_analyzer_rationale_122",
+      "ai_startup_analyzer_rationale_173",
+      "ai_startup_analyzer_rationale_183",
+      "ai_startup_analyzer_rationale_207",
+      "ai_startup_analyzer_rationale_22",
+      "ai_startup_analyzer_rationale_239",
+      "ai_startup_analyzer_rationale_293",
+      "ai_startup_analyzer_rationale_30",
+      "ai_startup_analyzer_rationale_313",
+      "ai_startup_analyzer_rationale_63",
+      "routes_startups_fieldrecheckrequest",
+      "routes_startups_generate_insights",
+      "routes_startups_rationale_1137",
+      "routes_startups_rationale_872",
+      "routes_startups_recheck_startup_field",
+      "workflows_startup_pipeline_process_startup",
+      "workflows_startup_pipeline_py_str",
+      "workflows_startup_pipeline_rationale_315"
+    ],
+    "2": [
+      "routes_startups_fieldupdaterequest",
+      "routes_startups_get_startups",
+      "routes_startups_rationale_1049",
+      "routes_startups_rationale_533",
+      "routes_startups_rationale_628",
+      "routes_startups_rationale_669",
+      "routes_startups_update_startup_field",
+      "services_supabase_service",
+      "services_supabase_service_check_existing_startup",
+      "services_supabase_service_format_outreach_message",
+      "services_supabase_service_get_canonical_founders",
+      "services_supabase_service_get_canonical_tags",
+      "services_supabase_service_map_startup_data",
+      "services_supabase_service_normalize_business_models",
+      "services_supabase_service_normalize_industry_relevance",
+      "services_supabase_service_normalize_taxonomy",
+      "services_supabase_service_py_int",
+      "services_supabase_service_py_str",
+      "services_supabase_service_rationale_138",
+      "services_supabase_service_rationale_345",
+      "services_supabase_service_rationale_366",
+      "services_supabase_service_rationale_37",
+      "services_supabase_service_rationale_389",
+      "services_supabase_service_save_funding_rounds",
+      "services_supabase_service_save_startup_analysis",
+      "services_supabase_service_save_startup_news",
+      "services_supabase_service_update_startup",
+      "services_supabase_service_upsert_startup"
+    ],
+    "3": [
+      "cleanup_db",
+      "cleanup_db_cleanup_database",
+      "scripts_enrich_existing_taxonomy",
+      "scripts_enrich_existing_taxonomy_enrich_all_startups",
+      "workflows_startup_pipeline",
+      "workflows_startup_pipeline_clean_string",
+      "workflows_startup_pipeline_get_clean_startup_name",
+      "workflows_startup_pipeline_get_clean_website",
+      "workflows_startup_pipeline_pipeline_log",
+      "workflows_startup_pipeline_rationale_167",
+      "workflows_startup_pipeline_rationale_199",
+      "workflows_startup_pipeline_rationale_244",
+      "workflows_startup_pipeline_rationale_31",
+      "workflows_startup_pipeline_rationale_65",
+      "workflows_startup_pipeline_search_website_duckduckgo",
+      "workflows_startup_pipeline_verify_website"
+    ],
+    "4": [
+      "entrackr_scraper",
+      "entrackr_scraper_scrape_entrackr",
+      "inc42_scraper",
+      "inc42_scraper_rationale_14",
+      "inc42_scraper_scrape_inc42",
+      "scrapers_entrackr_scraper_py_int",
+      "scrapers_inc42_scraper_py_int",
+      "scrapers_scraper_manager",
+      "scrapers_scraper_manager_py_int",
+      "scrapers_scraper_manager_py_str",
+      "scrapers_scraper_manager_rationale_7",
+      "scrapers_scraper_manager_run_scraper",
+      "workflows_run_pipeline"
+    ],
+    "5": [
+      "utils_taxonomy_mapper",
+      "utils_taxonomy_mapper_get_canonical_founders",
+      "utils_taxonomy_mapper_get_canonical_tags",
+      "utils_taxonomy_mapper_get_closest_match",
+      "utils_taxonomy_mapper_normalize_business_models",
+      "utils_taxonomy_mapper_normalize_industry_relevance",
+      "utils_taxonomy_mapper_normalize_taxonomy",
+      "utils_taxonomy_mapper_rationale_513",
+      "utils_taxonomy_mapper_rationale_524",
+      "utils_taxonomy_mapper_rationale_553",
+      "utils_taxonomy_mapper_rationale_609",
+      "utils_taxonomy_mapper_rationale_636",
+      "utils_taxonomy_mapper_rationale_663"
+    ],
+    "6": [
+      "any",
+      "api_routes_startups_py_int",
+      "api_routes_startups_py_str",
+      "bool",
+      "routes_startups_add_scrape_log",
+      "routes_startups_add_scrape_source",
+      "routes_startups_rationale_205",
+      "routes_startups_rationale_476",
+      "routes_startups_rationale_686",
+      "routes_startups_run_scrape_background",
+      "routes_startups_trigger_startup_analysis",
+      "routes_startups_update_scrape_status"
+    ],
+    "7": [
+      "utils_search",
+      "utils_search_load_priority_sources",
+      "utils_search_py_str",
+      "utils_search_rationale_13",
+      "utils_search_rationale_163",
+      "utils_search_rationale_25",
+      "utils_search_rationale_98",
+      "utils_search_search_ddg_raw",
+      "utils_search_search_duckduckgo",
+      "utils_search_search_google"
+    ],
+    "8": [
+      "services_tracxn_service",
+      "services_tracxn_service_fetch_tracxn_startup_data",
+      "services_tracxn_service_py_str",
+      "services_tracxn_service_rationale_6"
+    ],
+    "9": [
+      "api_main",
+      "api_main_read_root"
+    ],
+    "10": [
+      "ai_init"
+    ],
+    "11": [
+      "api_init"
+    ],
+    "12": [
+      "common_init"
+    ],
+    "13": [
+      "common_supabase_client"
+    ],
+    "14": [
+      "common_utils"
+    ],
+    "15": [
+      "entrackr_init"
+    ],
+    "16": [
+      "inc42_init"
+    ],
+    "17": [
+      "init"
+    ],
+    "18": [
+      "main"
+    ],
+    "19": [
+      "producthunt_scraper"
+    ],
+    "20": [
+      "prompt_bfsi_relevance_score"
+    ],
+    "21": [
+      "prompt_co_creation_opportunities"
+    ],
+    "22": [
+      "prompt_enterprise_readiness_score"
+    ],
+    "23": [
+      "prompt_icici_primary_entity"
+    ],
+    "24": [
+      "prompt_integration_feasibility_score"
+    ],
+    "25": [
+      "prompt_priority_score"
+    ],
+    "26": [
+      "prompt_sector"
+    ],
+    "27": [
+      "prompt_startup_summary"
+    ],
+    "28": [
+      "prompt_strategic_fit_score"
+    ],
+    "29": [
+      "prompt_subsector"
+    ],
+    "30": [
+      "prompt_use_cases"
+    ],
+    "31": [
+      "prompts_init"
+    ],
+    "32": [
+      "prompts_news_summary_prompt_txt_headline"
+    ],
+    "33": [
+      "routes_init"
+    ],
+    "34": [
+      "scrapers_init"
+    ],
+    "35": [
+      "scripts_check_progress"
+    ],
+    "36": [
+      "services_ai_service"
+    ],
+    "37": [
+      "services_init"
+    ],
+    "38": [
+      "services_scoring_service"
+    ],
+    "39": [
+      "tests_init"
+    ],
+    "40": [
+      "tests_test_pipeline"
+    ],
+    "41": [
+      "utils_config"
+    ],
+    "42": [
+      "utils_init"
+    ],
+    "43": [
+      "workflows_init"
+    ],
+    "44": [
+      "yc_scraper"
+    ]
+  },
+  "cohesion": {
+    "0": 0.06666666666666667,
+    "1": 0.11494252873563218,
+    "2": 0.10317460317460317,
+    "3": 0.18333333333333332,
+    "4": 0.23076923076923078,
+    "5": 0.19230769230769232,
+    "6": 0.22727272727272727,
+    "7": 0.28888888888888886,
+    "8": 0.5,
+    "9": 1.0,
+    "10": 1.0,
+    "11": 1.0,
+    "12": 1.0,
+    "13": 1.0,
+    "14": 1.0,
+    "15": 1.0,
+    "16": 1.0,
+    "17": 1.0,
+    "18": 1.0,
+    "19": 1.0,
+    "20": 1.0,
+    "21": 1.0,
+    "22": 1.0,
+    "23": 1.0,
+    "24": 1.0,
+    "25": 1.0,
+    "26": 1.0,
+    "27": 1.0,
+    "28": 1.0,
+    "29": 1.0,
+    "30": 1.0,
+    "31": 1.0,
+    "32": 1.0,
+    "33": 1.0,
+    "34": 1.0,
+    "35": 1.0,
+    "36": 1.0,
+    "37": 1.0,
+    "38": 1.0,
+    "39": 1.0,
+    "40": 1.0,
+    "41": 1.0,
+    "42": 1.0,
+    "43": 1.0,
+    "44": 1.0
+  },
+  "gods": [
+    {
+      "id": "workflows_startup_pipeline_process_startup",
+      "label": "process_startup()",
+      "degree": 18
+    },
+    {
+      "id": "services_supabase_service_save_startup_analysis",
+      "label": "save_startup_analysis()",
+      "degree": 13
+    },
+    {
+      "id": "ai_startup_analyzer_analyze_startup",
+      "label": "analyze_startup()",
+      "degree": 12
+    },
+    {
+      "id": "ai_startup_analyzer_collect_funding_snippets",
+      "label": "collect_funding_snippets()",
+      "degree": 10
+    },
+    {
+      "id": "api_routes_startups_py_str",
+      "label": "str",
+      "degree": 10
+    },
+    {
+      "id": "routes_startups_run_scrape_background",
+      "label": "run_scrape_background()",
+      "degree": 10
+    },
+    {
+      "id": "routes_startups_recheck_startup_field",
+      "label": "recheck_startup_field()",
+      "degree": 10
+    },
+    {
+      "id": "utils_search_search_duckduckgo",
+      "label": "search_duckduckgo()",
+      "degree": 9
+    },
+    {
+      "id": "ai_startup_analyzer_extract_funding_rounds",
+      "label": "extract_funding_rounds()",
+      "degree": 8
+    },
+    {
+      "id": "routes_startups_get_startups",
+      "label": "get_startups()",
+      "degree": 8
+    }
+  ],
+  "surprises": [
+    {
+      "source": "collect_funding_snippets()",
+      "target": "search_duckduckgo()",
+      "source_files": [
+        "ai/startup_analyzer.py",
+        "utils/search.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "update_startup_field()",
+      "target": "collect_funding_snippets()",
+      "source_files": [
+        "api/routes/startups.py",
+        "ai/startup_analyzer.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "update_startup_field()",
+      "target": "extract_funding_rounds()",
+      "source_files": [
+        "api/routes/startups.py",
+        "ai/startup_analyzer.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "build_filtered_query()",
+      "target": "load_priority_sources()",
+      "source_files": [
+        "ai/startup_analyzer.py",
+        "utils/search.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "analyze_startup()",
+      "target": "fetch_tracxn_startup_data()",
+      "source_files": [
+        "ai/startup_analyzer.py",
+        "services/tracxn_service.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    }
+  ],
+  "tokens": {
+    "input": 6850,
+    "output": 2350
+  }
+}
