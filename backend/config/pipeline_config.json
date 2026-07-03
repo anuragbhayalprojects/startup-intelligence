@@ -1,0 +1,107 @@
+{
+  "_comment": "Pipeline-level feature flags and operational controls for Startup Intelligence OS.",
+  "pipeline_version": "4.0",
+  "feature_flags": {
+    "use_modular_enrichment": true,
+    "use_company_intelligence_jsonb": true,
+    "dual_write_analysis_json": true,
+    "use_dynamic_search_engine": true,
+    "use_source_collector": true,
+    "use_content_segmenter": true,
+    "playwright_fallback_enabled": true,
+    "openrouter_enabled": true,
+    "re_enrichment_api_enabled": true,
+    "full_observability_enabled": true
+  },
+  "pipeline_controls": {
+    "phase1_resolution_confidence_threshold": 50,
+    "phase2_relevance_gate_threshold": 20,
+    "max_startups_per_article": 5,
+    "max_crawl_chars": 6000,
+    "max_search_snippets_chars": 4000,
+    "dedup_check_enabled": true,
+    "semantic_alignment_check_enabled": true
+  },
+  "v2_pipeline": {
+    "use_v2_pipeline": true,
+    "parallel_enrichment_workers": 5,
+    "fallback_search_enabled": true,
+    "fallback_max_queries_per_field": 3,
+    "fallback_max_snippets_per_field": 5,
+    "discovery_field_buckets": [
+      "official_website",
+      "official_linkedin",
+      "headquarter",
+      "founded_year",
+      "founders_and_leadership",
+      "products_and_solutions",
+      "competitors",
+      "funding_details"
+    ],
+    "enricher_snippet_field_map": {
+      "corporate": [
+        "official_website",
+        "official_linkedin",
+        "headquarter",
+        "founded_year"
+      ],
+      "identity": [
+        "founders_and_leadership"
+      ],
+      "products": [
+        "products_and_solutions"
+      ],
+      "competitors": [
+        "competitors"
+      ],
+      "funding": [
+        "funding_details"
+      ]
+    },
+    "enricher_crawled_page_map": {
+      "corporate": [
+        "homepage",
+        "about",
+        "contact",
+        "privacy",
+        "terms"
+      ],
+      "identity": [
+        "team",
+        "about",
+        "founders",
+        "leadership",
+        "homepage"
+      ],
+      "products": [
+        "products",
+        "solutions",
+        "platform",
+        "services",
+        "homepage"
+      ],
+      "competitors": [
+        "homepage",
+        "about"
+      ],
+      "funding": [
+        "homepage",
+        "about"
+      ]
+    }
+  },
+  "source_collection": {
+    "collect_homepage": true,
+    "collect_about_page": true,
+    "collect_products_page": true,
+    "collect_team_page": true,
+    "collect_contact_page": true,
+    "collect_footer": true,
+    "collect_linkedin": true,
+    "collect_search_snippets": true,
+    "max_pages_per_startup": 5
+  },
+  "company_intelligence_schema_version": "2.0",
+  "enrichment_metadata_tracking": true,
+  "source_traceability_enabled": true
+}

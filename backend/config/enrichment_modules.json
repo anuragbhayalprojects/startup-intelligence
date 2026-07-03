@@ -1,0 +1,113 @@
+{
+  "_comment": "Enrichment module registry for the Startup Intelligence OS. Defines section mappings, execution order, re-enrichment support, and source priorities.",
+  "enrichment_version": "3.0",
+  "ai_call_budget": {
+    "target_calls_per_startup": 5,
+    "max_calls_per_startup": 6,
+    "description": "Target 4-6 AI calls total per startup across all 3 AI layers."
+  },
+  "sections": {
+    "identity": {
+      "module": "backend.enrichment.identity_enricher",
+      "class": "IdentityEnricher",
+      "ai_layer": 3,
+      "execution_order": 1,
+      "re_enrichment_supported": true,
+      "requires_source_refresh": false,
+      "output_fields": [
+        "basic_information",
+        "founders_details",
+        "digital_presence",
+        "validation_metadata"
+      ],
+      "combined_with": [
+        "legal_name",
+        "founders",
+        "headquarters"
+      ],
+      "description": "Founders, HQ, legal name, LinkedIn resolution."
+    },
+    "products": {
+      "module": "backend.enrichment.product_enricher",
+      "class": "ProductEnricher",
+      "ai_layer": 3,
+      "execution_order": 2,
+      "re_enrichment_supported": true,
+      "requires_source_refresh": false,
+      "output_fields": [
+        "products_services",
+        "business_profile"
+      ],
+      "combined_with": [
+        "industry_classification",
+        "taxonomy"
+      ],
+      "description": "Products, services, industry mappings, business model."
+    },
+    "funding": {
+      "module": "backend.enrichment.funding_enricher",
+      "class": "FundingEnricher",
+      "ai_layer": 3,
+      "execution_order": 3,
+      "re_enrichment_supported": true,
+      "requires_source_refresh": true,
+      "output_fields": [
+        "funding_details"
+      ],
+      "combined_with": [
+        "investors",
+        "rounds"
+      ],
+      "description": "Funding rounds, investors, valuation stage."
+    },
+    "intelligence": {
+      "module": "backend.enrichment.intelligence_enricher",
+      "class": "IntelligenceEnricher",
+      "ai_layer": 3,
+      "execution_order": 4,
+      "re_enrichment_supported": true,
+      "requires_source_refresh": false,
+      "output_fields": [
+        "competitors",
+        "bfsi_relevance",
+        "strategic_fit",
+        "scoring"
+      ],
+      "combined_with": [
+        "opportunities",
+        "scoring",
+        "recommendations"
+      ],
+      "description": "Competitors, opportunities, relevance scoring, strategic fit."
+    }
+  },
+  "pipeline_layers": {
+    "ai_layer_1": {
+      "name": "Startup Extraction",
+      "description": "Extract startup names from news article using AI. ~1 AI call.",
+      "fallback": "regex_extraction"
+    },
+    "ai_layer_2": {
+      "name": "Resolution Engine",
+      "description": "Resolve canonical website + LinkedIn URL. ~1 AI call.",
+      "fallback": "deterministic_waterfall"
+    },
+    "ai_layer_3": {
+      "name": "Modular Enrichment",
+      "description": "Generate company_intelligence JSONB sections. 2-4 combined AI calls.",
+      "modules": [
+        "identity",
+        "products",
+        "funding",
+        "intelligence"
+      ]
+    }
+  },
+  "re_enrichment": {
+    "reuse_cleaned_payload": true,
+    "reuse_cached_search": true,
+    "reuse_resolution_metadata": true,
+    "force_source_refresh_on_explicit_request": true,
+    "partial_update_strategy": "jsonb_merge_patch"
+  }
+}

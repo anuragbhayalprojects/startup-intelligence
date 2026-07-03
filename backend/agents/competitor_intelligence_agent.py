@@ -1,3 +1,18 @@
+# =============================================================================
+# DEPRECATED — COMPATIBILITY ONLY
+# This agent has been superseded by:
+#   → backend.enrichment.competitor_enricher.CompetitorEnricher  (market competitor extraction)
+#   → backend.enrichment.intelligence_enricher.IntelligenceEnricher (BFSI strategic intelligence)
+#
+# Replaced as part of: Pipeline v2 Refactor (search-first, parallel enrichment architecture)
+#
+# STATUS: Removed from AgentOrchestrator execution path. Retained for:
+#   - Regression comparison during migration safety period
+#   - Import compatibility with any external scripts still using this class
+#
+# DO NOT extend or add new logic here. Use the replacement modules above.
+# This file will be removed after migration safety period ends.
+# =============================================================================
 import os
 import json
 from jinja2 import Template

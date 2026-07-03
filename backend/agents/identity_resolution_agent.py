@@ -1,3 +1,15 @@
+# =============================================================================
+# DEPRECATED — COMPATIBILITY ONLY
+# This agent has been superseded by: backend.enrichment.identity_enricher.IdentityEnricher
+# as part of the modular enrichment refactor (feature/modular-company-intelligence-refactor).
+#
+# STATUS: Removed from AgentOrchestrator execution path. Retained for:
+#   - Regression comparison during migration safety period
+#   - Import compatibility with any external scripts still using this class
+#
+# DO NOT extend or add new logic here. Use the replacement module above.
+# This file will be removed after migration safety period ends.
+# =============================================================================
 import json
 import os
 from backend.agents.base import BaseAgent
@@ -88,7 +100,7 @@ class IdentityResolutionAgent(BaseAgent):
                 linkedin_snippets += f"- Title: {rec.get('title')}\n  Snippet: {rec.get('snippet')}\n"
                 
             news_headline = state.article_data.get("headline", "")
-            news_desc = state.article_data.get("description", "")
+            news_desc = state.article_data.get("text_content") or state.article_data.get("description") or ""
             
             alignment_prompt = f"""You are a precise corporate entity-alignment validation assistant.
 Your task is to compare information from three sources and determine if they all refer to the SAME startup/company, or if there is an active contradiction indicating they are completely different entities.

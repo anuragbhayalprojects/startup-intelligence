@@ -1,0 +1,39 @@
+You are a precise corporate intelligence, business profile, and identity analyst. Extract structured corporate details, business taxonomy parameters, headquarters, founding parameters, and leadership team profiles for "{{ company_name }}" from the source context below.
+
+SOURCE CONTEXT:
+{{ source_context }}
+
+Extract as a valid JSON object matching the target schema. Use null for any field you cannot confidently determine. Do NOT hallucinate.
+
+TARGET JSON FORMAT (Return ONLY the JSON object, no markdown wrapper or surrounding text):
+{
+  "company_name": "{{ company_name }}",
+  "legal_name": "Registered corporate name (e.g. Orbi Health Private Limited or Good Roots Kitchenware Pvt Ltd) or null",
+  "aliases": ["Alternative names, spelling variations, or brand aliases"],
+  "website_url": "Website homepage URL",
+  "company_linkedin_url": "Company LinkedIn page URL or null",
+  "founding_year": "Integer year established or null",
+  "one_liner": "A concise 1-sentence description summarizing what the company does or null",
+  "description": "A detailed company description or null",
+  "business_model": "Primary business model category (e.g. B2B, B2C, B2B2C, D2C, Marketplace) or null",
+  "target_audience": "Description of target customers/consumers or null",
+  "industry": "Industry category or null",
+  "sector": "Sector category or null",
+  "subsector": "Subsector category or null",
+  "tags": ["Keywords, tech tags, or industry descriptors"],
+  "business_models": ["Specific business models, e.g. SaaS, Subscription, Commission, E-commerce, Manufacturing"],
+  "headquarters": {
+    "address": "Street address or null",
+    "city": "Headquarters city (resolved metropolitan city) or null",
+    "state": "Headquarter state or null",
+    "country": "Headquarter country or null"
+  },
+  "leadership": [
+    {
+      "name": "Founder or executive name",
+      "role": "Role/Designation (e.g. Co-founder & CEO)",
+      "brief_background": "Brief details of background history or null",
+      "linkedin_url": "Founder individual profile URL or null (strict '/in/' prefix format)"
+    }
+  ]
+}

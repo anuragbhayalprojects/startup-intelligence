@@ -1,3 +1,15 @@
+# =============================================================================
+# DEPRECATED — COMPATIBILITY ONLY
+# This agent has been superseded by: backend.enrichment.identity_enricher.IdentityEnricher + backend.enrichment.product_enricher.ProductEnricher
+# as part of the modular enrichment refactor (feature/modular-company-intelligence-refactor).
+#
+# STATUS: Removed from AgentOrchestrator execution path. Retained for:
+#   - Regression comparison during migration safety period
+#   - Import compatibility with any external scripts still using this class
+#
+# DO NOT extend or add new logic here. Use the replacement module above.
+# This file will be removed after migration safety period ends.
+# =============================================================================
 import os
 from backend.agents.base import BaseAgent
 from backend.models.startup_state import StartupState

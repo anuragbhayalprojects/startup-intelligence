@@ -21,7 +21,7 @@
     "together", "together fund", "friale"
   ],
   "bad_terms": [
-    "coalition", "consortium", "association", "alliance", "government", "ministry", "commission", "state"
+    "fund", "funds", "trust", "etf", "coalition", "consortium", "association", "alliance", "government", "ministry", "commission", "state"
   ],
   "locations": [
     "haryana", "delhi", "karnataka", "maharashtra", "bengaluru", "mumbai", "india", "punjab", "gujarat", "tamil nadu", "kerala"

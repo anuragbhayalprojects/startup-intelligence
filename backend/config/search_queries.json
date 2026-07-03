@@ -1,47 +1,178 @@
 {
-  "version": "1.0",
-  "identity_discovery": {
-    "queries": [
-      "{startup_name} official website",
-      "{startup_name} company",
-      "{startup_name} linkedin",
-      "{startup_name} startup",
-      "{startup_name} products"
-    ]
-  },
-  "website_resolver": {
-    "query": "{brand_name} official website"
-  },
-  "linkedin_resolver": {
-    "query": "{brand_name} LinkedIn company page"
-  },
-  "leadership_resolver": {
-    "funding_articles_query": "\"{brand_name}\" founder OR CEO site:inc42.com OR site:yourstory.com",
-    "founder_search": {
-      "v1": [
-        "{brand_name} founder co-founder LinkedIn"
-      ],
-      "v2": [
-        "\"{brand_name}\" CEO founder site:linkedin.com"
-      ],
-      "v3": [
-        "\"{brand_name}\" co-founder site:crunchbase.com OR site:tracxn.com"
+  "_comment": "Pipeline v2.0 — Master search queries configuration. Single source of truth for ALL web search queries used at any stage of the pipeline. Variables: {startup_name} = raw discovered name, {clean_name} = resolved brand name, {brand_name} = confirmed brand name used by resolvers.",
+  "version": "2.0",
+
+  "initial_discovery": {
+    "_comment": "Fired immediately after startup name is discovered. All 8 field buckets run in parallel. Variable: {startup_name}.",
+    "official_website": {
+      "queries": [
+        "{startup_name} official website",
+        "{startup_name} company",
+        "{startup_name} startup"
+      ]
+    },
+    "official_linkedin": {
+      "queries": [
+        "{startup_name} linkedin",
+        "{startup_name} LinkedIn company page"
+      ]
+    },
+    "headquarter": {
+      "queries": [
+        "{startup_name} company headquarters city location",
+        "{startup_name} company headquarters address",
+        "{startup_name} headquarters city state location India"
+      ]
+    },
+    "founded_year": {
+      "queries": [
+        "{startup_name} company founded year established date",
+        "{startup_name} founded in which year"
+      ]
+    },
+    "founders_and_leadership": {
+      "queries": [
+        "{startup_name} founder OR co-founders",
+        "{startup_name} founders co-founders LinkedIn profiles",
+        "{startup_name} founders co-founders CEO",
+        "{startup_name} leadership team LinkedIn",
+        "{startup_name} founder co-founder LinkedIn"
+      ]
+    },
+    "products_and_solutions": {
+      "queries": [
+        "{startup_name} products",
+        "{startup_name} products services solutions list"
+      ]
+    },
+    "competitors": {
+      "queries": [
+        "{startup_name} company main OR direct competitors comparable companies",
+        "{startup_name} competitors comparable companies alternatives"
+      ]
+    },
+    "funding_details": {
+      "queries": [
+        "{startup_name} funding rounds series valuation investors",
+        "{startup_name} funding stage series seed growth",
+        "{startup_name} funding round valuation investors",
+        "{startup_name} funding round valuation investors revenue",
+        "{startup_name} funding round details fund raised amount investors",
+        "{startup_name} funding investors"
       ]
     }
   },
-  "enrichment_agent": {
-    "website_query": "{clean_name} official website",
-    "founders_query_base": "\"{clean_name}\" founders co-founders LinkedIn",
-    "founders_fallback": "\"{clean_name}\" founders OR co-founders"
+
+  "internal_crawler_queries": {
+    "_comment": "Used internally by the web crawler pipeline. NOT web search queries. Two sub-sections: bm25_queries (semantic retrieval from crawled text) and link_discovery_keywords (which sub-pages to visit).",
+
+    "bm25_queries": {
+      "_comment": "Keyword strings for BM25 ranking of crawled page text chunks. One query per enricher domain. Each enricher calls get_bm25_query(enricher_key) to retrieve its string.",
+      "corporate_query": "legal name registered office address linkedin url founding year established headquarters location city state country",
+      "identity_query": "founders leadership team profiles background linkedin url histories executive officers co-founder CEO CTO",
+      "product_query": "products services solutions technology platforms categories features target customers deployment models pricing",
+      "competitor_query": "competitors alternatives comparable companies direct indirect market rivals substitutes competing products",
+      "funding_query": "funding round investment raised series seed investors valuation crore million lead co-investor capital"
+    },
+
+    "link_discovery_keywords": {
+      "_comment": "URL routing keywords used to select which sub-pages to crawl from the homepage. Matched against href text and URL path segments.",
+      "identity_bucket": {
+        "keywords": ["team", "about", "leadership", "founders", "management", "history", "who-we-are", "our-story", "people"],
+        "max_urls": 2
+      },
+      "offerings_bucket": {
+        "keywords": ["products", "solutions", "features", "platform", "pricing", "software", "services", "collections", "shop", "menu", "catalog", "catalogue", "items", "offerings"],
+        "max_urls": 7
+      },
+      "corporate_bucket": {
+        "keywords": ["contact", "contact-us", "privacy", "legal", "compliance", "terms", "terms-of-service", "office", "address", "reach-us"],
+        "max_urls": 1
+      }
+    }
   },
-  "startup_analyzer": {
-    "website_query": "{clean_name} official website",
-    "founders_query_base": "founders co-founders LinkedIn",
-    "founders_fallback": "\"{clean_name}\" founders OR co-founders",
-    "funding_query_base": "funding round valuation investors revenue",
-    "funding_fallback": "\"{clean_name}\" funding round valuation investors"
+
+  "fallback_and_ai_recheck": {
+    "_comment": "Triggered automatically when an enricher detects missing/empty output fields. Uses the cleaner {clean_name} variable (resolved brand name). Also used by UI-triggered AI-Recheck for individual field re-enrichment.",
+    "official_website": {
+      "queries": [
+        "{clean_name} official website",
+        "{clean_name} company",
+        "{clean_name} startup"
+      ]
+    },
+    "official_linkedin": {
+      "queries": [
+        "{clean_name} linkedin",
+        "{clean_name} LinkedIn company page"
+      ]
+    },
+    "headquarter": {
+      "queries": [
+        "{clean_name} company headquarters city location",
+        "{clean_name} company headquarters address",
+        "{clean_name} headquarters city state location India"
+      ]
+    },
+    "founded_year": {
+      "queries": [
+        "{clean_name} company founded year established date",
+        "{clean_name} founded in which year"
+      ]
+    },
+    "founders_and_leadership": {
+      "queries": [
+        "{clean_name} founder OR co-founders",
+        "{clean_name} founders co-founders LinkedIn profiles",
+        "{clean_name} founders co-founders CEO",
+        "{clean_name} leadership team LinkedIn",
+        "{clean_name} founder co-founder LinkedIn"
+      ]
+    },
+    "products_and_solutions": {
+      "queries": [
+        "{clean_name} products and solutions",
+        "{clean_name} products services solutions list"
+      ]
+    },
+    "competitors": {
+      "queries": [
+        "{clean_name} company main OR direct competitors comparable companies",
+        "{clean_name} competitors comparable companies alternatives"
+      ]
+    },
+    "funding_details": {
+      "queries": [
+        "{clean_name} funding rounds series valuation investors",
+        "{clean_name} funding stage series seed growth",
+        "{clean_name} funding round valuation investors",
+        "{clean_name} funding round valuation investors revenue",
+        "{brand_name} funding round details fund raised amount investors",
+        "{brand_name} funding investors"
+      ]
+    }
   },
+
+  "resolvers": {
+    "_comment": "Used by website and LinkedIn resolver modules to confirm/refine the official URLs. Variable: {brand_name}.",
+    "website_resolver": {
+      "query": "{brand_name} official website"
+    },
+    "linkedin_resolver": {
+      "query": "{brand_name} LinkedIn company page"
+    },
+    "leadership_resolver": {
+      "funding_articles_query": "\"{brand_name}\" founder OR CEO site:inc42.com OR site:yourstory.com",
+      "founder_search": {
+        "v1": ["{brand_name} founder co-founder LinkedIn"],
+        "v2": ["\"{brand_name}\" CEO founder site:linkedin.com"],
+        "v3": ["\"{brand_name}\" co-founder site:crunchbase.com OR site:tracxn.com"]
+      }
+    }
+  },
+
   "api_rechecks": {
+    "_comment": "Legacy single-query keys retained for backward compatibility with UI-triggered re-enrichment API endpoints (/api/startups/{id}/recheck). Prefer fallback_and_ai_recheck for new code.",
     "website": "{clean_name} official website URL",
     "linkedin": "{clean_name} company linkedin page India",
     "brand_name": "{clean_name} official brand name",
@@ -57,7 +188,9 @@
     "competitors": "{clean_name} company main competitors comparable companies",
     "industry": "{clean_name} company overview business description sector"
   },
+
   "custom_web_search": {
+    "_comment": "Suffix appended to user-entered search terms in the custom web search UI feature.",
     "suffix": "startup news"
   }
 }

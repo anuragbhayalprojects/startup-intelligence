@@ -2,7 +2,7 @@
   "low_trust_threshold": 50,
   "playwright_min_text_len": 200,
   "playwright_timeout_ms": 5000,
-  "max_page_character_cap": 3000,
+  "max_page_character_cap": 6000,
   "max_total_product_crawl_cap": 10000,
   "link_density_threshold": 0.3,
   "min_block_length": 20,
@@ -16,6 +16,7 @@
     "click here to",
     "all rights reserved",
     "newsletter",
-    "follow us on"
+    "follow us on",
+    "disclaimer"
   ]
 }

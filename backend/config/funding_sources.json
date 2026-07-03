@@ -53,6 +53,6 @@
     "series"
   ],
   "staleness_days": 60,
-  "max_snippets_chars": 2000,
+  "max_snippets_chars": 4000,
   "query_timeout_seconds": 12
 }

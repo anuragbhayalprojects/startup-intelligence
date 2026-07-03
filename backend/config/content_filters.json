@@ -8,7 +8,8 @@
     "Unlock with Inc42 Plus", "D2CX", "ManagementX", "Subscribe to our",
     "newsletter", "Tired Of Hustle", "Follow us on", "Terms of Use",
     "Privacy Policy", "Inc42+ Exclusive", "Join our community",
-    "consent to the processing", "By clicking the button", "Follow us"
+    "consent to the processing", "By clicking the button", "Follow us",
+    "disclaimer"
   ],
   "blocked_patterns": [
     "^\\s*Advertisement\\s*$",

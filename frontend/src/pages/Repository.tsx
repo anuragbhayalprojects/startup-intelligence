@@ -24,6 +24,15 @@ import {
 import { Startup, UserRole } from "../types";
 import { TAXONOMY } from "../lib/taxonomy";
 
+const formatUrl = (url: string | undefined | null): string => {
+  if (!url) return "";
+  const trimmed = url.trim();
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+};
+
 interface RepositoryProps {
   startups: Startup[];
   currentUser: UserRole;
@@ -825,7 +834,7 @@ HansaCredit,Prepaid payroll card issuance layer for building SME credit buffers.
                       <div className="flex flex-wrap items-center gap-3 mt-1.5 text-[10px] text-slate-400 select-none">
                         {s.website && s.website.trim() !== "" && (
                           <a
-                            href={s.website}
+                            href={formatUrl(s.website)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 hover:text-blue-650 transition-colors"

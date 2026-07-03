@@ -15,3 +15,11 @@ def test_process_startup_run():
         "source_url": "https://example.com"
     }
     process_startup(sample)
+
+
+def test_clean_string_suffixes():
+    from backend.workflows.startup_pipeline import clean_string, get_clean_startup_name
+    assert clean_string("PayU India") == "PayU"
+    assert clean_string("PhonePe India") == "PhonePe"
+    assert clean_string("Turtlemint Technologies") == "Turtlemint"
+    assert get_clean_startup_name("PayU India Turns Profitable", "PayU India") == "PayU"

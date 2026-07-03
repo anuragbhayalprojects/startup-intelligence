@@ -1,0 +1,70 @@
+{
+  "_comment": "Primary AI routing configuration for Startup Intelligence OS. OPENROUTER_ENABLED is the master switch. If false or API key absent, system automatically falls back to Ollama.",
+  "routing": {
+    "primary_provider": "openrouter",
+    "openrouter_enabled_env": "OPENROUTER_ENABLED",
+    "fallback_provider": "ollama",
+    "auto_fallback_on_missing_key": true,
+    "auto_fallback_on_error": true
+  },
+  "ollama": {
+    "base_url_env": "OLLAMA_BASE_URL",
+    "default_base_url": "http://localhost:11434",
+    "model_env": "OLLAMA_MODEL",
+    "default_model": "qwen2.5:3b",
+    "timeout_seconds": 120,
+    "max_retries": 1,
+    "models": {
+      "extraction": "qwen2.5:3b",
+      "resolution": "qwen2.5:3b",
+      "enrichment_identity": "qwen2.5:3b",
+      "enrichment_products": "qwen2.5:3b",
+      "enrichment_funding": "qwen2.5:3b",
+      "enrichment_intelligence": "qwen2.5:3b",
+      "description": "qwen2.5:3b",
+      "news_summary": "qwen2.5:3b",
+      "deduplication": "qwen2.5:3b"
+    }
+  },
+  "fallback_triggers": [
+    "timeout",
+    "api_unavailable",
+    "rate_limit",
+    "missing_api_key",
+    "budget_exceeded",
+    "connection_error",
+    "http_503",
+    "http_429"
+  ],
+  "budget": {
+    "max_cost_per_startup_usd": 0.05,
+    "warn_threshold_usd": 0.03,
+    "tracking_enabled": false
+  },
+  "default_num_ctx": 4096,
+  "default_temperature": 0.0,
+  "tier_1_priority_models": [
+    "google/gemma-4-31b-it:free",
+    "google/gemma-4-26b-a4b-it:free",
+    "google/gemma-2-9b-it:free",
+    "meta-llama/llama-3-8b-instruct:free",
+    "qwen/qwen-2-7b-instruct:free",
+    "microsoft/phi-3-medium-128k-instruct:free"
+  ],
+  "tier_2_allowed_providers": [
+    "google",
+    "meta-llama",
+    "qwen",
+    "microsoft",
+    "mistralai",
+    "cohere",
+    "huggingface",
+    "openchat"
+  ],
+  "openrouter_settings": {
+    "timeout_seconds": 30.0,
+    "max_retries": 4,
+    "base_delay_seconds": 4.0,
+    "jitter_percentage": 0.25
+  }
+}

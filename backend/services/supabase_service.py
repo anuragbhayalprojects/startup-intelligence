@@ -145,6 +145,74 @@ def upsert_startup(data):
     return insert_startup(mapped_data)
 
 
+def sync_company_intelligence_to_market_intelligence(startup_id: int):
+    """
+    Synchronizes company_intelligence products & competitors with:
+    1. startups.market_intelligence column in startups table
+    2. startup_analysis.analysis_json column in startup_analysis table
+    """
+    try:
+        # Load startup
+        s_res = supabase.table("startups").select("company_intelligence, market_intelligence").eq("id", startup_id).execute()
+        if not s_res.data:
+            return
+        startup = s_res.data[0]
+        ci = startup.get("company_intelligence") or {}
+        m_intel = startup.get("market_intelligence") or {}
+        if not isinstance(m_intel, dict):
+            m_intel = {}
+
+        # Get products and competitors from company_intelligence
+        products_list = ci.get("products_services") or []
+        competitors_list = ci.get("competitors") or []
+
+        # Map products
+        m_intel["products"] = [
+            {
+                "product_name": p.get("name") or p.get("product_name") or "",
+                "category": p.get("category") or "",
+                "description": p.get("description") or "",
+                "target_customer": p.get("target_customer") or p.get("target") or "",
+                "deployment_model": p.get("deployment_model") or p.get("deployment") or ""
+            }
+            for p in products_list if isinstance(p, dict)
+        ]
+
+        # Map competitors
+        m_intel["competitors"] = [
+            {
+                "company_name": c.get("name") or c.get("company_name") or "",
+                "category": c.get("category") or "",
+                "positioning": c.get("positioning") or c.get("reason") or ""
+            }
+            for c in competitors_list if isinstance(c, dict)
+        ]
+
+        # Sync back to startups table
+        supabase.table("startups").update({"market_intelligence": m_intel}).eq("id", startup_id).execute()
+
+        # Sync to startup_analysis table
+        an_res = supabase.table("startup_analysis").select("id, analysis_json").eq("startup_id", startup_id).execute()
+        if an_res.data:
+            an_rec = an_res.data[0]
+            an_id = an_rec["id"]
+            analysis_json = an_rec.get("analysis_json") or {}
+            if not isinstance(analysis_json, dict):
+                analysis_json = {}
+            
+            if "market_intelligence" not in analysis_json:
+                analysis_json["market_intelligence"] = {}
+            
+            analysis_json["market_intelligence"]["products"] = m_intel["products"]
+            analysis_json["market_intelligence"]["competitors"] = m_intel["competitors"]
+            analysis_json["competitors"] = m_intel["competitors"]
+
+            supabase.table("startup_analysis").update({"analysis_json": analysis_json}).eq("id", an_id).execute()
+
+    except Exception as e:
+        logging.error(f"Failed to sync company_intelligence to market_intelligence for startup {startup_id}: {e}")
+
+
 def save_startup_analysis(startup_id, analysis_json):
     """
     Saves the structured AI analysis for a startup in the startup_analysis table.
@@ -521,49 +589,7 @@ def save_startup_analysis(startup_id, analysis_json):
 
 
 # --- Startup News History ---
-
-def save_startup_news(startup_id: int, headline: str, summary: str, source: str = "", source_url: str = "", published_at: str = None):
-    """
-    Saves a news event for a startup into the startup_news table.
-    Called after every ingestion pass (new startup or cache hit) so that
-    each article appearance is logged with a startup-specific summary.
-    """
-    try:
-        data = {
-            "startup_id": startup_id,
-            "headline": headline or "",
-            "summary": summary or "",
-            "source": source or "",
-            "source_url": source_url or "",
-        }
-        if published_at:
-            data["published_at"] = published_at
-        response = supabase.table("startup_news").insert(data).execute()
-        return response.data
-    except Exception as e:
-        logging.warning(f"Failed to save startup news for startup_id {startup_id}: {e}")
-        return None
-
-
-def get_startup_news(startup_id: int) -> list:
-    """
-    Fetches the news history for a startup from the startup_news table,
-    ordered by most recent first. Returns a list of news row dicts.
-    """
-    try:
-        response = (
-            supabase
-            .table("startup_news")
-            .select("id, headline, summary, source, source_url, published_at")
-            .eq("startup_id", startup_id)
-            .order("published_at", desc=True)
-            .limit(20)
-            .execute()
-        )
-        return response.data or []
-    except Exception as e:
-        logging.warning(f"Failed to fetch startup news for startup_id {startup_id}: {e}")
-        return []
+from backend.services.news_repo import save_startup_news, get_startup_news
 
 
 # --- Funding Rounds ---
@@ -792,3 +818,23 @@ def update_identity_field(startup_id: int, field: str, value, bump_evidence: boo
     except Exception as e:
         logging.warning(f"[IdentityRegistry] update_identity_field '{field}' failed for startup_id={startup_id}: {e}")
         return False
+
+
+# =============================================================================
+# Phase 7 service layer refactor — re-exports from new repo modules
+# These allow all existing callers of supabase_service to remain unchanged
+# while new code can import directly from the focused repo modules.
+# =============================================================================
+
+from backend.services.startup_repo import (  # noqa: E402, F401
+    upsert_company_intelligence,
+    upsert_enrichment_metadata,
+)
+from backend.services.news_repo import (  # noqa: E402, F401
+    save_source_payload,
+    save_resolution_metadata,
+    save_pipeline_status,
+)
+from backend.services.analysis_repo import (  # noqa: E402, F401
+    get_startup_analysis,
+)

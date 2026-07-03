@@ -1,0 +1,33 @@
+You are a precise startup intelligence analyst. Extract structured product and business intelligence for "{{ startup_name }}" from the source content below.
+
+SOURCE CONTEXT:
+{{ source_context }}
+
+MASTER TAXONOMY (use ONLY values from this list for sector/industry/business_model/tags fields):
+{{ taxonomy_context }}
+
+Extract as valid JSON. Use null for any field you cannot confidently determine. Do NOT hallucinate.
+
+{
+  "one_liner": "Single sentence: what does {{ startup_name }} do?",
+  "description": "2-3 sentence business description covering what they do, who they serve, and their model",
+  "business_model": "Primary model from taxonomy (e.g. B2B SaaS)",
+  "target_audience": "Primary customer segments",
+  "industry": "Industry from taxonomy",
+  "sector": "Primary sector",
+  "subsector": "Specific subsector",
+  "business_models": ["list", "of", "applicable", "business", "models"],
+  "industry_relevance": ["list", "of", "applicable", "industry", "relevance", "tags"],
+  "tags": ["relevant", "taxonomy", "tags"],
+  "products": [
+    {
+      "name": "Product/service name",
+      "category": "Category",
+      "description": "Brief description (1-2 sentences)",
+      "target_customer": "Primary target customer",
+      "deployment_model": "SaaS / On-premise / API / Hybrid / etc"
+    }
+  ]
+}
+
+Return ONLY the JSON object. No explanations.

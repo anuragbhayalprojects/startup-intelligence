@@ -6,6 +6,14 @@ import { SectionCard } from "../components/SectionCard";
 import { StatusBadge } from "../components/StatusBadge";
 import { Startup, StartupAnalysis } from "../types";
 
+const formatUrl = (url: string | undefined | null): string => {
+  if (!url) return "";
+  const trimmed = url.trim();
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+};
 const rawApiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 const API_URL = rawApiUrl.endsWith("/") 
   ? (rawApiUrl.endsWith("/api/") ? rawApiUrl.slice(0, -1) : rawApiUrl + "api") 
@@ -229,7 +237,7 @@ const AnalysisSection = ({ analysis }: { analysis: any }) => {
                     <span className="font-semibold text-sm text-foreground">{founder?.name || "Founder"}</span>
                     {founder?.linkedin_url && (
                       <a
-                        href={founder.linkedin_url}
+                        href={formatUrl(founder.linkedin_url)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-500 hover:text-blue-600 inline-flex items-center"

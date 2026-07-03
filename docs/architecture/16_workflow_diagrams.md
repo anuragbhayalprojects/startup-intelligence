@@ -1,0 +1,97 @@
+# Workflow Diagrams
+
+# Final End-to-End Flow
+
+NEWS ARTICLE
+↓
+ARTICLE INGESTION
+↓
+ARTICLE CLEANING
+↓
+AI LAYER #1:
+STARTUP EXTRACTION
+↓
+startup_mentions JSONB
+↓
+FOR EACH STARTUP:
+↓
+DYNAMIC SEARCH GENERATION
+↓
+SEARCH EXECUTION
+↓
+TEMPLATE FALLBACK SEARCHES
+↓
+RAW SOURCE COLLECTION
+↓
+RAW SOURCE JSONB STORAGE
+↓
+CONTENT CLEANING & SEGMENTATION
+↓
+CLEANED SOURCE JSONB STORAGE
+↓
+AI LAYER #2:
+WEBSITE + LINKEDIN RESOLUTION
+↓
+CANONICAL STARTUP IDENTIFIED
+↓
+AI LAYER #3:
+MODULAR ENRICHMENT
+↓
+SECTION-WISE COMPANY INTELLIGENCE JSONB
+↓
+STORE IN startups TABLE
+↓
+FRONTEND COMPANY INTELLIGENCE TAB
+↓
+FIELD-LEVEL RE-ENRICHMENT SUPPORT
+
+---
+
+# AI Layer Diagram
+
+AI LAYER #1
+Startup Extraction
+↓
+AI LAYER #2
+Resolution Engine
+↓
+AI LAYER #3
+Modular Enrichment
+
+Expected:
+~4–6 AI calls per startup.
+
+---
+
+# AI Routing Flow
+
+PRIMARY:
+OpenRouter API
+↓
+Fallback Trigger
+↓
+Local AI Models
+
+Fallback Conditions:
+
+* timeout
+* API unavailable
+* rate limit
+* missing API key
+* budget threshold exceeded
+
+---
+
+# Re-Enrichment Flow
+
+USER ACTION
+↓
+SECTION IDENTIFICATION
+↓
+TARGETED SOURCE REFRESH
+↓
+SECTION ENRICHMENT
+↓
+PARTIAL JSONB UPDATE
+↓
+FRONTEND REFRESH

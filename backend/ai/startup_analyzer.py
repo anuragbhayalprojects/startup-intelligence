@@ -59,10 +59,10 @@ def clean_llm_response(response_text):
 
 # --- Pass 1: Name Discovery ---
 
-def discover_startup_names(headline: str, paragraphs) -> list:
+def discover_startup_names(headline: str, paragraphs) -> list[dict]:
     """
-    Pass 1: Analyzes news text/headline using local LLM to extract all startup names.
-    Returns a list of clean startup name strings, or None if the analysis failed.
+    Pass 1: Analyzes news text/headline using local LLM to extract all startup names and descriptions.
+    Returns a list of dicts, each with keys 'name' and 'description', or None if analysis failed.
     """
     if isinstance(paragraphs, str):
         paragraphs = [paragraphs]
@@ -79,51 +79,44 @@ def discover_startup_names(headline: str, paragraphs) -> list:
             prompt_template = Template(f.read())
         p1 = paragraphs[0] if len(paragraphs) > 0 else ""
         p2 = paragraphs[1] if len(paragraphs) > 1 else ""
-        p3 = paragraphs[2] if len(paragraphs) > 2 else ""
+        # Join all remaining paragraphs beyond the second one into paragraph_3
+        p3 = "\n\n".join(paragraphs[2:]) if len(paragraphs) > 2 else ""
         prompt = prompt_template.render(headline=headline, paragraph_1=p1, paragraph_2=p2, paragraph_3=p3)
     except Exception as e:
         print(f"⚠️ [Startup Analyzer] Failed to load name discovery template: {e}")
         return None
         
     try:
-        response = requests.post(
-            f"{OLLAMA_BASE_URL}/api/generate",
-            json={
-                "model": OLLAMA_MODEL,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "num_ctx": 4096
-                }
-            },
-            headers={"Content-Type": "application/json"},
-            timeout=25.0
-        )
-        response.raise_for_status()
-        result_text = response.json().get("response", "")
-        print(f"DEBUG discover_startup_names LLM raw response: {result_text}")
-        cleaned_json = clean_llm_response(result_text)
-        data = json.loads(cleaned_json)
-        if isinstance(data, list):
-            names = data
-        elif isinstance(data, dict):
-            names = data.get("extracted_startup_names", [])
-        else:
-            names = []
+        from backend.ai.router import call_ai
+        data = call_ai(prompt, task="extraction", json_format=True)
+        
+        startups = []
+        if isinstance(data, dict):
+            startups = data.get("startups") or data.get("extracted_startup_names") or []
+        elif isinstance(data, list):
+            startups = data
             
-        if isinstance(names, list):
-            clean_list = []
-            for name in names:
-                if isinstance(name, dict):
-                    name = name.get("name") or name.get("startup_name") or (list(name.values())[0] if name.values() else None)
-                if isinstance(name, str) and name.strip() and name.lower() != "none":
-                    clean_list.append(name.strip())
-            print(f"✨ [Pass 1] Extracted {len(clean_list)} startup names: {clean_list}")
-            return clean_list
-    except requests.exceptions.ConnectionError:
-        print("⚠️ [Pass 1] Ollama AI service is offline (Connection refused). Using regex/rules fallback.")
+        clean_list = []
+        for item in startups:
+            if isinstance(item, dict):
+                name = item.get("name") or item.get("startup_name")
+                desc = item.get("description") or item.get("summary") or ""
+            elif isinstance(item, str):
+                name = item
+                desc = ""
+            else:
+                continue
+                
+            if isinstance(name, str) and name.strip() and name.lower() != "none":
+                clean_list.append({
+                    "name": name.strip(),
+                    "description": desc.strip()
+                })
+                
+        print(f"✨ [Pass 1] Extracted {len(clean_list)} startups: {[item['name'] for item in clean_list]}")
+        return clean_list
     except Exception as e:
-        print(f"⚠️ [Pass 1] Name discovery prompt failed: {e}")
+        print(f"⚠️ [Pass 1] Name discovery failed: {e}")
         
     return None
 
@@ -153,27 +146,11 @@ def generate_news_summary(startup_name: str, headline: str, description: str) ->
         return description
 
     try:
-        response = requests.post(
-            f"{OLLAMA_BASE_URL}/api/generate",
-            json={
-                "model": OLLAMA_MODEL,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "num_ctx": 2048,
-                    "num_predict": 150   # Keep output short — 2-3 sentences only
-                }
-            },
-            headers={"Content-Type": "application/json"},
-            timeout=20.0
-        )
-        response.raise_for_status()
-        summary = response.json().get("response", "").strip()
+        from backend.ai.router import call_ai
+        summary = call_ai(prompt, task="news_summary", json_format=False)
         if summary and len(summary) > 20:
             print(f"📰 [News Summary] Generated for '{startup_name}': {summary[:100]}...")
             return summary
-    except requests.exceptions.ConnectionError:
-        print(f"⚠️ [News Summary] Ollama AI service is offline. Using description fallback for '{startup_name}'.")
     except Exception as e:
         print(f"⚠️ [News Summary] Generation failed for '{startup_name}': {e}")
 
@@ -278,33 +255,11 @@ def extract_funding_rounds(startup_name: str, funding_snippets: str) -> dict:
         return {}
 
     try:
-        response = requests.post(
-            f"{OLLAMA_BASE_URL}/api/generate",
-            json={
-                "model": OLLAMA_MODEL,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "num_ctx": 3000,
-                    "num_predict": 450
-                }
-            },
-            headers={"Content-Type": "application/json"},
-            timeout=30.0
-        )
-        response.raise_for_status()
-        result_text = response.json().get("response", "")
-        cleaned = clean_llm_response(result_text)
-        data = json.loads(cleaned)
-        rounds = data.get("rounds", [])
+        from backend.ai.router import call_ai
+        data = call_ai(prompt, task="enrichment_funding", json_format=True)
+        rounds = data.get("rounds", []) if isinstance(data, dict) else []
         print(f"💰 [Pass 3] Extracted {len(rounds)} funding round(s) for '{startup_name}'")
         return data
-    except json.JSONDecodeError:
-        print(f"⚠️ [Pass 3] Failed to parse funding JSON for '{startup_name}'")
-        return {}
-    except requests.exceptions.ConnectionError:
-        print(f"⚠️ [Pass 3] Ollama AI service is offline. Skipping funding extraction for '{startup_name}'.")
-        return {}
     except Exception as e:
         print(f"⚠️ [Pass 3] Funding extraction failed for '{startup_name}': {e}")
         return {}

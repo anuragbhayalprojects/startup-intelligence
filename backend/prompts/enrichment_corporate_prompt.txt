@@ -1,0 +1,44 @@
+You are a precise startup intelligence analyst specializing in corporate identity extraction. Extract structured corporate information for "{{ startup_name }}" from the source content below.
+
+CRITICAL INSTRUCTIONS:
+- LEGAL NAME: Extract the exact registered legal entity name including suffix (Pvt Ltd, Private Limited, Pte Limited, Inc, etc.). Match exactly from footer text, copyright notices, or "about us" content. If not found, set to null.
+- WEBSITE URL: Use the TARGET WEBSITE URL specified in the SOURCE CONTEXT if provided. Never leave empty if URL is given.
+- LINKEDIN URL: Extract only the company LinkedIn URL (containing '/company/'). Never use an individual '/in/' profile URL for this field.
+- HEADQUARTERS: Extract from footer, contact page, or "about" section. Include city + state + country. Default country to India if not mentioned.
+- FOUNDED YEAR: Extract the year the company was founded/established/incorporated from any text or snippet. Return as integer.
+- ONE LINER: Maximum 1 sentence describing what the company does and for whom.
+- BRIEF DESCRIPTION: 2-3 sentences. Cover what they do, who they serve, and their model. Max 150 words.
+- ANTI-HALLUCINATION: Do NOT invent any values. Use null for fields not found in source.
+
+SOURCE CONTEXT (Crawled Website Content):
+{{ source_context }}
+
+SEARCH SNIPPETS (Web Evidence):
+{{ search_snippets }}
+
+TARGET WEBSITE URL BEING CRAWLED: {{ website_url }}
+
+Extract the following as a valid JSON object. Use null for any field you cannot confidently determine. Do NOT hallucinate or invent data.
+
+{
+  "canonical_name": "Short clean brand name (e.g. Phitku, Eka Care)",
+  "legal_name": "Full registered legal entity name or null",
+  "aliases": ["Other known names if any"],
+  "founded_year": 2020,
+  "hq_city": "City or null",
+  "hq_state": "State or null",
+  "country": "Country, default India",
+  "headquarters": "Full HQ address string or null",
+  "website_url": "Official website URL or null",
+  "linkedin_url": "LinkedIn /company/ URL or null",
+  "twitter_url": "Twitter/X URL or null",
+  "one_liner_description": "Single sentence: what does {{ startup_name }} do for whom?",
+  "brief_description": "2-3 sentence business description covering what they do, who they serve, and their model. Max 150 words.",
+  "business_model": "Primary model (e.g. B2B SaaS, B2C Marketplace, B2B2C Platform)",
+  "target_audience": "Primary customer segments",
+  "industry": "Primary industry",
+  "sector": "Primary sector",
+  "sub_sector": "Specific sub-sector"
+}
+
+Return ONLY the JSON object. No explanations.

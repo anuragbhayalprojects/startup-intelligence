@@ -147,6 +147,10 @@
     "go",
     "wins",
     "win",
+    "bags",
+    "bag",
+    "bagged",
+    "bagging",
     "grabs",
     "grab",
     "leads",
@@ -559,6 +563,10 @@
     "ian"
   ],
   "bad_terms": [
+    "fund",
+    "funds",
+    "trust",
+    "etf",
     "coalition",
     "consortium",
     "association",

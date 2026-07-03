@@ -111,6 +111,7 @@ export default function Observability() {
   const [activeTab, setActiveTab] = useState<"flow" | "mermaid" | "prompts" | "db" | "raw">("flow");
   const [searchQuery, setSearchQuery] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copiedPromptId, setCopiedPromptId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchTraces();
@@ -167,6 +168,12 @@ export default function Observability() {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const copyPromptToClipboard = (text: string, id: number) => {
+    navigator.clipboard.writeText(text);
+    setCopiedPromptId(id);
+    setTimeout(() => setCopiedPromptId(null), 2000);
   };
 
   // Generate dynamic Mermaid code from the trace details
@@ -663,14 +670,32 @@ export default function Observability() {
                             <div className="p-4 space-y-4">
                               <div className="grid grid-cols-1 gap-4">
                                 <div className="space-y-1">
-                                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Full Prompt Template</span>
-                                  <div className="bg-slate-900 text-slate-100 p-3 rounded-lg text-xs font-mono max-h-48 overflow-y-auto whitespace-pre-wrap">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                      Full Rendered Prompt Passed to AI ({p.prompt_template ? p.prompt_template.length : 0} characters)
+                                    </span>
+                                    <button
+                                      onClick={() => copyPromptToClipboard(p.prompt_template || "", p.id)}
+                                      className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-850 font-bold px-2 py-1 hover:bg-indigo-50 rounded transition"
+                                    >
+                                      {copiedPromptId === p.id ? (
+                                        <>
+                                          <CheckCircle size={12} className="text-emerald-600" /> Copied!
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Copy size={12} /> Copy Prompt
+                                        </>
+                                      )}
+                                    </button>
+                                  </div>
+                                  <div className="bg-slate-900 text-slate-100 p-3 rounded-lg text-xs font-mono max-h-[600px] overflow-y-auto whitespace-pre-wrap">
                                     {p.prompt_template}
                                   </div>
                                 </div>
                                 <div className="space-y-1">
                                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Parsed AI JSON Output</span>
-                                  <pre className="bg-indigo-50/50 text-slate-750 p-3 rounded-lg text-xs font-mono max-h-48 overflow-y-auto whitespace-pre-wrap border border-indigo-100/50">
+                                  <pre className="bg-indigo-50/50 text-slate-750 p-3 rounded-lg text-xs font-mono max-h-[600px] overflow-y-auto whitespace-pre-wrap border border-indigo-100/50">
                                     {JSON.stringify(p.parsed_response, null, 2)}
                                   </pre>
                                 </div>

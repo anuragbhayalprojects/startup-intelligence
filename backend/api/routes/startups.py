@@ -1413,14 +1413,32 @@ async def update_startup_field(id: str, req: FieldUpdateRequest = Body(...)):
                     analysis_json["market_intelligence"] = {}
                 analysis_json["market_intelligence"]["products"] = parsed_val
                 
-                # Sync to main startups table column
+                # Sync to main startups table columns
                 try:
-                    s_data = supabase.table("startups").select("market_intelligence").eq("id", int_id).execute()
-                    m_intel = s_data.data[0].get("market_intelligence") or {} if s_data.data else {}
-                    m_intel["products"] = parsed_val
-                    supabase.table("startups").update({"market_intelligence": m_intel}).eq("id", int_id).execute()
+                    s_data = supabase.table("startups").select("market_intelligence, company_intelligence").eq("id", int_id).execute()
+                    if s_data.data:
+                        startup_row = s_data.data[0]
+                        m_intel = startup_row.get("market_intelligence") or {}
+                        ci = startup_row.get("company_intelligence") or {}
+                        
+                        m_intel["products"] = parsed_val
+                        ci["products_services"] = [
+                            {
+                                "name": p.get("product_name") or p.get("name") or "",
+                                "category": p.get("category") or "",
+                                "description": p.get("description") or "",
+                                "target_customer": p.get("target_customer") or p.get("target") or "",
+                                "deployment_model": p.get("deployment_model") or p.get("deployment") or ""
+                            }
+                            for p in parsed_val if isinstance(p, dict)
+                        ]
+                        
+                        supabase.table("startups").update({
+                            "market_intelligence": m_intel,
+                            "company_intelligence": ci
+                        }).eq("id", int_id).execute()
                 except Exception as mie:
-                    print(f"⚠️ Failed to sync products to startups market_intelligence: {mie}")
+                    print(f"⚠️ Failed to sync products to startups: {mie}")
             elif field == "competitors":
                 if isinstance(value, str):
                     try:
@@ -1433,14 +1451,30 @@ async def update_startup_field(id: str, req: FieldUpdateRequest = Body(...)):
                     analysis_json["market_intelligence"] = {}
                 analysis_json["market_intelligence"]["competitors"] = parsed_val
                 
-                # Sync to main startups table column
+                # Sync to main startups table columns
                 try:
-                    s_data = supabase.table("startups").select("market_intelligence").eq("id", int_id).execute()
-                    m_intel = s_data.data[0].get("market_intelligence") or {} if s_data.data else {}
-                    m_intel["competitors"] = parsed_val
-                    supabase.table("startups").update({"market_intelligence": m_intel}).eq("id", int_id).execute()
+                    s_data = supabase.table("startups").select("market_intelligence, company_intelligence").eq("id", int_id).execute()
+                    if s_data.data:
+                        startup_row = s_data.data[0]
+                        m_intel = startup_row.get("market_intelligence") or {}
+                        ci = startup_row.get("company_intelligence") or {}
+                        
+                        m_intel["competitors"] = parsed_val
+                        ci["competitors"] = [
+                            {
+                                "name": c.get("company_name") or c.get("name") or "",
+                                "category": c.get("category") or "",
+                                "positioning": c.get("positioning") or c.get("reason") or ""
+                            }
+                            for c in parsed_val if isinstance(c, dict)
+                        ]
+                        
+                        supabase.table("startups").update({
+                            "market_intelligence": m_intel,
+                            "company_intelligence": ci
+                        }).eq("id", int_id).execute()
                 except Exception as mie:
-                    print(f"⚠️ Failed to sync competitors to startups market_intelligence: {mie}")
+                    print(f"⚠️ Failed to sync competitors to startups: {mie}")
             elif field == "founders":
                 analysis_json["founders"] = value
                 # Sync first founder's name to startups table

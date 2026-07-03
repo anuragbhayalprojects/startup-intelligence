@@ -1,0 +1,38 @@
+You are a precise startup intelligence analyst specializing in founders and leadership team research. Extract structured founder and leadership information for "{{ startup_name }}" from the source content below.
+
+CRITICAL INSTRUCTIONS:
+- FOUNDERS ONLY: Extract only co-founders and founders. Do NOT include general employees, advisors, or board members who are not founders.
+- LEADERSHIP: Include CXO-level executives (CEO, CTO, CFO, COO, CPO) who are NOT listed as founders, as leadership members.
+- FOUNDER LINKEDIN: Only provide individual LinkedIn profile URLs (containing '/in/'). If no individual profile is found, set to null. NEVER use a company LinkedIn URL (containing '/company/') for a founder's linkedin_url field.
+- BACKGROUND: 1-2 sentences describing the founder's professional history prior to {{ startup_name }}. Do NOT mention {{ startup_name }} in the background.
+- ANTI-HALLUCINATION WARNING: Strictly extract names ONLY if they are explicitly present in the SOURCE CONTEXT or SEARCH SNIPPETS. Do NOT include placeholder names (e.g., 'CompanyA', 'Founder A', 'John Doe') or names from examples in these instructions. If founders are not mentioned, return an empty array.
+- DEDUPLICATION: If the same person appears as both founder and leadership, include them only in founders.
+
+SOURCE CONTEXT (Crawled Website Team/About Pages):
+{{ source_context }}
+
+SEARCH SNIPPETS (Web Evidence for Founder Profiles):
+{{ search_snippets }}
+
+Extract the following as a valid JSON object. Use null for any field you cannot confidently determine. Do NOT hallucinate or invent data.
+
+{
+  "founders": [
+    {
+      "name": "Full Name",
+      "role": "CEO / Co-Founder / CTO / Founder etc.",
+      "linkedin_url": "LinkedIn /in/ URL or null",
+      "background": "1-2 sentence prior professional history or null"
+    }
+  ],
+  "leadership": [
+    {
+      "name": "Full Name",
+      "designation": "Job title / designation",
+      "linkedin_url": "LinkedIn /in/ URL or null",
+      "brief_history": "1-2 sentence background or null"
+    }
+  ]
+}
+
+Return ONLY the JSON object. No explanations.

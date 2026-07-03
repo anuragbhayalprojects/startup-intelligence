@@ -243,7 +243,7 @@ export const mapStartupWithAnalysis = (s: any): Startup => {
   }
 
   // Priority Score Resolution with AI override & keyword heuristics to prevent flat scoring lists
-  let rawPriorityScore = s.priority_score;
+  let rawPriorityScore = s.priority_score ?? rawAnalysisRecord?.priority_score;
   if (analysis?.scoring?.overall_priority_score) {
     rawPriorityScore = analysis?.scoring?.overall_priority_score;
   }

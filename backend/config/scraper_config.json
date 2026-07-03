@@ -1,0 +1,15 @@
+{
+  "_comment": "Scraper operational settings. Semantic query content (BM25 queries, link_discovery keywords) has moved to search_queries.json v2.0. This file retains HTTP client settings and BM25 chunking parameters only.",
+  "client": {
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "timeout_seconds": 10,
+    "min_body_characters": 600
+  },
+  "bm25_settings": {
+    "_comment": "Chunking and budget parameters for BM25 text ranking. Query strings are now in search_queries.json under internal_crawler_queries.bm25_queries.",
+    "chunk_size_chars": 1000,
+    "chunk_overlap_chars": 150,
+    "character_budget_per_pass": 6000,
+    "max_chunks_selected": 6
+  }
+}

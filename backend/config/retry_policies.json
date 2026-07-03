@@ -1,0 +1,76 @@
+{
+  "_comment": "Per-layer retry policies for the Startup Intelligence OS AI pipeline. All values are externalized and config-driven.",
+  "global": {
+    "max_total_retries_per_startup": 10,
+    "base_backoff_seconds": 1.5,
+    "max_backoff_seconds": 30,
+    "jitter_enabled": true,
+    "jitter_max_seconds": 2.0
+  },
+  "layers": {
+    "ai_layer_1_extraction": {
+      "max_retries": 2,
+      "timeout_seconds": 150,
+      "backoff_multiplier": 1.5,
+      "fallback_to_regex": true,
+      "description": "Startup name extraction from article. Falls back to regex if AI fails."
+    },
+    "ai_layer_2_resolution": {
+      "max_retries": 2,
+      "timeout_seconds": 150,
+      "backoff_multiplier": 2.0,
+      "fallback_to_deterministic": true,
+      "description": "Website + LinkedIn resolution. Falls back to deterministic waterfall if AI fails."
+    },
+    "ai_layer_3_enrichment": {
+      "max_retries": 2,
+      "timeout_seconds": 180,
+      "backoff_multiplier": 2.0,
+      "allow_partial_completion": true,
+      "description": "Modular enrichment. Partial completion allowed — failed sections skipped and retried independently."
+    },
+    "enrichment_identity": {
+      "max_retries": 2,
+      "timeout_seconds": 150,
+      "fallback_on_failure": "use_existing_data"
+    },
+    "enrichment_products": {
+      "max_retries": 2,
+      "timeout_seconds": 150,
+      "fallback_on_failure": "use_existing_data"
+    },
+    "enrichment_funding": {
+      "max_retries": 2,
+      "timeout_seconds": 150,
+      "fallback_on_failure": "use_existing_data"
+    },
+    "enrichment_intelligence": {
+      "max_retries": 1,
+      "timeout_seconds": 150,
+      "fallback_on_failure": "skip_section"
+    }
+  },
+  "search": {
+    "duckduckgo": {
+      "max_retries": 2,
+      "delay_between_queries_min_seconds": 8.0,
+      "delay_between_queries_max_seconds": 15.0,
+      "fallback_to_google": true
+    },
+    "google": {
+      "max_retries": 1,
+      "delay_between_queries_min_seconds": 1.0,
+      "delay_between_queries_max_seconds": 3.0
+    }
+  },
+  "database": {
+    "max_retries": 3,
+    "timeout_seconds": 10,
+    "backoff_multiplier": 1.5
+  },
+  "playwright": {
+    "max_retries": 1,
+    "timeout_ms": 5000,
+    "enabled": true
+  }
+}

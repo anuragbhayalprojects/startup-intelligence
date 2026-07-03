@@ -115,6 +115,13 @@ def _is_likely_official_url(url: str) -> bool:
 
 def _infer_domain(brand_name: str) -> Optional[str]:
     """Guesses the official domain from a brand name (best-effort)."""
+    # 1. If brand_name already contains a valid TLD suffix, test it directly first
+    brand_clean = re.sub(r"\s+", "", brand_name.lower().strip())
+    if re.search(r"\.[a-z]{2,6}(?:\.[a-z]{2,6})?$", brand_clean):
+        for candidate in [f"https://www.{brand_clean}", f"https://{brand_clean}"]:
+            if _verify_website(candidate):
+                return candidate
+
     clean = re.sub(r"[^a-zA-Z0-9]", "", brand_name.lower().strip())
     if not clean:
         return None

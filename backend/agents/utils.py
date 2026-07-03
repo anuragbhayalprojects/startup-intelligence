@@ -46,12 +46,21 @@ def clean_llm_response(response_text: str) -> str:
     return response_text.strip()
 
 def call_ollama(prompt: str, json_format: bool = True, num_ctx: int = 4096, temperature: float = 0.0) -> Any:
-    """Calls Ollama API synchronously, records execution to prompt ledger, and parses response."""
-    from backend.utils.ollama_helper import ensure_ollama_running
-    ensure_ollama_running()
-    
+    """
+    Calls the AI backend (OpenRouter primary, Ollama fallback) and returns a parsed response.
+
+    This function maintains its original signature for full backward compatibility with
+    all existing agent callers. Routing is now handled transparently by backend.ai.router.
+
+    Routing decision:
+      - OPENROUTER_ENABLED=true AND OPENROUTER_API_KEY set  → OpenRouter (cloud)
+      - OPENROUTER_ENABLED=false OR key absent              → Ollama (local)
+      - Any OpenRouter failure (timeout, rate limit, etc.)  → Ollama fallback
+
+    Telemetry is logged to obs_prompt_ledger via the router.
+    """
     # Detect the agent calling this function from the stack frame
-    agent_name = "OllamaHelper"
+    agent_name = "AIRouter"
     for frame_info in inspect.stack():
         self_obj = frame_info.frame.f_locals.get("self")
         if self_obj and hasattr(self_obj, "__class__"):
@@ -60,59 +69,74 @@ def call_ollama(prompt: str, json_format: bool = True, num_ctx: int = 4096, temp
                 agent_name = cls_name
                 break
 
-    prompt_id = "PRMPT_" + generate_uuid()
-    start_time = time.perf_counter()
-    text = ""
-    parsed_json = {}
-    
     try:
-        payload = {
-            "model": OLLAMA_MODEL,
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "num_ctx": num_ctx,
-                "temperature": temperature
-            }
-        }
-        if json_format:
-            payload["format"] = "json"
-
-        resp = requests.post(
-            f"{OLLAMA_BASE_URL}/api/generate",
-            json=payload,
-            headers={"Content-Type": "application/json"},
-            timeout=OLLAMA_TIMEOUT
-        )
-        resp.raise_for_status()
-        text = resp.json().get("response", "").strip()
-        
-        if json_format:
-            cleaned = clean_llm_response(text)
-            parsed_json = json.loads(cleaned)
-            return parsed_json
-        return text
-    except requests.exceptions.ConnectionError:
-        print("⚠️ Ollama AI service is offline. Returning empty fallback response.")
-        text = "ConnectionError: Ollama service offline"
-        return {} if json_format else ""
-    except Exception as e:
-        print(f"⚠️ Ollama API call failed: {e}")
-        text = f"Error: {str(e)}"
-        return {} if json_format else ""
-    finally:
-        duration_ms = (time.perf_counter() - start_time) * 1000.0
-        # If response was not JSON or parsing failed, wrap raw text in dict
-        ledger_parsed = parsed_json if (json_format and parsed_json) else {"response_text": text}
-        log_prompt_ledger(
-            prompt_id=prompt_id,
+        # Delegate to the new centralized AI router
+        from backend.ai.router import route_completion
+        result, routing_meta = route_completion(
+            prompt=prompt,
+            task="enrichment_products",   # default task for legacy callers
+            json_format=json_format,
+            num_ctx=num_ctx,
+            temperature=temperature,
             agent_name=agent_name,
-            prompt_template=prompt,
-            injected_context="",
-            raw_response=text,
-            parsed_response=ledger_parsed,
-            duration_ms=duration_ms
         )
+        return result
+    except Exception as e:
+        # Ultimate safety net — if router itself fails, fall back to direct Ollama
+        import requests as _requests
+        print(f"⚠️ [call_ollama] Router delegation failed ({e}), using direct Ollama call")
+        try:
+            from backend.utils.ollama_helper import ensure_ollama_running
+            ensure_ollama_running()
+        except Exception:
+            pass
+
+        prompt_id = "PRMPT_" + generate_uuid()
+        start_time = time.perf_counter()
+        text = ""
+        parsed_json = {}
+
+        try:
+            payload = {
+                "model": OLLAMA_MODEL,
+                "prompt": prompt,
+                "stream": False,
+                "options": {"num_ctx": num_ctx, "temperature": temperature},
+            }
+            if json_format:
+                payload["format"] = "json"
+
+            resp = _requests.post(
+                f"{OLLAMA_BASE_URL}/api/generate",
+                json=payload,
+                headers={"Content-Type": "application/json"},
+                timeout=OLLAMA_TIMEOUT,
+            )
+            resp.raise_for_status()
+            text = resp.json().get("response", "").strip()
+            if json_format:
+                cleaned = clean_llm_response(text)
+                parsed_json = json.loads(cleaned)
+                return parsed_json
+            return text
+        except requests.exceptions.ConnectionError:
+            print("⚠️ Ollama AI service is offline. Returning empty fallback response.")
+            return {} if json_format else ""
+        except Exception as ex:
+            print(f"⚠️ Ollama API call failed: {ex}")
+            return {} if json_format else ""
+        finally:
+            duration_ms = (time.perf_counter() - start_time) * 1000.0
+            ledger_parsed = parsed_json if (json_format and parsed_json) else {"response_text": text}
+            log_prompt_ledger(
+                prompt_id=prompt_id,
+                agent_name=agent_name,
+                prompt_template=prompt,
+                injected_context="",
+                raw_response=text,
+                parsed_response=ledger_parsed,
+                duration_ms=duration_ms,
+            )
 
 
 def get_rag_context(query: str, category_filter: str = None, top_k: int = 3) -> str:

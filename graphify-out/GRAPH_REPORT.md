@@ -1,16 +1,16 @@
-# Graph Report - startup-intelligence  (2026-06-16)
+# Graph Report - startup-intelligence  (2026-07-03)
 
 ## Corpus Check
-- 212 files · ~590,209 words
+- 271 files · ~625,612 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3212 nodes · 4014 edges · 332 communities (304 shown, 28 thin omitted)
-- Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 178 edges (avg confidence: 0.56)
+- 4275 nodes · 5660 edges · 413 communities (382 shown, 31 thin omitted)
+- Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 346 edges (avg confidence: 0.55)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `67f0ace7`
+- Built from commit: `ec334fe2`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -313,51 +313,130 @@
 - [[_COMMUNITY_Community 329|Community 329]]
 - [[_COMMUNITY_Community 330|Community 330]]
 - [[_COMMUNITY_Community 331|Community 331]]
+- [[_COMMUNITY_Community 332|Community 332]]
+- [[_COMMUNITY_Community 333|Community 333]]
+- [[_COMMUNITY_Community 334|Community 334]]
+- [[_COMMUNITY_Community 335|Community 335]]
+- [[_COMMUNITY_Community 336|Community 336]]
+- [[_COMMUNITY_Community 337|Community 337]]
+- [[_COMMUNITY_Community 338|Community 338]]
+- [[_COMMUNITY_Community 339|Community 339]]
+- [[_COMMUNITY_Community 340|Community 340]]
+- [[_COMMUNITY_Community 341|Community 341]]
+- [[_COMMUNITY_Community 342|Community 342]]
+- [[_COMMUNITY_Community 343|Community 343]]
+- [[_COMMUNITY_Community 344|Community 344]]
+- [[_COMMUNITY_Community 345|Community 345]]
+- [[_COMMUNITY_Community 346|Community 346]]
+- [[_COMMUNITY_Community 347|Community 347]]
+- [[_COMMUNITY_Community 348|Community 348]]
+- [[_COMMUNITY_Community 349|Community 349]]
+- [[_COMMUNITY_Community 350|Community 350]]
+- [[_COMMUNITY_Community 351|Community 351]]
+- [[_COMMUNITY_Community 352|Community 352]]
+- [[_COMMUNITY_Community 353|Community 353]]
+- [[_COMMUNITY_Community 354|Community 354]]
+- [[_COMMUNITY_Community 355|Community 355]]
+- [[_COMMUNITY_Community 356|Community 356]]
+- [[_COMMUNITY_Community 357|Community 357]]
+- [[_COMMUNITY_Community 358|Community 358]]
+- [[_COMMUNITY_Community 359|Community 359]]
+- [[_COMMUNITY_Community 360|Community 360]]
+- [[_COMMUNITY_Community 361|Community 361]]
+- [[_COMMUNITY_Community 362|Community 362]]
+- [[_COMMUNITY_Community 363|Community 363]]
+- [[_COMMUNITY_Community 364|Community 364]]
+- [[_COMMUNITY_Community 365|Community 365]]
+- [[_COMMUNITY_Community 366|Community 366]]
+- [[_COMMUNITY_Community 367|Community 367]]
+- [[_COMMUNITY_Community 368|Community 368]]
+- [[_COMMUNITY_Community 369|Community 369]]
+- [[_COMMUNITY_Community 370|Community 370]]
+- [[_COMMUNITY_Community 371|Community 371]]
+- [[_COMMUNITY_Community 372|Community 372]]
+- [[_COMMUNITY_Community 373|Community 373]]
+- [[_COMMUNITY_Community 374|Community 374]]
+- [[_COMMUNITY_Community 375|Community 375]]
+- [[_COMMUNITY_Community 376|Community 376]]
+- [[_COMMUNITY_Community 377|Community 377]]
+- [[_COMMUNITY_Community 378|Community 378]]
+- [[_COMMUNITY_Community 379|Community 379]]
+- [[_COMMUNITY_Community 380|Community 380]]
+- [[_COMMUNITY_Community 381|Community 381]]
+- [[_COMMUNITY_Community 382|Community 382]]
+- [[_COMMUNITY_Community 383|Community 383]]
+- [[_COMMUNITY_Community 384|Community 384]]
+- [[_COMMUNITY_Community 385|Community 385]]
+- [[_COMMUNITY_Community 386|Community 386]]
+- [[_COMMUNITY_Community 387|Community 387]]
+- [[_COMMUNITY_Community 388|Community 388]]
+- [[_COMMUNITY_Community 389|Community 389]]
+- [[_COMMUNITY_Community 390|Community 390]]
+- [[_COMMUNITY_Community 391|Community 391]]
+- [[_COMMUNITY_Community 392|Community 392]]
+- [[_COMMUNITY_Community 393|Community 393]]
+- [[_COMMUNITY_Community 394|Community 394]]
+- [[_COMMUNITY_Community 395|Community 395]]
+- [[_COMMUNITY_Community 396|Community 396]]
+- [[_COMMUNITY_Community 397|Community 397]]
+- [[_COMMUNITY_Community 399|Community 399]]
+- [[_COMMUNITY_Community 400|Community 400]]
+- [[_COMMUNITY_Community 401|Community 401]]
+- [[_COMMUNITY_Community 402|Community 402]]
+- [[_COMMUNITY_Community 403|Community 403]]
+- [[_COMMUNITY_Community 404|Community 404]]
+- [[_COMMUNITY_Community 405|Community 405]]
+- [[_COMMUNITY_Community 406|Community 406]]
+- [[_COMMUNITY_Community 407|Community 407]]
+- [[_COMMUNITY_Community 408|Community 408]]
+- [[_COMMUNITY_Community 409|Community 409]]
+- [[_COMMUNITY_Community 410|Community 410]]
+- [[_COMMUNITY_Community 411|Community 411]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `AgentOrchestrator` - 58 edges
-2. `BaseAgent` - 56 edges
-3. `call_ollama()` - 47 edges
-4. `startup` - 45 edges
+1. `AgentOrchestrator` - 72 edges
+2. `WebSearchOrchestrator` - 60 edges
+3. `BaseAgent` - 56 edges
+4. `call_ollama()` - 48 edges
 5. `startup` - 45 edges
-6. `ScoringService` - 36 edges
-7. `analysis` - 30 edges
-8. `analysis` - 30 edges
-9. `save_startup_analysis()` - 28 edges
-10. `process_startup()` - 27 edges
+6. `startup` - 45 edges
+7. `ScoringService` - 38 edges
+8. `AIRequest` - 37 edges
+9. `BaseEnricher` - 35 edges
+10. `StartupState` - 34 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `bool` --uses--> `AIResponse`  [INFERRED]
+  backend/tests/conftest.py → backend/ai/types.py
+- `float` --uses--> `WebSearchOrchestrator`  [INFERRED]
+  backend/pipeline/content_segmenter.py → backend/utils/search.py
+- `bool` --uses--> `ScoringService`  [INFERRED]
+  backend/services/supabase_service.py → backend/services/scoring_service.py
 - `StartupState` --uses--> `BaseAgent`  [INFERRED]
   backend/agents/business_problem_agent.py → backend/agents/base.py
 - `StartupState` --uses--> `BaseAgent`  [INFERRED]
   backend/agents/classification_agent.py → backend/agents/base.py
-- `StartupState` --uses--> `BaseAgent`  [INFERRED]
-  backend/agents/competitor_intelligence_agent.py → backend/agents/base.py
-- `StartupState` --uses--> `BaseAgent`  [INFERRED]
-  backend/agents/description_generator_agent.py → backend/agents/base.py
-- `StartupState` --uses--> `BaseAgent`  [INFERRED]
-  backend/agents/enrichment_agent.py → backend/agents/base.py
 
 ## Import Cycles
 - None detected.
 
-## Communities (332 total, 28 thin omitted)
+## Communities (413 total, 31 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.04
-Nodes (53): int, str, add_scrape_log(), add_scrape_source(), backfill_unassigned_startups(), create_assignment(), create_interaction(), format_outreach_message() (+45 more)
+Cohesion: 0.17
+Nodes (13): str, ProductEnricher, Extracts product and industry intelligence from source context.          Returns, Loads startup_sector_mappings.json and returns a compact JSON string., Maps AI output to company_intelligence section schema., Extracts product and industry intelligence from source context.          Returns, Maps AI output to company_intelligence section schema., Compatibility bridge for AgentOrchestrator pipeline integration. (+5 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.08
-Nodes (36): analyze_startup(), build_filtered_query(), build_funding_queries(), clean_llm_response(), collect_funding_snippets(), discover_startup_names(), extract_funding_rounds(), _load_funding_sources() (+28 more)
+Cohesion: 0.05
+Nodes (48): analyze_startup(), build_filtered_query(), build_funding_queries(), clean_llm_response(), collect_funding_snippets(), discover_startup_names(), extract_funding_rounds(), generate_news_summary() (+40 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.09
-Nodes (33): fix_startups(), format_outreach_message(), get_canonical_founders(), get_canonical_tags(), map_startup_data(), normalize_business_models(), normalize_industry_relevance(), normalize_taxonomy() (+25 more)
+Cohesion: 0.08
+Nodes (32): cleanup_database(), enrich_all_startups(), test_clean_string_suffixes(), test_process_startup_run(), clean_string(), get_clean_startup_name(), get_clean_website(), load_headline_patterns() (+24 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.06
-Nodes (49): generate_news_summary(), Generates a 2-3 sentence news summary specifically about the named startup     f, Generates a 2-3 sentence news summary specifically about the named startup     f, cleanup_database(), bool, str, assign_fprs_for_startup(), Batch-inserts startups from a CSV text payload.     Expected CSV format: startup (+41 more)
+Cohesion: 0.12
+Nodes (17): StartupState, normalize_city_name(), Formats state data into database-compatible columns and performs upsert., Executes the 3-layer orchestration workflow.          AI Layer 1: Upstream — sta, Upsert master values to Postgres/Supabase tables., Upsert master values to Postgres/Supabase tables., Executes the sequential multi-agent orchestration workflow.         Input raw_st, Bridges company_intelligence enrichment output back into StartupState fields (+9 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.08
@@ -365,23 +444,23 @@ Nodes (36): bool, float, str, float, int, str, int, str (+28 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.14
-Nodes (17): DetailModalProps, ENTITIES_LIST, FPR1_LIST, FPR2_LIST, STAGE_LIST, TEAMS_LIST, AssignmentsProps, DashboardProps (+9 more)
+Nodes (20): DetailModal(), DetailModalProps, ENTITIES_LIST, formatUrl(), FPR1_LIST, FPR2_LIST, STAGE_LIST, TEAMS_LIST (+12 more)
 
 ### Community 6 - "Community 6"
-Cohesion: 0.05
-Nodes (40): api_rechecks, brand_name, city, competitors, founded, founders, funding, headquarters (+32 more)
+Cohesion: 0.12
+Nodes (16): api_rechecks, brand_name, city, _comment, competitors, founded, founders, funding (+8 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.10
-Nodes (28): bool, int, str, bool, int, str, _extract_founders_from_snippets(), _get_max_founders() (+20 more)
+Cohesion: 0.16
+Nodes (18): bool, int, str, _extract_founders_from_snippets(), _get_max_founders(), _get_max_leadership(), _load_founder_queries(), leadership_resolver.py ---------------------- Resolves founder and leadership te (+10 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.11
-Nodes (11): PageHeader(), SectionCard(), StatusBadge(), statusTone(), Tone, tones, workflowJobs, INDUSTRIES (+3 more)
+Cohesion: 0.10
+Nodes (12): PageHeader(), SectionCard(), StatusBadge(), statusTone(), Tone, tones, sources, workflowJobs (+4 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.07
-Nodes (48): FrontendEvent, get_trace_details(), record_frontend_event(), tracing_middleware(), str, float, int, str (+40 more)
+Cohesion: 0.05
+Nodes (56): clean_llm_response(), Extracts JSON block from the LLM response text., Extracts JSON block from the LLM response text., Extracts JSON block from the LLM response text., FrontendEvent, get_trace_details(), record_frontend_event(), tracing_middleware() (+48 more)
 
 ### Community 17 - "Community 17"
 Cohesion: 0.04
@@ -392,8 +471,8 @@ Cohesion: 0.05
 Nodes (43): AI Guidance, Claims Management, Claims Transformation, Commercial Insurance, Core Strategic Themes, Customer Experience, Cybersecurity and Fraud, Data, Analytics and AI (+35 more)
 
 ### Community 38 - "Community 38"
-Cohesion: 0.08
-Nodes (26): RecommendationAgent, call_ollama(), clean_llm_response(), get_rag_context(), Extracts JSON block from the LLM response text., Retrieves relevant chunk contents from the RAG store as text., Retrieves relevant chunk contents from the RAG store as text., Extracts JSON block from the LLM response text. (+18 more)
+Cohesion: 0.09
+Nodes (28): queries, fallback_and_ai_recheck, _comment, competitors, founded_year, founders_and_leadership, funding_details, headquarter (+20 more)
 
 ### Community 40 - "Community 40"
 Cohesion: 0.05
@@ -425,7 +504,7 @@ Nodes (22): Accelerator Participation, Awards and Recognition, Data Breach, Ente
 
 ### Community 51 - "Community 51"
 Cohesion: 0.12
-Nodes (17): 10. DATA FLOW ANALYSIS, 12. EXTERNAL INTEGRATIONS, 13. DEVOPS & INFRASTRUCTURE, 14. SECURITY REVIEW, 15. PERFORMANCE ANALYSIS, 16. COMPLETE EXECUTION TRACE, 19. TECHNICAL DEBT & IMPROVEMENTS, Bottlenecks & Optimization Recommendations (+9 more)
+Nodes (17): 10. DATA FLOW ANALYSIS, 13. DEVOPS & INFRASTRUCTURE, 14. SECURITY REVIEW, 15. PERFORMANCE ANALYSIS, 16. COMPLETE EXECUTION TRACE, 19. TECHNICAL DEBT & IMPROVEMENTS, 9. AUTHENTICATION & AUTHORIZATION, Bottlenecks & Optimization Recommendations (+9 more)
 
 ### Community 52 - "Community 52"
 Cohesion: 0.10
@@ -448,8 +527,8 @@ Cohesion: 0.11
 Nodes (17): compilerOptions, allowImportingTsExtensions, erasableSyntaxOnly, lib, module, moduleDetection, moduleResolution, noEmit (+9 more)
 
 ### Community 57 - "Community 57"
-Cohesion: 0.22
-Nodes (8): Any, float, int, str, get_retriever(), HybridRetriever, test_hybrid_retriever_initialization(), test_hybrid_retriever_search()
+Cohesion: 0.14
+Nodes (15): str, CompanyWebsiteExtractor, Asynchronously scrapes a single web page, falling back to Playwright if needed., Strips layout wrappers and cleans boilerplate from raw HTML., Parses local anchor links and distributes them into buckets based on config keyw, Splits raw page text into chunks and retrieves the top chunks matching query usi, Renders prompts and requests JSON parsing from AIGateway., Analyzes missing fields and triggers fallback search lookup logic to patch nulls (+7 more)
 
 ### Community 58 - "Community 58"
 Cohesion: 0.12
@@ -464,12 +543,12 @@ Cohesion: 0.17
 Nodes (12): 1. Trigger Scraper, 2. Fetch Startups, 3. Register Startup Manually, 4. Trigger AI Analysis, 5. Fetch Assignments, 6. Route Venture to Team, 7. Log Activity Update, 8. API DOCUMENTATION (+4 more)
 
 ### Community 61 - "Community 61"
-Cohesion: 0.06
-Nodes (35): bool, int, str, get_startup_details(), get_startup_news_feed(), get_startups(), Fetches all startups from the database, filtering out generic news/headlines, Fetches all startups from the database, filtering out generic news/headlines (+27 more)
+Cohesion: 0.17
+Nodes (12): bool, str, get_identity_by_name(), Fetches the identity registry record by startup_name (case-insensitive prefix ma, Fetches the identity registry record by startup_name (case-insensitive prefix ma, Fetches the identity registry record by startup_name (case-insensitive prefix ma, Fetches the identity registry record by startup_name (case-insensitive prefix ma, Updates a single field on the startup_identity record.     Optionally bumps evid (+4 more)
 
 ### Community 62 - "Community 62"
-Cohesion: 0.17
-Nodes (11): bool, chat_assistant(), generate_insights(), Generates a dynamic technical readiness strategy report from registry statistics, Generates a dynamic technical readiness strategy report from registry statistics, Communicates with the local qwen2.5:3b model with the database registry context, Communicates with the local qwen2.5:3b model with the database registry context, Generates a dynamic technical readiness strategy report from registry statistics (+3 more)
+Cohesion: 0.09
+Nodes (25): bool, bool, str, chat_assistant(), generate_insights(), Generates a dynamic technical readiness strategy report from registry statistics, Generates a dynamic technical readiness strategy report from registry statistics, Communicates with the local qwen2.5:3b model with the database registry context (+17 more)
 
 ### Community 63 - "Community 63"
 Cohesion: 0.17
@@ -504,8 +583,8 @@ Cohesion: 0.22
 Nodes (8): Action Orientation, Core Principle, Evaluation Framework, Explainability, Identity, Primary Doctrine, Startup Intelligence OS Analyst Ethos, Strategic Relevance First
 
 ### Community 71 - "Community 71"
-Cohesion: 0.25
-Nodes (8): Updates a single specific field in the database (startups / analysis) for inline, Updates a single specific field in the database (startups / analysis) for inline, Updates a single specific field in the database (startups / analysis) for inline, update_startup_field(), Saves structured funding round data into the startup_analysis table.     funding, Saves structured funding round data into the startup_analysis table.     funding, Saves structured funding round data into the startup_analysis table.     funding, save_funding_rounds()
+Cohesion: 0.20
+Nodes (10): HTTP-Referer, X-Title, openrouter, api_key_env, base_url, base_url_env, headers, max_retries (+2 more)
 
 ### Community 72 - "Community 72"
 Cohesion: 0.29
@@ -829,11 +908,11 @@ Nodes (4): Enterprise Software, Future of Work, Productivity, SaaS
 
 ### Community 153 - "Community 153"
 Cohesion: 0.01
-Nodes (136): ajio, amagi, amica financial, artivatic, artivatic.ai, awfis, bharatpe, bigbasket (+128 more)
+Nodes (137): ajio, amagi, amica financial, artivatic, artivatic.ai, awfis, bharatpe, bigbasket (+129 more)
 
 ### Community 154 - "Community 154"
-Cohesion: 0.67
-Nodes (3): 9. AUTHENTICATION & AUTHORIZATION, Identity & Access Controls, Session & Role Sequence Diagram
+Cohesion: 0.10
+Nodes (13): str, Returns formatted initial discovery query list for a single field bucket., Returns all 8 field bucket query lists formatted with {startup_name}.         Re, Returns formatted fallback query list for a field bucket.          Parameters, Returns the BM25 keyword string for a given enricher key.         enricher_key:, Returns link discovery config for a crawler bucket.         bucket: identity_buc, Returns a formatted resolver query string.         resolver_key: website_resolve, Returns a single formatted api_rechecks query for UI-triggered re-enrichment. (+5 more)
 
 ### Community 157 - "Community 157"
 Cohesion: 0.67
@@ -880,8 +959,8 @@ Cohesion: 0.67
 Nodes (3): Focus Areas, Operations and Shared Services, Startup Opportunities
 
 ### Community 168 - "Community 168"
-Cohesion: 0.67
-Nodes (3): Digital Banking, Focus Areas, Startup Opportunities
+Cohesion: 0.10
+Nodes (24): assign_fprs_for_startup(), backfill_unassigned_startups(), create_startup(), Registers a new startup manually into the PostgreSQL database., Registers a new startup manually into the PostgreSQL database., Registers a new startup manually into the PostgreSQL database., check_existing_startup(), insert_startup() (+16 more)
 
 ### Community 169 - "Community 169"
 Cohesion: 0.67
@@ -940,12 +1019,12 @@ Cohesion: 0.06
 Nodes (30): confidence_bands, cross_validation_bonuses, domain_matches_brand, founder_corroborated, legal_name_and_brand_name_match, registry_and_linkedin_match, registry_and_website_match, website_and_linkedin_match (+22 more)
 
 ### Community 204 - "Community 204"
-Cohesion: 0.13
-Nodes (15): analysis_json, competitors, enrichment_version, investors, last_enriched_at, last_verified_at, opportunity_mapping, products (+7 more)
+Cohesion: 0.07
+Nodes (29): analysis_json, competitors, enrichment_version, funding, industry_classification, investors, last_enriched_at, last_verified_at (+21 more)
 
 ### Community 205 - "Community 205"
-Cohesion: 0.16
-Nodes (18): BaseAgent, BusinessProblemAgent, ClassificationAgent, EnrichmentAgent, IdentityDiscoveryAgent, Step 0a: Gathers URL candidates, crawls text, performs domain validation,     an, IdentityResolutionAgent, Step 0b: Calculates weighted confidence scores, defines verification status, (+10 more)
+Cohesion: 0.04
+Nodes (74): BaseAgent, BusinessProblemAgent, ClassificationAgent, CompetitorIntelligenceAgent, Identifies and validates competitors using search snippets and company product c, Identifies and validates competitors using search snippets and company product c, Identifies and validates competitors using search snippets and company product c, DescriptionGeneratorAgent (+66 more)
 
 ### Community 206 - "Community 206"
 Cohesion: 0.33
@@ -960,8 +1039,8 @@ Cohesion: 0.05
 Nodes (37): bad_terms, funding_keywords, generic_business_terms, generic_placeholders, generic_words, investor_names, ipo_keywords, locations (+29 more)
 
 ### Community 209 - "Community 209"
-Cohesion: 0.13
-Nodes (15): aiInsights, assignments, fundingTrend, geographyData, opportunities, sectorBreakdown, sources, stageData (+7 more)
+Cohesion: 0.16
+Nodes (14): aiInsights, assignments, fundingTrend, geographyData, opportunities, sectorBreakdown, stageData, startups (+6 more)
 
 ### Community 210 - "Community 210"
 Cohesion: 0.10
@@ -972,12 +1051,12 @@ Cohesion: 0.10
 Nodes (19): founder_search, v1, v2, v3, leadership_search, v1, v2, v3 (+11 more)
 
 ### Community 212 - "Community 212"
-Cohesion: 0.09
-Nodes (39): bool, int, str, bool, int, str, get_now_iso(), log() (+31 more)
+Cohesion: 0.19
+Nodes (23): bool, int, str, get_now_iso(), log(), main(), Priority 1: Seeds from CANONICAL_OVERLOADS in taxonomy_mapper.py.     Confidence, Priority 2: Seeds from existing startup_analysis records.     Confidence: 0.80 — (+15 more)
 
 ### Community 213 - "Community 213"
-Cohesion: 0.18
-Nodes (17): float, str, test_extract_clean_text_basic(), test_extract_clean_text_boilerplate_removal(), test_extract_clean_text_decomposes(), test_extract_clean_text_link_density(), test_scrape_page_basic(), crawl_product_pages() (+9 more)
+Cohesion: 0.13
+Nodes (22): float, str, test_extract_clean_text_basic(), test_extract_clean_text_boilerplate_removal(), test_extract_clean_text_decomposes(), test_extract_clean_text_link_density(), test_scrape_page_basic(), test_scrape_page_extracts_social_links_and_legal_name() (+14 more)
 
 ### Community 214 - "Community 214"
 Cohesion: 0.12
@@ -996,7 +1075,7 @@ Cohesion: 0.15
 Nodes (12): cred, digit insurance, godigit, groww, juspay, meesho, perfios, razorpay (+4 more)
 
 ### Community 218 - "Community 218"
-Cohesion: 0.18
+Cohesion: 0.16
 Nodes (8): Industry, TAXONOMY, HighPriorityProps, ACTIONS, BANDS, ENTITIES, RepositoryProps, TEAMS
 
 ### Community 219 - "Community 219"
@@ -1316,12 +1395,12 @@ Cohesion: 0.29
 Nodes (7): UPI Infrastructure, AMC, Bank, HFC, Lombard, Pru Life, Securities
 
 ### Community 298 - "Community 298"
-Cohesion: 0.17
-Nodes (24): Any, bool, BackgroundTasks, BaseModel, AssignmentCreateRequest, AssignmentUpdateRequest, ChatRequest, CSVUploadRequest (+16 more)
+Cohesion: 0.05
+Nodes (73): Any, BackgroundTasks, bool, int, str, BackgroundTasks, BaseModel, add_scrape_log() (+65 more)
 
 ### Community 299 - "Community 299"
-Cohesion: 0.47
-Nodes (4): ROLES, SidebarProps, AppTab, UserRole
+Cohesion: 0.22
+Nodes (13): bool, str, build_search_queries(), get_clean_website(), _load_known_domains(), backend/pipeline/search_engine.py ------------------------------------ Dynamic s, Searches DuckDuckGo HTML for the official website of a startup by name.      App, Multi-strategy website resolution for a startup. Canonical entry point.      Str (+5 more)
 
 ### Community 300 - "Community 300"
 Cohesion: 0.33
@@ -1336,24 +1415,24 @@ Cohesion: 0.33
 Nodes (4): PRESETS, SCHEMAS, SupabaseConsoleProps, DBConsoleState
 
 ### Community 303 - "Community 303"
-Cohesion: 0.40
-Nodes (3): DescriptionGeneratorAgent, Generates a structured factual description of the company (100-150 words).     M, StartupState
+Cohesion: 0.29
+Nodes (6): _comment, default_num_ctx, default_temperature, fallback_triggers, tier_1_priority_models, tier_2_allowed_providers
 
 ### Community 304 - "Community 304"
-Cohesion: 0.40
-Nodes (3): FundingIntelligenceAgent, Extracts optional funding stages, total raised, and top investors list., StartupState
+Cohesion: 0.15
+Nodes (19): bool, int, str, get_clean_website(), _infer_domain(), _is_likely_official_url(), _load_json(), website_resolver.py ------------------- Canonical website resolution logic for t (+11 more)
 
 ### Community 305 - "Community 305"
-Cohesion: 0.40
-Nodes (3): IndustryClassificationAgent, Classifies the startup strictly into the taxonomy framework (Industry, Sector, S, StartupState
+Cohesion: 0.11
+Nodes (19): _comment, custom_web_search, _comment, suffix, enrichment_agent, founders_fallback, founders_query_base, website_query (+11 more)
 
 ### Community 306 - "Community 306"
-Cohesion: 0.18
-Nodes (6): CompetitorIntelligenceAgent, Identifies and validates competitors using search snippets and company product c, LegalNameAgent, Extracts corporate legal name, location (hq, city, state, country), founded year, StartupState, StartupState
+Cohesion: 0.29
+Nodes (7): ollama, base_url_env, default_base_url, default_model, max_retries, model_env, timeout_seconds
 
 ### Community 307 - "Community 307"
 Cohesion: 0.40
-Nodes (3): OpportunityMappingAgent, Designates matching use-cases and potential sandbox integrations across      ICI, StartupState
+Nodes (5): Mock seed reset handler., Mock seed reset handler., Mock seed reset handler., Mock seed reset handler., reset_database()
 
 ### Community 308 - "Community 308"
 Cohesion: 0.40
@@ -1372,76 +1451,380 @@ Cohesion: 0.50
 Nodes (3): bad_chars, bad_domains, news_path_patterns
 
 ### Community 312 - "Community 312"
-Cohesion: 0.67
-Nodes (3): 11. LLM / AI WORKFLOW ANALYSIS, AI Agent Flow, Prompt Flow & Web Context Injection
+Cohesion: 0.15
+Nodes (13): str, IdentityEnricher, Normalizes v2 LLM output into founders + leadership schema., Maps AI output to company_intelligence section schema., v1 bridge: accepts pre-formatted source_context string.         Returns v1 CI sc, Compatibility bridge — enriches from a StartupState object.         Called by th, Maps AI output to v1 company_intelligence section schema (backward compat)., Compatibility bridge — enriches from a StartupState object.         Called by th (+5 more)
 
 ### Community 313 - "Community 313"
 Cohesion: 0.67
 Nodes (3): 4. APPLICATION FLOW ANALYSIS, Startup Flow, User Request Flow: Trigger AI Analysis
 
 ### Community 316 - "Community 316"
-Cohesion: 0.16
-Nodes (17): str, classify_url(), discover_search_evidence(), Main entry point. DuckDuckGo is the default primary discovery engine.     Google, Main entry point. DuckDuckGo is the default primary discovery engine.     Google, Classifies a URL into a standard target category., Classifies a URL into a standard target category., Runs multi-query discovery for a startup to collect candidate URLs,     page tit (+9 more)
+Cohesion: 0.18
+Nodes (15): float, int, str, _bm25_score(), _chunk_text(), format_segmented_payload_for_enrichment(), _load_bm25_settings(), backend/pipeline/content_segmenter.py ----------------------------------------- (+7 more)
 
 ### Community 317 - "Community 317"
-Cohesion: 0.19
-Nodes (15): bool, str, get_mock_ollama_response(), mock_crawl_product_pages(), mock_crawl_startup_targets(), mock_get(), mock_head(), mock_network_and_ollama() (+7 more)
+Cohesion: 0.14
+Nodes (20): bool, str, get_mock_ollama_response(), mock_crawl_product_pages(), mock_crawl_startup_targets(), mock_get(), mock_head(), mock_network_and_ollama() (+12 more)
 
 ### Community 318 - "Community 318"
-Cohesion: 0.24
-Nodes (7): int, StartupState, Formats state data into database-compatible columns and performs upsert., Upsert master values to Postgres/Supabase tables., Upsert master values to Postgres/Supabase tables., Executes the sequential multi-agent orchestration workflow.         Input raw_st, Executes the sequential multi-agent orchestration workflow.         Input raw_st
+Cohesion: 0.15
+Nodes (9): str, Runs enrichment for this section.          Parameters         ----------, Runs enrichment for this section.          Parameters         ----------, Detects which critical fields are missing or empty in the enricher's output., Runs BM25 selection over crawled pages for this enricher.          Parameters, Loads and caches the Jinja2 prompt template for this enricher., Loads and caches the Jinja2 prompt template for this enricher., Renders the prompt template with the given context variables. (+1 more)
 
 ### Community 323 - "Community 323"
 Cohesion: 0.22
 Nodes (8): boilerplate_patterns, link_density_threshold, low_trust_threshold, max_page_character_cap, max_total_product_crawl_cap, min_block_length, playwright_min_text_len, playwright_timeout_ms
 
 ### Community 324 - "Community 324"
-Cohesion: 0.25
-Nodes (8): funding, confidence, value, funding_history, investors, latest_round, latest_round_date, total_funding
+Cohesion: 0.17
+Nodes (11): bm25_settings, character_budget_per_pass, chunk_overlap_chars, chunk_size_chars, _comment, max_chunks_selected, client, min_body_characters (+3 more)
 
 ### Community 325 - "Community 325"
-Cohesion: 0.33
-Nodes (5): default_num_ctx, default_temperature, ollama_base_url, ollama_model, request_timeout_seconds
+Cohesion: 0.50
+Nodes (3): ROLES, SidebarProps, AppTab
 
 ### Community 326 - "Community 326"
 Cohesion: 0.33
 Nodes (6): analysis_json, ai_summary, confidence_score, founders, relevance_score, use_cases
 
 ### Community 327 - "Community 327"
-Cohesion: 0.33
-Nodes (6): industry_classification, confidence, value, industry, sector, subsector
+Cohesion: 0.18
+Nodes (8): bool, float, Builds the enrichment_metadata partial update for this section., Logs a message with enricher-prefixed context., Logs enrichment result summary., Builds the enrichment_metadata partial update for this section., Logs a message with enricher-prefixed context., Logs enrichment result summary.
 
 ### Community 328 - "Community 328"
-Cohesion: 0.50
-Nodes (4): create_startup(), Registers a new startup manually into the PostgreSQL database., Registers a new startup manually into the PostgreSQL database., Registers a new startup manually into the PostgreSQL database.
+Cohesion: 0.12
+Nodes (30): bool, str, collect_source_payload(), _crawl_page(), _discover_sub_page_links(), _extract_footer_text(), _extract_page_links(), _extract_seo_metadata() (+22 more)
 
 ### Community 329 - "Community 329"
-Cohesion: 0.50
-Nodes (4): Runs a simulated read-only SELECT command against live portfolio tables., Runs a simulated read-only SELECT command against live portfolio tables., Runs a simulated read-only SELECT command against live portfolio tables., run_sql()
+Cohesion: 0.33
+Nodes (11): deduplication, description, enrichment_funding, enrichment_identity, enrichment_intelligence, enrichment_products, extraction, news_summary (+3 more)
 
 ### Community 330 - "Community 330"
+Cohesion: 0.18
+Nodes (11): feature_flags, dual_write_analysis_json, full_observability_enabled, openrouter_enabled, playwright_fallback_enabled, re_enrichment_api_enabled, use_company_intelligence_jsonb, use_content_segmenter (+3 more)
+
+### Community 332 - "Community 332"
+Cohesion: 0.12
+Nodes (30): call_ai(), _get_ollama_base_url(), _get_ollama_model(), _get_ollama_timeout(), _get_openrouter_api_key(), _get_openrouter_base_url(), _get_openrouter_headers(), _get_openrouter_model() (+22 more)
+
+### Community 333 - "Community 333"
+Cohesion: 0.13
+Nodes (15): Updates a single specific field in the database (startups / analysis) for inline, Runs a targeted query and LLM analysis to re-discover a single specific field (w, Updates a single specific field in the database (startups / analysis) for inline, Updates a single specific field in the database (startups / analysis) for inline, Runs a targeted query and LLM analysis to re-discover a single specific field., Runs a targeted query and LLM analysis to re-discover a single specific field., Runs a targeted query and LLM analysis to re-discover a single specific field., recheck_startup_field() (+7 more)
+
+### Community 334 - "Community 334"
+Cohesion: 0.13
+Nodes (26): ABC, AIRequest, AIResponse, AIRequest, AIResponse, AIRequest, AIResponse, AIRequest (+18 more)
+
+### Community 335 - "Community 335"
+Cohesion: 0.09
+Nodes (22): _load_pipeline_config(), Loads pipeline_config.json with fallback., StartupState, str, FundingEnricher, Extracts funding and investor information from search snippets + source context., Normalizes v2 funding output to flat section schema., Maps AI output to company_intelligence funding_details section. (+14 more)
+
+### Community 336 - "Community 336"
+Cohesion: 0.15
+Nodes (20): bool, int, str, check_existing_startup(), _get_supabase(), insert_startup(), _map_startup_data(), backend/services/startup_repo.py ----------------------------------- Startup rep (+12 more)
+
+### Community 337 - "Community 337"
+Cohesion: 0.18
+Nodes (11): keywords, max_urls, keywords, max_urls, link_discovery_keywords, _comment, corporate_bucket, identity_bucket (+3 more)
+
+### Community 338 - "Community 338"
+Cohesion: 0.13
+Nodes (21): bool, str, are_headlines_describing_same_event(), are_news_events_describing_same_story(), clean_string(), get_clean_startup_name(), is_news_duplicate(), load_headline_patterns() (+13 more)
+
+### Community 339 - "Community 339"
+Cohesion: 0.24
+Nodes (5): str, ModelRegistry, Dynamically queries OpenRouter's /models endpoint and filters for active endpoin, Dynamically queries OpenRouter's /models endpoint and filters for active endpoin, Dynamically queries OpenRouter's /models endpoint and filters for active endpoin
+
+### Community 340 - "Community 340"
+Cohesion: 0.33
+Nodes (6): routing, auto_fallback_on_error, auto_fallback_on_missing_key, fallback_provider, openrouter_enabled_env, primary_provider
+
+### Community 342 - "Community 342"
+Cohesion: 0.23
+Nodes (15): bool, int, str, get_startup_news(), _get_supabase(), backend/services/news_repo.py -------------------------------- News repository —, Saves raw_source_payload and/or cleaned_source_payload to a startup_news row., Saves resolution_metadata to a startup_news row.     New function — not in legac (+7 more)
+
+### Community 343 - "Community 343"
+Cohesion: 0.20
+Nodes (12): Any, bool, str, enforce_schema_contract(), If required_schema_keys are specified but missing from the parsed payload,     d, Applies regex and structural repairs to raw text containing JSON., Main entrypoint for response validation & repair., repair_json_string() (+4 more)
+
+### Community 344 - "Community 344"
+Cohesion: 0.40
+Nodes (5): openrouter_settings, base_delay_seconds, jitter_percentage, max_retries, timeout_seconds
+
+### Community 345 - "Community 345"
+Cohesion: 0.20
+Nodes (10): source_collection, collect_about_page, collect_contact_page, collect_footer, collect_homepage, collect_linkedin, collect_products_page, collect_search_snippets (+2 more)
+
+### Community 346 - "Community 346"
+Cohesion: 0.06
+Nodes (31): str, str, str, bool, BaseEnricher, backend/enrichment/base_enricher.py -------------------------------------- Base, Base class for all modular enrichment modules.      Subclasses must implement:, Base class for all modular enrichment modules.      Subclasses must implement: (+23 more)
+
+### Community 347 - "Community 347"
+Cohesion: 0.09
+Nodes (33): backend/enrichment/product_enricher.py -----------------------------------------, fix_startups(), format_outreach_message(), get_canonical_founders(), get_canonical_tags(), normalize_business_models(), normalize_industry_relevance(), normalize_taxonomy() (+25 more)
+
+### Community 348 - "Community 348"
+Cohesion: 0.15
+Nodes (13): description, fallback, name, description, fallback, name, description, modules (+5 more)
+
+### Community 349 - "Community 349"
+Cohesion: 0.11
+Nodes (21): classify_url(), discover_search_evidence(), backend/utils/search.py --------------------------- Web search utilities for Sta, Main entry point. DuckDuckGo is the default primary discovery engine.     Google, Main entry point. DuckDuckGo is the default primary discovery engine.     Google, Classifies a URL into a standard target category., Main entry point for raw search. DuckDuckGo primary, Google fallback.     Uses i, Classifies a URL into a standard target category. (+13 more)
+
+### Community 350 - "Community 350"
+Cohesion: 0.17
+Nodes (11): AI Layer #1, AI Layer #2, AI Layer #3, AI Layer Strategy, Core Workflow, Execution Requirements, Existing Tables To Reuse, Final Architecture Goals (+3 more)
+
+### Community 351 - "Community 351"
+Cohesion: 0.17
+Nodes (11): Architectural Constraints, Architectural Priorities, Core Philosophy, Final High-Level Architecture, Priority 1, Priority 2, Priority 3, Priority 4 (+3 more)
+
+### Community 352 - "Community 352"
+Cohesion: 0.20
+Nodes (11): int, str, get_ai_routing_history(), get_enrichment_stats(), get_prompt_ledger(), get_system_health(), backend/api/routes/observability.py -------------------------------------- Obser, Returns AI routing decision history — which calls went to OpenRouter vs Ollama. (+3 more)
+
+### Community 353 - "Community 353"
 Cohesion: 0.50
-Nodes (4): Performs semantic correlation keyword match ranking on parsed portfolios., Performs semantic correlation keyword match ranking on parsed portfolios., Performs semantic correlation keyword match ranking on parsed portfolios., semantic_search()
+Nodes (4): budget, max_cost_per_startup_usd, tracking_enabled, warn_threshold_usd
+
+### Community 354 - "Community 354"
+Cohesion: 0.18
+Nodes (10): Core Principle, Example Dynamic Queries, Founders, Funding, Identity, Important Rule, Products, Search Engine Architecture (+2 more)
+
+### Community 355 - "Community 355"
+Cohesion: 0.18
+Nodes (10): AI Layer #1, AI Layer #2, AI Layer #3, AI Routing Strategy, Externalize, Fallback Strategy, Important Rule, Modular AI Layer Design (+2 more)
+
+### Community 356 - "Community 356"
+Cohesion: 0.18
+Nodes (10): int, clear_scrape_logs(), get_pipeline_config(), get_routing_config(), get_scrape_logs(), backend/api/routes/scraping.py --------------------------------- Scraping manage, Returns the active pipeline_config.json feature flags., Returns the active AI model routing configuration (safe public subset).     Does (+2 more)
+
+### Community 357 - "Community 357"
+Cohesion: 0.20
+Nodes (9): AI Layer Analysis, Backend, Critical Rule, Current State Analysis, Database, Frontend, Graphify Requirements, Mandatory Analysis Areas (+1 more)
+
+### Community 358 - "Community 358"
+Cohesion: 0.20
+Nodes (9): Avoid, Core Principle, Database Refactor Strategy, Existing Tables, JSONB-First Architecture, Recommended Fields, Recommended Fields, startup_news (+1 more)
+
+### Community 359 - "Community 359"
+Cohesion: 0.20
+Nodes (9): AI Layer, Config Files, Enrichment Layer, Externalization Strategy, Externalize, Important Rule, Objective, Resolution Layer (+1 more)
+
+### Community 360 - "Community 360"
+Cohesion: 0.20
+Nodes (10): ai_layer, class, combined_with, description, execution_order, module, output_fields, re_enrichment_supported (+2 more)
+
+### Community 361 - "Community 361"
+Cohesion: 0.20
+Nodes (10): ai_layer, class, combined_with, description, execution_order, module, output_fields, re_enrichment_supported (+2 more)
+
+### Community 362 - "Community 362"
+Cohesion: 0.20
+Nodes (10): ai_layer, class, combined_with, description, execution_order, module, output_fields, re_enrichment_supported (+2 more)
+
+### Community 363 - "Community 363"
+Cohesion: 0.20
+Nodes (10): ai_layer, class, combined_with, description, execution_order, module, output_fields, re_enrichment_supported (+2 more)
+
+### Community 364 - "Community 364"
+Cohesion: 0.20
+Nodes (9): _comment, database, backoff_multiplier, max_retries, timeout_seconds, playwright, enabled, max_retries (+1 more)
+
+### Community 365 - "Community 365"
+Cohesion: 0.20
+Nodes (10): delay_between_queries_max_seconds, delay_between_queries_min_seconds, fallback_to_google, max_retries, delay_between_queries_max_seconds, delay_between_queries_min_seconds, max_retries, search (+2 more)
+
+### Community 366 - "Community 366"
+Cohesion: 0.22
+Nodes (8): Cleaning Goals, Cleaning & Segmentation, Important Principle, Important Rule, Objective, Raw Source Collection, Raw Source Payload Structure, Source Collection & Cleaning
+
+### Community 367 - "Community 367"
+Cohesion: 0.22
+Nodes (9): fallback_on_failure, max_retries, timeout_seconds, fallback_on_failure, max_retries, timeout_seconds, layers, enrichment_identity (+1 more)
+
+### Community 368 - "Community 368"
+Cohesion: 0.25
+Nodes (7): Allowed Resolution Signals, Important Rule, Objective, Output, Primary Signals, Resolution Engine, Secondary Validation Signals
+
+### Community 369 - "Community 369"
+Cohesion: 0.25
+Nodes (7): Important Optimization, Important Rule, Objective, Re-Enrichment Architecture, Re-Enrichment Flow, Re-Enrichment Targets, Required Features
+
+### Community 370 - "Community 370"
+Cohesion: 0.36
+Nodes (7): int, get_startup_analysis(), _get_supabase(), backend/services/analysis_repo.py ------------------------------------- Analysis, Fetches the most recent startup_analysis record for a startup.     New function, Saves structured funding round data into the startup_analysis table.     funding, save_funding_rounds()
+
+### Community 371 - "Community 371"
+Cohesion: 0.25
+Nodes (7): ai_call_budget, description, max_calls_per_startup, target_calls_per_startup, _comment, enrichment_version, sections
+
+### Community 372 - "Community 372"
+Cohesion: 0.29
+Nodes (6): AI Call Budget, AI Layer #3 Responsibilities, Important Optimization, Modular Enrichment Engine, Objective, Re-Enrichment Requirement
+
+### Community 373 - "Community 373"
+Cohesion: 0.29
+Nodes (6): Graphify Usage, Important Rule, Logging Requirements, Objective, Observability & Logging, Required Metadata
+
+### Community 374 - "Community 374"
+Cohesion: 0.29
+Nodes (6): AI Layer Rules, Code Quality Rules, Database Rules, Folder Structure Goals, Frontend Rules, Mandatory Requirements
+
+### Community 375 - "Community 375"
+Cohesion: 0.29
+Nodes (6): AI Optimization Rule, Branching Requirement, Delivery Expectations, Execution Rules, Important Rule, Mandatory Execution Flow
+
+### Community 376 - "Community 376"
+Cohesion: 0.50
+Nodes (4): fallback_on_failure, max_retries, timeout_seconds, enrichment_funding
+
+### Community 377 - "Community 377"
+Cohesion: 0.33
+Nodes (5): Company Intelligence JSONB Schema, Final Structure, Frontend Alignment, Important Principle, Required Features
+
+### Community 378 - "Community 378"
+Cohesion: 0.33
+Nodes (5): AI Layer Diagram, AI Routing Flow, Final End-to-End Flow, Re-Enrichment Flow, Workflow Diagrams
+
+### Community 379 - "Community 379"
+Cohesion: 0.33
+Nodes (6): re_enrichment, force_source_refresh_on_explicit_request, partial_update_strategy, reuse_cached_search, reuse_cleaned_payload, reuse_resolution_metadata
+
+### Community 380 - "Community 380"
+Cohesion: 0.33
+Nodes (6): backoff_multiplier, description, fallback_to_regex, max_retries, timeout_seconds, ai_layer_1_extraction
+
+### Community 381 - "Community 381"
+Cohesion: 0.33
+Nodes (6): backoff_multiplier, description, fallback_to_deterministic, max_retries, timeout_seconds, ai_layer_2_resolution
+
+### Community 382 - "Community 382"
+Cohesion: 0.33
+Nodes (6): allow_partial_completion, backoff_multiplier, description, max_retries, timeout_seconds, ai_layer_3_enrichment
+
+### Community 383 - "Community 383"
+Cohesion: 0.33
+Nodes (6): global, base_backoff_seconds, jitter_enabled, jitter_max_seconds, max_backoff_seconds, max_total_retries_per_startup
+
+### Community 384 - "Community 384"
+Cohesion: 0.50
+Nodes (4): get_interactions(), Fetches all startup activity logs/interactions from Supabase., Fetches all startup activity logs/interactions from Supabase., Fetches all startup activity logs/interactions from Supabase.
+
+### Community 385 - "Community 385"
+Cohesion: 0.40
+Nodes (4): Final Workflow, Important Rules, News Processing Pipeline, Startup Extraction Structure
+
+### Community 386 - "Community 386"
+Cohesion: 0.18
+Nodes (18): bool, int, str, _apply_ci_patch(), _collect_fresh_source(), _load_article_context(), _load_startup(), backend/enrichment/re_enrichment_service.py ------------------------------------ (+10 more)
+
+### Community 387 - "Community 387"
+Cohesion: 0.50
+Nodes (3): Embeds the exact nested _routing metadata block to keep legacy obs_prompt_ledger, Any, str
+
+### Community 388 - "Community 388"
+Cohesion: 0.17
+Nodes (12): _clean_text(), _extract_funding_snippets(), _extract_social_presence(), Normalizes whitespace and strips excess noise from text., Extracts funding-related text from search snippet records., Extracts LinkedIn and social media presence text., Segments raw_source_payload into a structured cleaned_source_payload.      Param, Normalizes whitespace and strips excess noise from text. (+4 more)
+
+### Community 389 - "Community 389"
+Cohesion: 0.50
+Nodes (4): fallback_on_failure, max_retries, timeout_seconds, enrichment_intelligence
+
+### Community 390 - "Community 390"
+Cohesion: 0.07
+Nodes (32): int, get_startup_details(), get_startup_news_feed(), get_startups(), Fetches all startups from the database, filtering out generic news/headlines, Fetches all startups from the database, filtering out generic news/headlines, Fetches a specific startup's details along with its AI analysis., Fetches all startups from the database, filtering out generic news/headlines (+24 more)
+
+### Community 391 - "Community 391"
+Cohesion: 0.17
+Nodes (14): BackgroundTasks, int, str, enrich_all_sections(), enrich_section(), EnrichAllRequest, EnrichmentRequest, get_ai_routing_status() (+6 more)
+
+### Community 392 - "Community 392"
+Cohesion: 0.50
+Nodes (4): get_scrape_sources(), Returns the list of configured scraper targets (standard + custom RSS feeds)., Returns the list of configured scraper targets (standard + custom RSS feeds)., Returns the list of configured scraper targets (standard + custom RSS feeds).
+
+### Community 393 - "Community 393"
+Cohesion: 0.25
+Nodes (6): Any, int, Formats a subset of field-bucketed search snippets into a prompt-ready string., Fires fallback web searches for missing fields and runs a slim targeted, Routes an AI call via the centralized AI router.         OpenRouter primary, Oll, Routes an AI call via the centralized AI router.         OpenRouter primary, Oll
+
+### Community 394 - "Community 394"
+Cohesion: 0.20
+Nodes (11): bool, int, str, load_known_linkedin(), linkedin_resolver.py -------------------- LinkedIn URL resolution for startups a, Resolves the canonical LinkedIn company page URL.      Parameters     ----------, Resolves the canonical LinkedIn company page URL.      Parameters     ----------, resolve_linkedin_company_url() (+3 more)
+
+### Community 395 - "Community 395"
+Cohesion: 0.22
+Nodes (9): _comment, competitor_query, corporate_query, funding_query, identity_query, product_query, internal_crawler_queries, bm25_queries (+1 more)
+
+### Community 399 - "Community 399"
+Cohesion: 0.29
+Nodes (8): int, format_crawled_pages_for_enricher(), format_search_snippets_for_enricher(), format_source_payload_for_prompt(), Formats the collected source payload into a single prompt-ready text block., Formats crawled page content into a single prompt-ready text block     for a spe, Formats field-bucketed search snippets into a prompt-ready text block     for a, Backward-compatible formatter. Works with both v1 (flat fields) and     v2 (craw
+
+### Community 400 - "Community 400"
+Cohesion: 0.25
+Nodes (8): pipeline_controls, dedup_check_enabled, max_crawl_chars, max_search_snippets_chars, max_startups_per_article, phase1_resolution_confidence_threshold, phase2_relevance_gate_threshold, semantic_alignment_check_enabled
+
+### Community 401 - "Community 401"
+Cohesion: 0.29
+Nodes (7): v2_pipeline, discovery_field_buckets, fallback_max_queries_per_field, fallback_max_snippets_per_field, fallback_search_enabled, parallel_enrichment_workers, use_v2_pipeline
+
+### Community 402 - "Community 402"
+Cohesion: 0.33
+Nodes (7): v1, v2, v3, leadership_resolver, founder_search, funding_articles_query, leadership_resolver
+
+### Community 403 - "Community 403"
+Cohesion: 0.50
+Nodes (4): get_assignments(), Fetches all startup assignments from Supabase., Fetches all startup assignments from Supabase., Fetches all startup assignments from Supabase.
+
+### Community 404 - "Community 404"
+Cohesion: 0.50
+Nodes (4): get_scrape_status(), Returns the current background scraping logs, active state, and discovery counts, Returns the current background scraping logs, active state, and discovery counts, Returns the current background scraping logs, active state, and discovery counts
+
+### Community 405 - "Community 405"
+Cohesion: 0.67
+Nodes (3): 11. LLM / AI WORKFLOW ANALYSIS, AI Agent Flow, Prompt Flow & Web Context Injection
+
+### Community 406 - "Community 406"
+Cohesion: 0.67
+Nodes (3): Digital Banking, Focus Areas, Startup Opportunities
+
+### Community 407 - "Community 407"
+Cohesion: 0.33
+Nodes (5): _comment, company_intelligence_schema_version, enrichment_metadata_tracking, pipeline_version, source_traceability_enabled
+
+### Community 408 - "Community 408"
+Cohesion: 0.33
+Nodes (6): competitors, corporate, funding, identity, products, enricher_crawled_page_map
+
+### Community 409 - "Community 409"
+Cohesion: 0.33
+Nodes (6): competitors, corporate, funding, identity, products, enricher_snippet_field_map
+
+### Community 410 - "Community 410"
+Cohesion: 0.33
+Nodes (6): startup_analyzer, founders_fallback, founders_query_base, funding_fallback, funding_query_base, website_query
+
+### Community 411 - "Community 411"
+Cohesion: 0.67
+Nodes (3): 12. EXTERNAL INTEGRATIONS, Integration Details, Integrations Map
 
 ## Knowledge Gaps
-- **1905 isolated node(s):** `str`, `bool`, `float`, `Any`, `Request` (+1900 more)
+- **2234 isolated node(s):** `str`, `bool`, `float`, `Any`, `bool` (+2229 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **28 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **31 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `search_duckduckgo()` connect `Community 316` to `Community 0`, `Community 1`, `Community 212`, `Community 7`?**
-  _High betweenness centrality (0.006) - this node is a cross-community bridge._
-- **Why does `AgentOrchestrator` connect `Community 298` to `Community 0`, `Community 3`, `Community 38`, `Community 9`, `Community 205`, `Community 303`, `Community 304`, `Community 305`, `Community 306`, `Community 307`, `Community 318`?**
-  _High betweenness centrality (0.005) - this node is a cross-community bridge._
-- **Why does `resolve_website()` connect `Community 212` to `Community 316`, `Community 7`?**
-  _High betweenness centrality (0.004) - this node is a cross-community bridge._
-- **Are the 39 inferred relationships involving `AgentOrchestrator` (e.g. with `Any` and `bool`) actually correct?**
-  _`AgentOrchestrator` has 39 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `AgentOrchestrator` connect `Community 298` to `Community 0`, `Community 3`, `Community 168`, `Community 9`, `Community 205`, `Community 335`, `Community 312`, `Community 57`, `Community 346`, `Community 62`?**
+  _High betweenness centrality (0.015) - this node is a cross-community bridge._
+- **Why does `WebSearchOrchestrator` connect `Community 335` to `Community 0`, `Community 3`, `Community 154`, `Community 328`, `Community 298`, `Community 205`, `Community 399`, `Community 312`, `Community 346`, `Community 347`, `Community 316`, `Community 349`?**
+  _High betweenness centrality (0.008) - this node is a cross-community bridge._
+- **Why does `resolve_website()` connect `Community 304` to `Community 394`, `Community 212`, `Community 349`, `Community 7`?**
+  _High betweenness centrality (0.008) - this node is a cross-community bridge._
+- **Are the 48 inferred relationships involving `AgentOrchestrator` (e.g. with `Any` and `BackgroundTasks`) actually correct?**
+  _`AgentOrchestrator` has 48 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 23 inferred relationships involving `WebSearchOrchestrator` (e.g. with `IdentityDiscoveryAgent` and `StartupState`) actually correct?**
+  _`WebSearchOrchestrator` has 23 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 34 inferred relationships involving `BaseAgent` (e.g. with `BusinessProblemAgent` and `ClassificationAgent`) actually correct?**
   _`BaseAgent` has 34 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `str`, `Appends a timestamped audit record to the state's audit trail.`, `Identifies and validates competitors using search snippets and company product c` to the rest of the system?**
-  _2153 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.04472396925227114 - nodes in this community are weakly interconnected._
+  _2784 weakly-connected nodes found - possible documentation gaps or missing edges._

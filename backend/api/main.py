@@ -13,6 +13,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from api.routes import startups
+from api.routes import enrichment as enrichment_routes
+from api.routes import scraping as scraping_routes
+from api.routes import observability as observability_routes
+
 from backend.utils.tracing import (
     set_trace_id,
     reset_trace_id,
@@ -33,6 +37,10 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+        "http://localhost:5175",
+        "http://127.0.0.1:5175",
         "https://startup-intelligence.vercel.app",
         "https://startup-intelligence-teal.vercel.app"
     ],
@@ -107,6 +115,10 @@ async def tracing_middleware(request: Request, call_next):
 
 # Route router registrations
 app.include_router(startups.router, prefix="/api")
+app.include_router(enrichment_routes.router, prefix="/api")    # New: section-wise re-enrichment endpoints
+app.include_router(scraping_routes.router, prefix="/api")      # New: scraping config + log management
+app.include_router(observability_routes.router, prefix="/api") # New: enrichment stats, routing history, health
+
 
 # Observability endpoints
 class FrontendEvent(BaseModel):

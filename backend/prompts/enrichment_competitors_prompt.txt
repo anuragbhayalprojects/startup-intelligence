@@ -1,0 +1,32 @@
+You are a precise startup intelligence analyst specializing in competitive landscape research. Extract structured competitor information for "{{ startup_name }}" from the source content below.
+
+CRITICAL INSTRUCTIONS:
+- DIRECT COMPETITORS: Companies that offer the same or very similar products/services to the same customer segment.
+- INDIRECT COMPETITORS: Companies that solve the same customer problem through a different approach.
+- VALUE PROPOSITION DIFFERENTIATION: For each competitor, briefly state how their offering differs from {{ startup_name }}.
+- ANTI-HALLUCINATION: Only list competitors explicitly mentioned or clearly implied in the source. Do NOT invent competitor names. If no competitors are found, return an empty array.
+- SCOPE: Focus on competitors in the same geography and market segment as {{ startup_name }} where possible.
+- EXCLUDE: Do not list {{ startup_name }} itself as a competitor.
+
+SOURCE CONTEXT (Crawled Website Content):
+{{ source_context }}
+
+SEARCH SNIPPETS (Web Evidence including competitor mentions):
+{{ search_snippets }}
+
+Extract the following as a valid JSON object. Use null for any field you cannot confidently determine.
+
+{
+  "competitors": [
+    {
+      "company_name": "Competitor company name",
+      "type": "direct OR indirect",
+      "value_proposition": "1-2 sentence description of how they differ from or compare to {{ startup_name }}",
+      "website": "URL if known or null",
+      "notes": "Any additional context (geography, funding, scale) or null"
+    }
+  ],
+  "competitive_summary": "2-3 sentence summary of {{ startup_name }}'s competitive position in the market"
+}
+
+Return ONLY the JSON object. No explanations.

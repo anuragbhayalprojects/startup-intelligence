@@ -83,6 +83,22 @@ def normalize_taxonomy(startup_name, raw_industry, raw_sector, raw_subsector, co
     in the master taxonomy schema. Supports direct high-priority overrides
     and configuration-driven keyword-based fallbacks when classification fails.
     """
+    # Sanitize inputs to be strings (handling list/object structures returned by LLMs)
+    if isinstance(raw_industry, list):
+        raw_industry = ", ".join(str(x) for x in raw_industry)
+    else:
+        raw_industry = str(raw_industry or "").strip()
+        
+    if isinstance(raw_sector, list):
+        raw_sector = ", ".join(str(x) for x in raw_sector)
+    else:
+        raw_sector = str(raw_sector or "").strip()
+
+    if isinstance(raw_subsector, list):
+        raw_subsector = ", ".join(str(x) for x in raw_subsector)
+    else:
+        raw_subsector = str(raw_subsector or "").strip()
+
     if startup_name:
         name_clean = str(startup_name).strip().lower()
         # Direct key match

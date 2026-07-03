@@ -37,6 +37,15 @@ import {
 } from "lucide-react";
 import { Startup, StartupScore, Assignment, Interaction, UserRole } from "../types";
 
+const formatUrl = (url: string | undefined | null): string => {
+  if (!url) return "";
+  const trimmed = url.trim();
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+};
+
 const FPR1_LIST = [
   "Anurag", "Simran", "Rameez", "Shubham", "Dhanush",
   "Rahul", "Jayvi", "Ishan", "Utkarsh", "Shivani",
@@ -288,9 +297,10 @@ export default function DetailModal({
     setDescriptionInput(startup.ai_summary || startup.description || "");
 
     const mIntel = startup.market_intelligence || analysis?.market_intelligence || {};
+    const cIntel = (startup as any).company_intelligence || {};
     
     // Unpack products for edit input text area
-    const rawProducts = mIntel.products;
+    const rawProducts = cIntel.products_services || mIntel.products;
     const unpackedProducts = Array.isArray(rawProducts)
       ? rawProducts
       : (rawProducts && typeof rawProducts === "object" && Array.isArray((rawProducts as any).value))
@@ -305,18 +315,36 @@ export default function DetailModal({
     }));
     setProductsInput(JSON.stringify(localProducts, null, 2));
 
-    const initialFounders = analysis?.founders || (startup.founder_name ? [{ name: startup.founder_name, role: "Founder", brief_details: "", linkedin_url: startup.founder_linkedin_url }] : []);
+    const initialFounders = cIntel.founders_details || analysis?.founders || (startup.founder_name ? [{ name: startup.founder_name, role: "Founder", brief_details: "", linkedin_url: startup.founder_linkedin_url }] : []);
     setFoundersInput(JSON.stringify(initialFounders, null, 2));
 
     // Unpack funding for edit inputs
-    const fundingInfo = mIntel.funding && typeof mIntel.funding === "object" && "value" in mIntel.funding
+    const fundingInfo = cIntel.funding_details || (mIntel.funding && typeof mIntel.funding === "object" && "value" in mIntel.funding
       ? (mIntel.funding as any).value
-      : mIntel.funding || {};
+      : mIntel.funding || {});
     
     const fundingSeries = startup.latest_round_stage || fundingInfo.latest_round || analysis?.funding_stages?.series || startup.funding_stage || "";
     const fundingAmount = startup.total_funding || fundingInfo.total_funding || analysis?.funding_stages?.amount || startup.funding_amount || "";
     
-    const rawInvestorsList = fundingInfo.investors || analysis?.funding_stages?.investors || [];
+    // Investors list from company_intelligence rounds or fallback list
+    let rawInvestorsList: any[] = [];
+    if (cIntel.funding_details && Array.isArray(cIntel.funding_details.rounds)) {
+      const list: any[] = [];
+      cIntel.funding_details.rounds.forEach((roundInfo: any) => {
+        const roundInvestors = roundInfo.co_investors || roundInfo.investors || [];
+        if (Array.isArray(roundInvestors)) {
+          roundInvestors.forEach((invName: any) => {
+            if (invName) list.push(invName);
+          });
+        } else if (typeof roundInvestors === "string" && roundInvestors) {
+          list.push(roundInvestors);
+        }
+      });
+      rawInvestorsList = list;
+    } else {
+      rawInvestorsList = fundingInfo.investors || analysis?.funding_stages?.investors || [];
+    }
+
     const fundingInvestors = Array.isArray(rawInvestorsList)
       ? rawInvestorsList.join(", ")
       : typeof rawInvestorsList === "string"
@@ -497,11 +525,12 @@ export default function DetailModal({
   // Find assignment record if exists
   const assignment = assignments.find(a => String(a.startup_id) === String(startup.id));
 
-  // Extract products, competitors, valuation, investors from nested market intelligence structure
+  // Extract products, competitors, valuation, investors from nested structures, supporting the new company_intelligence structure
   const mIntel = startup.market_intelligence || analysis?.market_intelligence || {};
+  const cIntel = (startup as any).company_intelligence || {};
   
   // Unpack products and support both agent schema (name, type) and legacy/UI schema (product_name, category)
-  const rawProducts = mIntel.products;
+  const rawProducts = cIntel.products_services || mIntel.products;
   const productsList = Array.isArray(rawProducts) 
     ? rawProducts 
     : (rawProducts && typeof rawProducts === "object" && Array.isArray((rawProducts as any).value))
@@ -511,12 +540,12 @@ export default function DetailModal({
     product_name: prod.product_name || prod.name || "",
     category: prod.category || prod.type || "",
     description: prod.description || "",
-    target: prod.target || prod.target_audience || "",
-    deployment: prod.deployment || prod.evidence_url || ""
+    target: prod.target || prod.target_audience || prod.target_customer || "",
+    deployment: prod.deployment || prod.evidence_url || prod.deployment_model || ""
   }));
 
   // Unpack competitors and support both agent schema (name, reason) and legacy/UI schema (company_name, positioning)
-  const rawCompetitors = mIntel.competitors;
+  const rawCompetitors = cIntel.competitors || analysis?.competitors || mIntel.competitors;
   const competitorsList = Array.isArray(rawCompetitors)
     ? rawCompetitors
     : (rawCompetitors && typeof rawCompetitors === "object" && Array.isArray((rawCompetitors as any).value))
@@ -529,7 +558,7 @@ export default function DetailModal({
   }));
 
   // Valuation
-  const rawValuation = mIntel.valuation;
+  const rawValuation = cIntel.valuation || mIntel.valuation;
   const valuation = (rawValuation && typeof rawValuation === "object" && !("value" in rawValuation))
     ? rawValuation
     : (rawValuation && typeof rawValuation === "object" && "value" in rawValuation)
@@ -537,13 +566,37 @@ export default function DetailModal({
       : {};
 
   // Funding
-  const fundingInfo = mIntel.funding && typeof mIntel.funding === "object" && "value" in mIntel.funding
-    ? (mIntel.funding as any).value
-    : mIntel.funding || {};
+  const fundingInfo = cIntel.funding_details || 
+    (mIntel.funding && typeof mIntel.funding === "object" && "value" in mIntel.funding
+      ? (mIntel.funding as any).value
+      : mIntel.funding || {});
 
   // Build structured investors list from funding_history or flat investors list
   let investors: any[] = [];
-  if (Array.isArray(mIntel.investors) && mIntel.investors.length > 0) {
+  if (cIntel.funding_details && Array.isArray(cIntel.funding_details.rounds)) {
+    const list: any[] = [];
+    cIntel.funding_details.rounds.forEach((roundInfo: any) => {
+      const round = roundInfo.stage || roundInfo.round || "Funding Round";
+      const date = roundInfo.date || "Date Unspecified";
+      const roundInvestors = roundInfo.co_investors || roundInfo.investors || [];
+      if (Array.isArray(roundInvestors)) {
+        roundInvestors.forEach((invName: any) => {
+          list.push({
+            round,
+            investor_name: typeof invName === "string" ? invName : (invName.name || "Unknown"),
+            date
+          });
+        });
+      } else if (typeof roundInvestors === "string") {
+        list.push({
+          round,
+          investor_name: roundInvestors,
+          date
+        });
+      }
+    });
+    investors = list;
+  } else if (Array.isArray(mIntel.investors) && mIntel.investors.length > 0) {
     investors = mIntel.investors;
   } else if (Array.isArray(fundingInfo.funding_history)) {
     const list: any[] = [];
@@ -659,7 +712,7 @@ export default function DetailModal({
                 {startup.startup_name}
                 {startup.website && startup.website.trim() !== "" && (
                   <a
-                    href={startup.website}
+                    href={formatUrl(startup.website)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-slate-400 hover:text-orange-400 transition-colors"
@@ -819,7 +872,7 @@ export default function DetailModal({
                         </div>
                       </div>
                     ) : startup.website ? (
-                      <a href={startup.website} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 mt-1 truncate">
+                      <a href={formatUrl(startup.website)} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 mt-1 truncate">
                         Visit <ExternalLink size={10} />
                       </a>
                     ) : (
@@ -878,7 +931,7 @@ export default function DetailModal({
                         </div>
                       </div>
                     ) : startup.linkedin_url ? (
-                      <a href={startup.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 mt-1 truncate">
+                      <a href={formatUrl(startup.linkedin_url)} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 mt-1 truncate">
                         LinkedIn <ExternalLink size={10} />
                       </a>
                     ) : (
@@ -1007,6 +1060,28 @@ export default function DetailModal({
                       </button>
                     </div>
                   </div>
+                ) : (Array.isArray(cIntel.founders_details) && cIntel.founders_details.length > 0) ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {cIntel.founders_details.map((founder: any, idx: number) => (
+                      <div key={idx} className="p-3 bg-slate-50 border border-slate-200/60 rounded-xl flex items-start gap-3 hover:bg-slate-100/60 transition-colors">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-slate-700 to-slate-900 text-white flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
+                          {founder.name ? founder.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2) : "FD"}
+                        </div>
+                        <div className="space-y-1 text-left min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-slate-855 truncate">{founder.name}</span>
+                            {founder.linkedin_url && (
+                              <a href={formatUrl(founder.linkedin_url)} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700">
+                                <Linkedin size={11} />
+                              </a>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">{founder.role || "Co-Founder"}</p>
+                          {founder.brief_details && <p className="text-[11px] text-slate-655 leading-normal">{founder.brief_details}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 ) : Array.isArray(analysis?.founders) && analysis.founders.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {analysis.founders.map((founder: any, idx: number) => (
@@ -1018,7 +1093,7 @@ export default function DetailModal({
                           <div className="flex items-center gap-1.5">
                             <span className="text-xs font-bold text-slate-855 truncate">{founder.name}</span>
                             {founder.linkedin_url && (
-                              <a href={founder.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700">
+                              <a href={formatUrl(founder.linkedin_url)} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700">
                                 <Linkedin size={11} />
                               </a>
                             )}
@@ -1041,7 +1116,7 @@ export default function DetailModal({
                       </div>
                     </div>
                     {startup.founder_linkedin_url && (
-                      <a href={startup.founder_linkedin_url} target="_blank" rel="noopener noreferrer" className="bg-slate-200 p-1.5 rounded-lg text-blue-650 hover:bg-blue-100 hover:text-blue-800 transition-colors">
+                      <a href={formatUrl(startup.founder_linkedin_url)} target="_blank" rel="noopener noreferrer" className="bg-slate-200 p-1.5 rounded-lg text-blue-650 hover:bg-blue-100 hover:text-blue-800 transition-colors">
                         <Linkedin size={14} />
                       </a>
                     )}

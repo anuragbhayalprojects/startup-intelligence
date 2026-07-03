@@ -4,17 +4,16 @@ from backend.models.startup_state import StartupState
 
 def test_orchestrator_initialization():
     orchestrator = AgentOrchestrator()
-    assert orchestrator.enrich_agent is not None
-    assert orchestrator.class_agent is not None
-    assert orchestrator.biz_prob_agent is not None
-    assert orchestrator.relevance_agent is not None
-    assert orchestrator.fit_agent is not None
-    assert orchestrator.signal_agent is not None
-    assert orchestrator.rec_agent is not None
+    assert orchestrator.identity_discovery_agent is not None
+    assert orchestrator.identity_resolution_agent is not None
+    assert orchestrator.legal_name_agent is not None
+    assert orchestrator.identity_enricher is not None
+    assert orchestrator.product_enricher is not None
+    assert orchestrator.funding_enricher is not None
+    assert orchestrator.intelligence_enricher is not None
 
 def test_pipeline_relevance_gating_low_relevance():
-    # Test a completely irrelevant startup to verify the Relevance Gating Rule (<20 score)
-    # The gating rule should bypass Strategic Fit and Signal agents, setting recommended action to Ignore/Monitor
+    # Test a completely irrelevant startup to verify low relevance mapping (<20 score)
     irrelevant_startup = {
         "startup_name": "Whiskers Cat Diary",
         "description": "A personal daily diary and photo gallery of a domestic cat named Whiskers living in a small suburban apartment.",
@@ -26,13 +25,7 @@ def test_pipeline_relevance_gating_low_relevance():
     state = orchestrator.run_pipeline(irrelevant_startup)
     
     assert state.relevance["score"] < 20
-    assert state.relevance["gating_bypassed"] is True
     assert state.recommendation["recommended_action"] == "Ignore / Monitor"
-    
-    # Confirm strategic fit and signals were skipped (contain default/zero values)
-    assert state.strategic_fit["score"] == 0
-    assert len(state.signals["list_detected"]) == 0
-    assert any("Relevance Score < 20" in log["message"] for log in state.audit_trail)
 
 def test_pipeline_full_run_high_relevance():
     # Test a highly relevant startup to verify full multi-agent execution
@@ -48,7 +41,6 @@ def test_pipeline_full_run_high_relevance():
     
     # High relevance fintech description should result in score >= 50
     assert state.relevance["score"] >= 50
-    assert state.relevance["gating_bypassed"] is False
     assert state.strategic_fit["score"] > 0
     assert len(state.recommendation["use_cases"]) > 0
     
@@ -56,9 +48,8 @@ def test_pipeline_full_run_high_relevance():
     assert state.recommendation["recommended_action"] in [
         "Founder Meeting", "Business Introduction", "POC", "Strategic Investment Review", "Monitor"
     ]
-    # Check that audit trail has records from Strategic Fit and Signals
-    assert any("FitAgent" in log["agent"] or "StrategicFitAgent" in log["agent"] for log in state.audit_trail)
-    assert any("SignalAgent" in log["agent"] for log in state.audit_trail)
+    # Check that audit trail has records from IntelligenceEnricher
+    assert any("IntelligenceEnricher" in log["agent"] for log in state.audit_trail)
 
 def test_pipeline_semantic_alignment_mismatch():
     # Test a startup where Phase 1 semantic mismatch check flags a contradiction
@@ -73,11 +64,7 @@ def test_pipeline_semantic_alignment_mismatch():
     
     from unittest.mock import patch
     with patch("backend.agents.utils.call_ollama") as mock_call:
-        # Mock responses:
-        # 1. Clean brand name: "Cred"
-        # 2. Semantic alignment check: MISMATCHED
         mock_call.side_effect = [
-            {"brand_name": "Cred"},
             {
                 "alignment_status": "MISMATCHED",
                 "canonical_name": "Cred",

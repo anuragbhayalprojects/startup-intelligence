@@ -22,8 +22,32 @@ from backend.services.supabase_service import (
 )
 
 # ---------------------------------------------------------------------------
+# Pipeline module delegations (Phase 3 refactor)
+# These imports replace inline implementations. The functions below are
+# thin wrappers that delegate to the canonical pipeline/ package modules.
+# ---------------------------------------------------------------------------
+try:
+    from backend.pipeline.search_engine import (
+        verify_website as _verify_website,
+        search_website_duckduckgo as _search_website_duckduckgo,
+        get_clean_website as _get_clean_website_impl,
+    )
+    _PIPELINE_SEARCH_ENGINE_AVAILABLE = True
+except ImportError:
+    _PIPELINE_SEARCH_ENGINE_AVAILABLE = False
+
+try:
+    from backend.pipeline.article_cleaner import (
+        get_clean_startup_name as _article_cleaner_get_name,
+        is_news_duplicate as _article_cleaner_is_duplicate,
+    )
+    _PIPELINE_ARTICLE_CLEANER_AVAILABLE = True
+except ImportError:
+    _PIPELINE_ARTICLE_CLEANER_AVAILABLE = False
+
+# ---------------------------------------------------------------------------
 # Backward-compatibility re-export: get_clean_website()
-# The canonical implementation now lives in backend.utils.website_resolver.
+# The canonical implementation now lives in backend.pipeline.search_engine.
 # This re-export preserves the existing import surface for:
 #   - backend/scripts/enrich_existing_taxonomy.py
 #   - backend/cleanup_db.py
@@ -32,11 +56,13 @@ from backend.services.supabase_service import (
 try:
     from backend.utils.website_resolver import get_clean_website  # noqa: F401
 except ImportError:
-    # Fallback: define inline if the new module isn't available yet
-    def get_clean_website(clean_name, extracted_website):  # type: ignore[misc]
-        """Fallback stub — install backend/utils/website_resolver.py."""
-        return extracted_website or None
-
+    # Fallback: use new pipeline module if utils version not available
+    if _PIPELINE_SEARCH_ENGINE_AVAILABLE:
+        from backend.pipeline.search_engine import get_clean_website  # noqa: F401
+    else:
+        def get_clean_website(clean_name, extracted_website):  # type: ignore[misc]
+            """Fallback stub — install backend/pipeline/search_engine.py."""
+            return extracted_website or None
 
 
 
@@ -252,6 +278,13 @@ def clean_string(text):
     # Remove extra whitespaces
     cleaned = re.sub(r'\s+', ' ', cleaned).strip()
     
+    # 5. Strip standard suffixes (e.g. Pvt Ltd, India, Global, etc.) from the end
+    suffixes = rules.get("suffixes", [])
+    if suffixes:
+        suffixes_sorted = sorted(suffixes, key=len, reverse=True)
+        suffixes_pattern = r'\s+\b(' + '|'.join(re.escape(s) for s in suffixes_sorted) + r')\b$'
+        cleaned = re.sub(suffixes_pattern, '', cleaned, flags=re.IGNORECASE).strip()
+        
     return cleaned
 
 def get_clean_startup_name(headline, extracted_name, source=None, source_url=None):
@@ -333,8 +366,8 @@ def get_clean_startup_name(headline, extracted_name, source=None, source_url=Non
         if "and" in tokens or "or" in tokens or "&" in name_lower or "," in name_lower:
             return True
 
-        # 2. Forbidden organisational terms
-        if any(t in tokens for t in bad_terms) or any(t in name_lower for t in bad_terms):
+        # 2. Forbidden organisational terms (word-boundary matched to prevent false-positive substring matches like "mint" in "turtlemint")
+        if any(t in tokens for t in bad_terms) or any(re.search(r'\b' + re.escape(t) + r'\b', name_lower) for t in bad_terms):
             return True
 
         # 3. Geographic / location names
@@ -358,16 +391,14 @@ def get_clean_startup_name(headline, extracted_name, source=None, source_url=Non
         # Apply product-term truncation BEFORE validity check
         extracted_name = _truncate_at_product_term(extracted_name.strip())
 
-        clean_name_stripped = extracted_name.lower().strip()
-        if not is_invalid_startup_name(clean_name_stripped):
-            cleaned_ai = clean_string(extracted_name)
-            if cleaned_ai and not is_invalid_startup_name(cleaned_ai):
-                if len(cleaned_ai.split()) <= 4 and len(cleaned_ai) <= 30:
-                    if cleaned_ai.lower() not in ["and", "to", "for", "with", "the"]:
-                        ai_key = cleaned_ai.lower().strip()
-                        if ai_key in replacements:
-                            return replacements[ai_key]
-                        return cleaned_ai
+        cleaned_ai = clean_string(extracted_name)
+        if cleaned_ai and not is_invalid_startup_name(cleaned_ai.lower().strip()):
+            if len(cleaned_ai.split()) <= 4 and len(cleaned_ai) <= 30:
+                if cleaned_ai.lower() not in ["and", "to", "for", "with", "the"]:
+                    ai_key = cleaned_ai.lower().strip()
+                    if ai_key in replacements:
+                        return replacements[ai_key]
+                    return cleaned_ai
 
     # -----------------------------------------------------------------------
     # 2. Layered fallback: Headline pattern matching
@@ -408,168 +439,51 @@ def get_clean_startup_name(headline, extracted_name, source=None, source_url=Non
 def verify_website(url):
     """
     Checks if a URL is active by making a lightweight HTTP request.
+    Delegates to backend.pipeline.search_engine.verify_website.
     """
+    if _PIPELINE_SEARCH_ENGINE_AVAILABLE:
+        return _verify_website(url)
+    # Inline fallback if search_engine module not available
     if not url:
         return False
     if "example.com" in url or "localhost" in url:
         return False
-    
     import requests
     if not url.startswith("http"):
         url = "https://" + url
-
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
+        headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
         response = requests.head(url, headers=headers, timeout=3, allow_redirects=True)
         if response.status_code != 404:
             return True
-        
         response = requests.get(url, headers=headers, timeout=3, allow_redirects=True)
         return response.status_code != 404
-    except requests.exceptions.RequestException:
-        try:
-            response = requests.get(url, headers=headers, timeout=3, allow_redirects=True)
-            return response.status_code != 404
-        except Exception:
-            return False
     except Exception:
         return False
 
 def search_website_duckduckgo(clean_name):
     """
     Searches DuckDuckGo HTML for the official website of the company name.
+    Delegates to backend.pipeline.search_engine.search_website_duckduckgo.
     """
-    import requests
-    from bs4 import BeautifulSoup
-    import urllib.parse
-    
-    query = f"{clean_name} official website"
-    encoded_query = urllib.parse.quote_plus(query)
-    url = f"https://html.duckduckgo.com/html/?q={encoded_query}"
-    
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
-    
-    pipeline_log(f"🔍 [Pipeline Website Search] Querying DuckDuckGo for: '{clean_name}' website...")
-    try:
-        response = requests.get(url, headers=headers, timeout=5)
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, "html.parser")
-            result_divs = soup.find_all("div", class_="result")
-            for div in result_divs[:3]:
-                title_link = div.find("a", class_="result__a")
-                if title_link:
-                    href = title_link.get("href")
-                    parsed = urllib.parse.urlparse(href)
-                    qs = urllib.parse.parse_qs(parsed.query)
-                    real_url = qs.get("uddg", [None])[0] or href
-                    
-                    if real_url and real_url.startswith("http"):
-                        real_url_lower = real_url.lower()
-                        exclude_domains = [
-                            "duckduckgo.com", "wikipedia.org", "linkedin.com", "twitter.com", 
-                            "facebook.com", "youtube.com", "instagram.com", "news", "blog", 
-                            "inc42.com", "entrackr.com", "techcrunch.com"
-                        ]
-                        path_parts = [p for p in real_url.replace("https://", "").replace("http://", "").split("/") if p]
-                        is_deep = len(path_parts) > 1
-                        has_news = any(k in real_url_lower for k in ["/news/", "/article/", "/press/", "/raises-", "-raises-", "-funding", "/funding/", "/blog/", "/feed/", "/portfolio/", "/deals/", "/funding-round", "/category/"])
-                        has_date = any(p.isdigit() and len(p) == 4 for p in path_parts)
-                        
-                        if not any(domain in real_url_lower for domain in exclude_domains):
-                            if not (is_deep and (has_news or has_date or len(real_url) > 50)):
-                                if verify_website(real_url):
-                                    pipeline_log(f"✅ Found active official website via search: {real_url}")
-                                    return real_url
-    except Exception as e:
-        pipeline_log(f"⚠️ Search for website failed: {e}")
+    if _PIPELINE_SEARCH_ENGINE_AVAILABLE:
+        return _search_website_duckduckgo(clean_name)
+    pipeline_log(f"⚠️ [Pipeline] search_engine module not available, skipping DuckDuckGo search for '{clean_name}'")
     return None
+
 
 def get_clean_website(clean_name, extracted_website):
     """
     Returns the clean, official startup website URL.
-    Uses AI extracted website as primary, with a robust mapped lookup fallback.
+    Delegates to backend.pipeline.search_engine.get_clean_website.
     """
-    # 1. Try AI-extracted website first
-    if extracted_website and "error" not in extracted_website and len(extracted_website) <= 100:
-        bad_domains = ["google.com", "inc42.com", "entrackr.com", "techcrunch.com", "yourstory.com", "vccircle.com", "moneycontrol.com", "indiatimes.com", "livemint.com", "linkedin.com", "twitter.com", "facebook.com", "youtube.com", "wikipedia.org", "medium.com"]
-        extracted_website_lower = extracted_website.lower()
-        if not any(bd in extracted_website_lower for bd in bad_domains):
-            if not any(char in extracted_website for char in ["₹", "$", "%", "&", "?", "'", "’", "`", " ", "’"]):
-                extracted_website = extracted_website.strip()
-                path_parts = [p for p in extracted_website.replace("https://", "").replace("http://", "").split("/") if p]
-                is_deep = len(path_parts) > 1
-                has_news = any(k in extracted_website_lower for k in ["/news/", "/article/", "/press/", "/raises-", "-raises-", "-funding", "/funding/", "/blog/", "/feed/", "/portfolio/", "/deals/", "/funding-round", "/category/"])
-                has_date = any(p.isdigit() and len(p) == 4 for p in path_parts)
-                
-                if is_deep and (has_news or has_date or len(extracted_website) > 50):
-                    # Discard this website as it is likely a news article link rather than the official home page
-                    pass
-                else:
-                    if verify_website(extracted_website):
-                        return extracted_website
-        
-    # 2. Known exact mappings for standard startups
-    known_domains = {
-        "coinbase": "https://www.coinbase.com",
-        "cars24": "https://www.cars24.com",
-        "awfis": "https://www.awfis.com",
-        "scripbox": "https://www.scripbox.com",
-        "scriipbox": "https://www.scripbox.com",
-        "physicswallah": "https://www.pw.live",
-        "physics wallah": "https://www.pw.live",
-        "easemytrip": "https://www.easemytrip.com",
-        "tbo tek": "https://www.tbo.com",
-        "tbo": "https://www.tbo.com",
-        "simple energy": "https://www.simpleenergy.in",
-        "medielaj": "https://www.medielaj.in",
-        "rapido": "https://www.rapido.autos",
-        "innovaccer": "https://www.innovaccer.com",
-        "zepto": "https://www.zepto.com",
-        "skyroot aerospace": "https://www.skyroot.in",
-        "skyroot": "https://www.skyroot.in",
-        "tractor junction": "https://www.tractorjunction.com",
-        "upi": "https://www.npci.org.in",
-        "npci": "https://www.npci.org.in",
-        "kyro capital": "https://www.kyro.co",
-        "kyro": "https://www.kyro.co",
-        "ola electric": "https://www.olaelectric.com",
-        "ola": "https://www.olaelectric.com",
-        "e2w": "https://www.olaelectric.com",
-        "rategain": "https://www.rategain.com",
-        "rategain technologies": "https://www.rategain.com",
-        "zee": "https://www.zee.com",
-        "plum": "https://www.plumhq.com",
-        "plum insurance": "https://www.plumhq.com",
-        "aquapulse": "https://www.aquapulse.co.in"
-    }
-    
-    name_key = clean_name.lower().strip()
-    if name_key in known_domains:
-        return known_domains[name_key]
-        
-    # 3. Search for a right website on Google/DuckDuckGo
-    searched_url = search_website_duckduckgo(clean_name)
-    if searched_url:
-        return searched_url
-
-    # 4. Inferred domain generator fallback
-    words = clean_name.split()[:2]
-    clean_word = "".join(words).lower()
-    clean_word = re.sub(r'[^a-z0-9]', '', clean_word)
-    
-    if clean_word:
-        inferred = f"https://www.{clean_word}.com"
-        if verify_website(inferred):
-            return inferred
-        inferred_in = f"https://www.{clean_word}.in"
-        if verify_website(inferred_in):
-            return inferred_in
-        
+    if _PIPELINE_SEARCH_ENGINE_AVAILABLE:
+        return _get_clean_website_impl(clean_name, extracted_website or "")
+    # Minimal inline fallback
+    if extracted_website and extracted_website.startswith("http"):
+        return extracted_website
     return ""
+
 
 def process_startup(startup, industry_filter: str = "", sector_filter: str = "", subsector_filter: str = ""):
     """
@@ -586,21 +500,26 @@ def process_startup(startup, industry_filter: str = "", sector_filter: str = "",
     
     # Step 1: Run Pass 1 (Name Discovery) to extract all featured startup names
     paragraphs = startup.get("paragraphs") or [original_description]
-    discovered_names = discover_startup_names(original_headline, paragraphs)
+    discovered_items = discover_startup_names(original_headline, paragraphs)
     
-    # Trigger Python heuristics fallback if discovery failed (None) or returned empty ([])
-    if not discovered_names:
+    # Trigger Python heuristics fallback ONLY if discovery failed (None).
+    # If the LLM successfully ran but determined there are no operating startups ([]),
+    # we respect that decision and do not trigger heuristics.
+    if discovered_items is None:
         fallback_name = get_clean_startup_name(original_headline, None, source=startup.get("source"), source_url=startup.get("source_url"))
         if fallback_name:
-            discovered_names = [fallback_name]
+            discovered_items = [{"name": fallback_name, "description": ""}]
             
-    if not discovered_names:
+    if not discovered_items:
         pipeline_log(f"Skipping generic/industry news article (no startup name extracted): '{original_headline}'")
         return None
         
     processed_results = []
     
-    for name in discovered_names:
+    for item in discovered_items:
+        name = item.get("name") if isinstance(item, dict) else item
+        extracted_desc = item.get("description") if isinstance(item, dict) else ""
+        
         clean_name = get_clean_startup_name(original_headline, name, source=startup.get("source"), source_url=startup.get("source_url"))
         if not clean_name:
             continue
@@ -623,6 +542,7 @@ def process_startup(startup, industry_filter: str = "", sector_filter: str = "",
             "startup_name": clean_name,
             "headline": original_headline,
             "description": original_description,
+            "text_content": "\n\n".join(paragraphs) if paragraphs else original_description,
             "source": startup.get("source", "Unknown"),
             "source_url": startup.get("source_url", "")
         }
@@ -663,7 +583,7 @@ def process_startup(startup, industry_filter: str = "", sector_filter: str = "",
                             pipeline_log(f"⏭️ Skipping duplicate news event for '{clean_name}': '{original_headline}'")
                         else:
                             pipeline_log(f"✅ Cache hit: '{clean_name}' already exists with a fresh analysis (created {age.days} days ago). Saving new news event.")
-                            news_summary = generate_news_summary(clean_name, original_headline, original_description)
+                            news_summary = extracted_desc or generate_news_summary(clean_name, original_headline, original_description)
 
                             # Save news snapshot even for cache hits — so news history accumulates
                             try:
@@ -673,7 +593,11 @@ def process_startup(startup, industry_filter: str = "", sector_filter: str = "",
                                     summary=news_summary,
                                     source=startup.get("source", ""),
                                     source_url=startup.get("source_url", ""),
-                                    published_at=startup.get("published_at")
+                                    published_at=startup.get("published_at"),
+                                    startup_mentions=[{"startup_name": item.get("name") if isinstance(item, dict) else item, "article_context": original_description[:500]} for item in discovered_items],
+                                    raw_source_payload=startup,
+                                    cleaned_source_payload={"headline": original_headline, "description": original_description, "summary": news_summary},
+                                    pipeline_status={"stage": "CACHE_HIT", "completed_stages": ["DISCOVERY"]}
                                 )
                                 pipeline_log(f"📰 Saved news event for cache hit '{clean_name}'.")
                             except Exception as e:
@@ -724,9 +648,14 @@ def process_startup(startup, industry_filter: str = "", sector_filter: str = "",
                         continue
         
         # Step 2a: Generate a startup-specific news summary (fixes shared-description bug)
-        pipeline_log(f"Step 2a: Generating startup-specific news summary for '{clean_name}'...")
-        news_summary = generate_news_summary(clean_name, original_headline, original_description)
-        startup_item["description"] = news_summary  # Overwrite with targeted summary
+        if extracted_desc:
+            news_summary = extracted_desc
+            pipeline_log(f"Step 2a: Using pre-extracted news summary for '{clean_name}'...")
+        else:
+            pipeline_log(f"Step 2a: Generating startup-specific news summary for '{clean_name}'...")
+            news_summary = generate_news_summary(clean_name, original_headline, original_description)
+            
+        startup_item["news_summary"] = news_summary
         pipeline_log(f"📰 News summary: {news_summary[:120]}...")
 
         # Step 2b: Run Sequential Multi-Agent Orchestration Pipeline
@@ -766,13 +695,46 @@ def process_startup(startup, industry_filter: str = "", sector_filter: str = "",
             if is_news_duplicate(original_headline, original_description, existing_news, source_url=startup.get("source_url", "")):
                 pipeline_log(f"⏭️ Skipping duplicate news event for new startup '{clean_name}': '{original_headline}'")
             else:
+                raw_payload = {
+                    "homepage_text": state.article_data.get("crawled_content", {}).get("homepage", {}).get("text_content", "") if isinstance(state.article_data.get("crawled_content"), dict) else "",
+                    "about_page_text": state.article_data.get("crawled_content", {}).get("about", {}).get("text_content", "") if isinstance(state.article_data.get("crawled_content"), dict) else "",
+                    "search_snippets": {
+                        "identity_discovery": state.article_data.get("discovered_snippets", {}),
+                        "funding_search": state.article_data.get("funding_search_context", ""),
+                    }
+                }
+                cleaned_payload = {
+                    "headline": original_headline,
+                    "description": original_description,
+                    "summary": news_summary,
+                    "company_intelligence": state.article_data.get("company_intelligence", {}),
+                }
+                res_metadata = {
+                    "canonical_startup_name": state.identity.get("brand_name", clean_name),
+                    "website_url": state.identity.get("website", ""),
+                    "linkedin_url": state.identity.get("linkedin_company_url", ""),
+                    "confidence_scores": {
+                        "identity_confidence": state.identity.get("identity_confidence", 0.0),
+                    },
+                    "resolution_method": state.identity.get("identity_source", ""),
+                }
+                p_status = {
+                    "stage": "COMPLETED",
+                    "completed_stages": ["DISCOVERY", "RESOLUTION", "ENRICHMENT"],
+                    "errors": state.errors,
+                }
                 save_startup_news(
                     startup_id=startup_id,
                     headline=original_headline,
                     summary=news_summary,
                     source=startup.get("source", ""),
                     source_url=startup.get("source_url", ""),
-                    published_at=startup.get("published_at")
+                    published_at=startup.get("published_at"),
+                    startup_mentions=[{"startup_name": item.get("name") if isinstance(item, dict) else item, "article_context": original_description[:500]} for item in discovered_items],
+                    raw_source_payload=raw_payload,
+                    cleaned_source_payload=cleaned_payload,
+                    resolution_metadata=res_metadata,
+                    pipeline_status=p_status
                 )
                 pipeline_log(f"📰 News event saved for '{clean_name}'.")
         except Exception as e:

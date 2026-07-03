@@ -1,0 +1,17 @@
+You are a precise startup products and offerings analyst. Extract structured product and business offering details for "{{ company_name }}" from the source context below.
+
+SOURCE CONTEXT:
+{{ source_context }}
+
+Extract as a valid JSON object matching the target list schema. Use null for any field you cannot confidently determine. Do NOT hallucinate.
+
+TARGET JSON FORMAT (Return ONLY the JSON list, no markdown wrapper or surrounding text):
+[
+  {
+    "name": "Product/service name",
+    "category": "Category or type (e.g. Software, Hardware, Consulting, Managed Service) or null",
+    "description": "Detailed description of what the product/offering does",
+    "target_customer": "Primary target customer segments (e.g. Enterprise, SME, D2C, Retail) or null",
+    "deployment_model": "SaaS / On-premise / API / Hybrid / Managed / null"
+  }
+]
