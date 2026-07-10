@@ -1,0 +1,18 @@
+{
+  "default_limit": 20,
+  "default_sort_order": "published_at_desc",
+  "refresh_interval_seconds": 300,
+  "allowed_categories": [
+    "startup_media",
+    "business_media",
+    "technology",
+    "government",
+    "aggregator"
+  ],
+  "ui_theme": {
+    "primary_color": "slate-900",
+    "accent_color": "amber-500",
+    "border_radius": "lg",
+    "density": "comfortable"
+  }
+}

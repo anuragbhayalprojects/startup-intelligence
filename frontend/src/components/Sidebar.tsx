@@ -10,7 +10,8 @@ import {
   ShieldCheck,
   User,
   Zap,
-  MessageSquare
+  MessageSquare,
+  Globe
 } from "lucide-react";
 import { AppTab, UserRole } from "../types";
 
@@ -73,6 +74,22 @@ export default function Sidebar({
           <div className="flex items-center gap-2.5">
             <Zap size={18} />
             <span>Dashboard Overview</span>
+          </div>
+          <ChevronRight size={14} className="opacity-40" />
+        </button>
+
+        <button
+          id="nav-news-dashboard"
+          onClick={() => onTabChange("news-dashboard")}
+          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+            activeTab === "news-dashboard"
+              ? "bg-amber-500/10 text-amber-400 border-l-2 border-amber-500 font-semibold"
+              : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            <Globe size={18} />
+            <span>News Intelligence</span>
           </div>
           <ChevronRight size={14} className="opacity-40" />
         </button>

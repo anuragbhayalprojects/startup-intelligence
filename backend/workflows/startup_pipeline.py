@@ -485,7 +485,7 @@ def get_clean_website(clean_name, extracted_website):
     return ""
 
 
-def process_startup(startup, industry_filter: str = "", sector_filter: str = "", subsector_filter: str = ""):
+def process_startup(startup, industry_filter: str = "", sector_filter: str = "", subsector_filter: str = "", resolution_only: bool = False):
     """
     Two-Pass AI Pipeline processor:
     Pass 1: Discover all startup names mentioned in the news headline & body.
@@ -643,7 +643,8 @@ def process_startup(startup, industry_filter: str = "", sector_filter: str = "",
 
                         processed_results.append({
                             "startup": existing_startup,
-                            "analysis": record.get("analysis_json") or {}
+                            "analysis": record.get("analysis_json") or {},
+                            "summary": news_summary
                         })
                         continue
         
@@ -663,7 +664,7 @@ def process_startup(startup, industry_filter: str = "", sector_filter: str = "",
         try:
             from backend.workflows.agent_orchestrator import AgentOrchestrator
             orchestrator = AgentOrchestrator()
-            state = orchestrator.run_pipeline(startup_item)
+            state = orchestrator.run_pipeline(startup_item, resolution_only=resolution_only)
             startup_id = state.startup_id
         except Exception as e:
             pipeline_log(f"❌ Multi-Agent Orchestrator failed for '{clean_name}'. Error: {e}")
@@ -754,7 +755,8 @@ def process_startup(startup, industry_filter: str = "", sector_filter: str = "",
         a_res = supabase.table("startup_analysis").select("*").eq("startup_id", startup_id).execute()
         processed_results.append({
             "startup": s_res.data[0] if s_res.data else {},
-            "analysis": a_res.data[0].get("analysis_json") if a_res.data else {}
+            "analysis": a_res.data[0].get("analysis_json") if a_res.data else {},
+            "summary": news_summary
         })
 
     return processed_results if processed_results else None

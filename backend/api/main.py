@@ -16,6 +16,7 @@ from api.routes import startups
 from api.routes import enrichment as enrichment_routes
 from api.routes import scraping as scraping_routes
 from api.routes import observability as observability_routes
+from api.routes import news as news_routes
 
 from backend.utils.tracing import (
     set_trace_id,
@@ -118,6 +119,12 @@ app.include_router(startups.router, prefix="/api")
 app.include_router(enrichment_routes.router, prefix="/api")    # New: section-wise re-enrichment endpoints
 app.include_router(scraping_routes.router, prefix="/api")      # New: scraping config + log management
 app.include_router(observability_routes.router, prefix="/api") # New: enrichment stats, routing history, health
+app.include_router(news_routes.router, prefix="/api")
+
+@app.on_event("startup")
+async def startup_event():
+    from backend.pipeline.scheduler import start_background_scheduler
+    start_background_scheduler(app)
 
 
 # Observability endpoints

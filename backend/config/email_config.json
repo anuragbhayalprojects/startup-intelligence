@@ -1,0 +1,36 @@
+{
+  "enabled": true,
+  "provider": "gmail",
+  "sender": "startupengagement@gmail.com",
+  "recipient_list": [
+    "anuragbhayal@gmail.com"
+  ],
+  "cc": [],
+  "bcc": [],
+  "frequency": "twice_daily",
+  "times": [
+    "09:00",
+    "18:00"
+  ],
+  "timezone": "Asia/Kolkata",
+  "max_articles": 15,
+  "filters": {
+    "priority_score_min": 30,
+    "categories": [
+      "startup_media",
+      "business_media",
+      "technology",
+      "government",
+      "aggregator"
+    ]
+  },
+  "included_sections": [
+    "headline",
+    "summary",
+    "startup_names",
+    "primary_source",
+    "similar_sources",
+    "published_time",
+    "read_more_link"
+  ]
+}

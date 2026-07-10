@@ -23,6 +23,7 @@ import time
 import logging
 import inspect
 from typing import Any, Optional
+from backend.utils.tracing import get_trace_id, set_trace_id, get_exec_id, set_exec_id
 
 logger = logging.getLogger("startup_intelligence.ai_router")
 
@@ -92,14 +93,29 @@ _gateway_instance = AIGateway()
 
 def run_async(coro):
     """Safe runner that works in both sync and running async loop contexts."""
+    # Capture trace context from parent thread
+    parent_trace_id = get_trace_id()
+    parent_exec_id = get_exec_id()
+
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
+        # Run in standard sync loop with context propagated
+        if parent_trace_id:
+            set_trace_id(parent_trace_id)
+        if parent_exec_id:
+            set_exec_id(parent_exec_id)
         return asyncio.run(coro)
 
     res_future = Future()
     
     def run_in_thread():
+        # Propagate context inside the new thread
+        if parent_trace_id:
+            set_trace_id(parent_trace_id)
+        if parent_exec_id:
+            set_exec_id(parent_exec_id)
+            
         new_loop = asyncio.new_event_loop()
         asyncio.set_event_loop(new_loop)
         try:

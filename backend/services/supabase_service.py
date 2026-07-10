@@ -126,11 +126,35 @@ def upsert_startup(data):
     )
 
     if existing:
-
         print(
             f"Startup already exists. Updating: "
             f"{mapped_data.get('startup_name')}"
         )
+        
+        # Retain the validated startup name! Do not overwrite it.
+        mapped_data["startup_name"] = existing.get("startup_name") or mapped_data["startup_name"]
+        
+        # Keep adding/merging the sources instead of overwriting
+        existing_source = existing.get("source") or ""
+        new_source = mapped_data.get("source") or ""
+        if new_source and new_source not in existing_source:
+            if existing_source:
+                mapped_data["source"] = f"{existing_source}, {new_source}"
+            else:
+                mapped_data["source"] = new_source
+        else:
+            mapped_data["source"] = existing_source or "Unknown"
+
+        # Keep adding/merging the source URLs
+        existing_url = existing.get("source_url") or ""
+        new_url = mapped_data.get("source_url") or ""
+        if new_url and new_url not in existing_url:
+            if existing_url:
+                mapped_data["source_url"] = f"{existing_url}, {new_url}"
+            else:
+                mapped_data["source_url"] = new_url
+        else:
+            mapped_data["source_url"] = existing_url
 
         return update_startup(
             existing["id"],

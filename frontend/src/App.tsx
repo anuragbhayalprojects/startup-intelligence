@@ -13,6 +13,7 @@ import StartupDetails from "./pages/StartupDetails";
 import Scraping from "./pages/Scraping";
 import Observability from "./pages/Observability";
 import DetailModal from "./components/DetailModal";
+import NewsDashboard from "./pages/NewsDashboard";
 import { AppTab, Startup, Assignment, StartupCategory, Interaction, UserRole, StartupAnalysis } from "./types";
 import { AlertCircle, CheckCircle, RefreshCw } from "lucide-react";
 
@@ -395,6 +396,7 @@ export default function App() {
 
   const getActiveTabFromPath = (path: string): AppTab => {
     if (path === "/" || path.startsWith("/dashboard")) return "dashboard";
+    if (path.startsWith("/news-dashboard")) return "news-dashboard";
     if (path.startsWith("/repository")) return "repository";
     if (path.startsWith("/high-priority")) return "high-priority";
     if (path.startsWith("/assignments")) return "assignments";
@@ -1241,6 +1243,21 @@ export default function App() {
                   interactions={interactions}
                   onSelectStartup={setSelectedStartup}
                   onTabChange={handleTabChange}
+                />
+              } />
+              <Route path="/news-dashboard" element={
+                <NewsDashboard
+                  apiUrl={API_URL}
+                  onSelectStartupByName={(name) => {
+                    const found = startups.find(
+                      (s) => (s.startup_name || s.name || "").toLowerCase() === name.toLowerCase()
+                    );
+                    if (found) {
+                      setSelectedStartup(found);
+                    } else {
+                      alert(`Startup "${name}" was extracted from this news story, but does not have a fully enriched registry profile yet.`);
+                    }
+                  }}
                 />
               } />
               <Route path="/repository" element={

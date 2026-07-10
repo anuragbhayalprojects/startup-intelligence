@@ -2,6 +2,7 @@
 
 export type AppTab =
   | "dashboard"
+  | "news-dashboard"
   | "repository"
   | "high-priority"
   | "assignments"
@@ -10,6 +11,33 @@ export type AppTab =
   | "chat"
   | "scraping"
   | "observability";
+
+export interface NewsArticle {
+  id: number;
+  headline: string;
+  summary?: string;
+  content?: string;
+  source: string;
+  source_url: string;
+  published_at?: string;
+  category: string;
+  similar_sources?: { source: string; headline: string; url: string; published_at?: string }[];
+  startups_mentioned?: { id?: string; name: string; website?: string }[];
+  created_at?: string;
+}
+
+export interface NewsSource {
+  id: string;
+  name: string;
+  category: string;
+  enabled: boolean;
+  priority: number;
+  parser_type: string;
+  feed_type: string;
+  rss_url: string;
+  poll_interval_minutes: number;
+  tags?: string[];
+}
 
 export interface Startup {
   id: string;

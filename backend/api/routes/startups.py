@@ -21,7 +21,8 @@ SCRAPE_STATUS = {
     "discovered_count": 0,
     "current_step": "Idle",
     "logs": [],
-    "processed_startups": []
+    "processed_startups": [],
+    "last_news_sync": None
 }
 status_lock = threading.Lock()
 
@@ -34,7 +35,7 @@ def add_scrape_log(message: str):
         if len(SCRAPE_STATUS["logs"]) > 200:
             SCRAPE_STATUS["logs"].pop(0)
 
-def update_scrape_status(current_step: str = None, discovered_increment: int = 0, processed_name: str = None, active: bool = None):
+def update_scrape_status(current_step: str = None, discovered_increment: int = 0, processed_name: str = None, active: bool = None, last_news_sync: dict = None):
     with status_lock:
         if current_step is not None:
             SCRAPE_STATUS["current_step"] = current_step
@@ -44,6 +45,8 @@ def update_scrape_status(current_step: str = None, discovered_increment: int = 0
             SCRAPE_STATUS["discovered_count"] += discovered_increment
         if processed_name:
             SCRAPE_STATUS["processed_startups"].append(processed_name)
+        if last_news_sync is not None:
+            SCRAPE_STATUS["last_news_sync"] = last_news_sync
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 MAPPING_PATH = os.path.join(PROJECT_ROOT, "docs", "fpr_assignment_mapping.json")

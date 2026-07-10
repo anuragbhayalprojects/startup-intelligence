@@ -153,7 +153,7 @@ class AgentOrchestrator:
             self._pipeline_cfg.get("v2_pipeline", {}).get("use_v2_pipeline", False)
         )
 
-    def run_pipeline(self, raw_startup: dict) -> StartupState:
+    def run_pipeline(self, raw_startup: dict, resolution_only: bool = False) -> StartupState:
         """
         Executes the 3-layer orchestration workflow.
 
@@ -405,6 +405,14 @@ class AgentOrchestrator:
             state.market_intelligence["enrichment_version"] = "3.0"
             state.market_intelligence["last_enriched_at"] = datetime.now(timezone.utc).isoformat()
             state.market_intelligence["last_verified_at"] = datetime.now(timezone.utc).isoformat()
+            self.persist_to_database(state)
+            return state
+
+        if resolution_only:
+            self.log_orchestrator_completion(
+                state, f"Identity resolved (Status: '{status}', Confidence: {confidence}). Skipping enrichment as resolution_only is active."
+            )
+            state.startup_features.startup_status = "Pending Enrichment"
             self.persist_to_database(state)
             return state
 
