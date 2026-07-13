@@ -97,45 +97,47 @@ class NewsProcessor:
 
                 if discovered_items:
                     self.add_log(f"Discovered potential startups: {discovered_items}")
-                    # For each startup, run it through the identity resolution pipeline only
+                    # For each startup, check database first to see if it already exists
                     for item in discovered_items:
                         name = item.get("name") if isinstance(item, dict) else item
                         if not name:
                             continue
                             
-                        # Format input mapping payload for process_startup
-                        startup_payload = {
-                            "startup_name": name,  # Pass the clean startup name
-                            "headline": headline,
-                            "description": description,
-                            "paragraphs": paragraphs,
-                            "source": art["source"],
-                            "source_url": art["source_url"],
-                            "published_at": art["published_at"]
-                        }
+                        from backend.services.supabase_service import check_existing_startup
+                        existing = check_existing_startup(name)
                         
-                        # Run the existing vetting pipeline in IDENTITY RESOLUTION ONLY mode
-                        self.add_log(f"Resolving identity for startup '{name}'...")
-                        results = process_startup(startup_payload, resolution_only=True)
-                        
-                        if results:
-                            for res in results:
-                                startup_row = res.get("startup") or {}
-                                s_id = startup_row.get("id")
-                                s_name = startup_row.get("startup_name", name)
-                                s_web = startup_row.get("website", "")
-                                
-                                # Capture the pre-generated AI news summary from the first resolved startup mention
-                                if res.get("summary") and not ai_summary:
-                                    ai_summary = res["summary"]
-                                
-                                if s_id:
-                                    startups_mentioned.append({
-                                        "id": s_id,
-                                        "name": s_name,
-                                        "website": s_web
-                                    })
-                                    self.update_status(processed_name=s_name)
+                        if existing:
+                            s_id = existing["id"]
+                            s_name = existing.get("startup_name", name)
+                            s_web = existing.get("website", "")
+                            
+                            startups_mentioned.append({
+                                "id": s_id,
+                                "name": s_name,
+                                "website": s_web
+                            })
+                            self.update_status(processed_name=s_name)
+                            # Link the canonical news event to the startup history in background
+                            try:
+                                from backend.services.news_repo import save_startup_news
+                                save_startup_news(
+                                    startup_id=s_id,
+                                    headline=headline,
+                                    summary=description,
+                                    source=art["source"],
+                                    source_url=art["source_url"],
+                                    published_at=art["published_at"]
+                                )
+                            except Exception:
+                                pass
+                        else:
+                            # Startup is NOT in repository: Add as placeholder mention (id=None, website="")
+                            startups_mentioned.append({
+                                "id": None,
+                                "name": name,
+                                "website": ""
+                            })
+                            self.update_status(processed_name=name)
                 else:
                     logger.debug(f"No startups discovered in canonical story: '{headline}'")
 

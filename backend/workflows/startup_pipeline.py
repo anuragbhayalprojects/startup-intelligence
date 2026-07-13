@@ -499,8 +499,13 @@ def process_startup(startup, industry_filter: str = "", sector_filter: str = "",
     pipeline_log(f"\n--- Processing News Headline: '{original_headline}' ---")
     
     # Step 1: Run Pass 1 (Name Discovery) to extract all featured startup names
-    paragraphs = startup.get("paragraphs") or [original_description]
-    discovered_items = discover_startup_names(original_headline, paragraphs)
+    # If startup_name is already explicitly passed, bypass LLM Name Discovery call
+    if startup.get("startup_name"):
+        discovered_items = [{"name": startup["startup_name"], "description": startup.get("news_summary") or startup.get("description", "")}]
+        pipeline_log(f"⚡ [process_startup] Bypassing name discovery. Using pre-provided startup: '{startup['startup_name']}'")
+    else:
+        paragraphs = startup.get("paragraphs") or [original_description]
+        discovered_items = discover_startup_names(original_headline, paragraphs)
     
     # Trigger Python heuristics fallback ONLY if discovery failed (None).
     # If the LLM successfully ran but determined there are no operating startups ([]),

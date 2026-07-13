@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, ExternalLink, Calendar, Layers, Sparkles, Tag, ArrowRight, CornerDownRight } from "lucide-react";
+import { X, ExternalLink, Calendar, Layers, Sparkles, Tag, ArrowRight, CornerDownRight, Plus } from "lucide-react";
 import { NewsArticle } from "../types";
 import { SourceLogo } from "./SourceLogo";
 
@@ -118,9 +118,13 @@ export default function NewsDrawer({ article, onClose, onSelectStartupByName }: 
                   <button
                     key={idx}
                     onClick={() => onSelectStartupByName(s.name)}
-                    className="bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold text-xs px-3 py-1 rounded-lg flex items-center gap-1 cursor-pointer transition-colors border-0"
+                    className={`font-bold text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer transition-all border ${
+                      s.id
+                        ? "bg-blue-100 hover:bg-blue-200 text-blue-700 border-transparent"
+                        : "bg-slate-50 hover:bg-slate-100 text-slate-500 border-slate-200 border-dashed"
+                    }`}
                   >
-                    {s.name} <ArrowRight size={12} />
+                    {s.name} {s.id ? <ArrowRight size={12} /> : <Plus size={12} />}
                   </button>
                 ))}
               </div>

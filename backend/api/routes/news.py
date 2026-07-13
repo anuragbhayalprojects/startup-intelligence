@@ -171,3 +171,134 @@ def trigger_digest_dispatch(background_tasks: BackgroundTasks, payload: Optional
         "status": "started",
         "message": f"Gmail HTML digest generation and send ({edition} Edition) initiated in the background."
     }
+
+
+class ResolveStartupPayload(BaseModel):
+    article_id: int
+    startup_name: str
+    enrich: bool
+
+
+def _update_news_articles_mentions(startup_name: str, startup_id: int, website: str):
+    """Searches news_articles for any matching startup mention and updates its id/website."""
+    from backend.services.supabase_service import supabase
+    try:
+        # Fetch all news articles
+        res = supabase.table("news_articles").select("id, startups_mentioned").execute()
+        if not res.data:
+            return
+            
+        for art in res.data:
+            mentions = art.get("startups_mentioned") or []
+            updated = False
+            for m in mentions:
+                if m.get("name", "").lower() == startup_name.lower():
+                    m["id"] = startup_id
+                    m["website"] = website
+                    updated = True
+            if updated:
+                supabase.table("news_articles").update({"startups_mentioned": mentions}).eq("id", art["id"]).execute()
+    except Exception as e:
+        print(f"Failed to update news article mentions for '{startup_name}': {e}")
+
+
+def _enrich_single_startup_async(startup_id: int, startup_name: str, headline: str, summary: str, source: str, source_url: str):
+    """Runs full multi-agent enrichment in a background worker context."""
+    raw_startup = {
+        "startup_name": startup_name,
+        "headline": headline,
+        "description": summary,
+        "source": source,
+        "source_url": source_url
+    }
+    try:
+        from backend.workflows.agent_orchestrator import AgentOrchestrator
+        orchestrator = AgentOrchestrator()
+        state = orchestrator.run_pipeline(raw_startup, resolution_only=False)
+        if state.startup_id:
+            web_val = ""
+            if isinstance(state.identity.get("website"), dict):
+                web_val = state.identity["website"].get("value") or ""
+            elif isinstance(state.identity.get("website"), str):
+                web_val = state.identity["website"]
+            _update_news_articles_mentions(startup_name, state.startup_id, web_val)
+    except Exception as e:
+        print(f"Error in single startup enrichment background task: {e}")
+
+
+@router.post("/resolve-startup")
+async def resolve_startup_from_news(
+    background_tasks: BackgroundTasks,
+    payload: ResolveStartupPayload = Body(...)
+):
+    """Resolves or registers a startup from a news mention, optionally spawning background enrichment."""
+    from backend.services.supabase_service import check_existing_startup
+    from backend.services.news_repo import save_startup_news
+    from backend.services.supabase_service import supabase
+    from backend.api.routes.startups import assign_fprs_for_startup
+    
+    # 1. Fetch the news article context
+    art_res = supabase.table("news_articles").select("*").eq("id", payload.article_id).execute()
+    if not art_res.data:
+        raise HTTPException(status_code=404, detail="News article not found")
+        
+    art = art_res.data[0]
+    
+    # 2. Check if startup already exists in DB
+    existing = check_existing_startup(payload.startup_name)
+    if existing:
+        startup_id = existing["id"]
+        website = existing.get("website", "")
+    else:
+        # Create a basic startup registry record
+        ins = {
+            "startup_name": payload.startup_name,
+            "website": "",
+            "description": art.get("summary") or art.get("headline", ""),
+            "industry": "Financial Services",
+            "sector": "Unknown",
+            "subsector": "Unknown",
+            "funding_stage": "Unknown",
+            "business_models": [],
+            "country": "India"
+        }
+        resp = supabase.table("startups").insert(ins).execute()
+        if not resp.data:
+            raise HTTPException(status_code=500, detail="Failed to insert startup record")
+        startup_id = resp.data[0]["id"]
+        website = ""
+        assign_fprs_for_startup(startup_id)
+        
+    # 3. Handle enrichment vs basic insertion
+    if payload.enrich:
+        background_tasks.add_task(
+            _enrich_single_startup_async,
+            startup_id,
+            payload.startup_name,
+            art["headline"],
+            art.get("summary") or art.get("description") or "",
+            art["source"],
+            art["source_url"]
+        )
+    else:
+        # Update mentions in news_articles
+        _update_news_articles_mentions(payload.startup_name, startup_id, website)
+        # Link this article to the startup history in startup_news table
+        try:
+            save_startup_news(
+                startup_id=startup_id,
+                headline=art["headline"],
+                summary=art.get("summary") or art.get("description") or "",
+                source=art["source"],
+                source_url=art["source_url"],
+                published_at=art["published_at"]
+            )
+        except Exception as e:
+            print(f"Failed to link news event: {e}")
+            
+    return {
+        "status": "success",
+        "startup_id": startup_id,
+        "enriched": payload.enrich,
+        "message": "Startup resolved successfully. Enrichment running in the background." if payload.enrich else "Startup resolved with basic details."
+    }
