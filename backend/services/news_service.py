@@ -103,8 +103,10 @@ def save_canonical_article(
     Syncs corresponding records to startup_news for any resolved startups.
     """
     try:
-        # Check for duplicate by source_url in news_articles
+        # Check for duplicate by source_url or exact headline in news_articles
         existing = supabase.table("news_articles").select("*").eq("source_url", source_url).execute()
+        if not existing.data:
+            existing = supabase.table("news_articles").select("*").eq("headline", headline).execute()
         
         record = {
             "headline": headline,
@@ -122,6 +124,11 @@ def save_canonical_article(
             # Update existing article record
             article_id = existing.data[0]["id"]
             
+            # Retain the primary canonical article credentials to prevent overwrite
+            record["source"] = existing.data[0]["source"]
+            record["source_url"] = existing.data[0]["source_url"]
+            record["published_at"] = existing.data[0]["published_at"]
+            
             # Merge startups_mentioned if needed
             exist_startups = existing.data[0].get("startups_mentioned") or []
             exist_startup_names = {s.get("name") for s in exist_startups if isinstance(s, dict)}
@@ -133,9 +140,24 @@ def save_canonical_article(
             # Merge similar_sources
             exist_sim = existing.data[0].get("similar_sources") or []
             exist_urls = {s.get("url") for s in exist_sim if isinstance(s, dict)}
+            
+            # If the incoming source is different from the primary source, append it
+            if source_url != record["source_url"]:
+                if source_url not in exist_urls:
+                    exist_sim.append({
+                        "source": source,
+                        "headline": headline,
+                        "url": source_url,
+                        "published_at": published_at or datetime.now(timezone.utc).isoformat(),
+                        "description": content or summary
+                    })
+            
+            # Merge any other similar_sources that came with the payload
             for new_sim in (similar_sources or []):
-                if new_sim.get("url") not in exist_urls:
+                new_sim_url = new_sim.get("url")
+                if new_sim_url and new_sim_url != record["source_url"] and new_sim_url not in exist_urls:
                     exist_sim.append(new_sim)
+                    
             record["similar_sources"] = exist_sim
             
             res = supabase.table("news_articles").update(record).eq("id", article_id).execute()

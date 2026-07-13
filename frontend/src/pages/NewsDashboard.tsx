@@ -540,20 +540,39 @@ export default function NewsDashboard({ apiUrl, onSelectStartupByName }: NewsDas
                     </div>
                   </div>
 
-                  {/* Right Column: Source Link & Arrow */}
-                  <div className="w-36 shrink-0 flex flex-col items-end gap-1.5 text-right justify-between self-stretch">
-                    <a
-                      href={art.source_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-[10px] text-slate-400 font-bold hover:text-blue-600 flex items-center gap-1.5"
-                    >
-                      <SourceLogo source={art.source} url={art.source_url} /> <CornerDownRight size={10} className="text-slate-400" />
-                    </a>
+                  {/* Right Column: Multiple Clickable Source Logos & Read Details */}
+                  <div className="w-48 shrink-0 flex flex-col items-end gap-2 text-right justify-between self-stretch animate-fade-in">
+                    <div className="flex flex-wrap items-center justify-end gap-1.5 max-w-full">
+                      {/* Primary Source */}
+                      <a
+                        href={art.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        title={`Primary Source: ${art.source}`}
+                        className="bg-slate-50 hover:bg-slate-100 border border-slate-200/80 rounded-lg p-1.5 flex items-center justify-center transition-colors shadow-sm"
+                      >
+                        <SourceLogo source={art.source} url={art.source_url} />
+                      </a>
+                      
+                      {/* Similar Sources */}
+                      {art.similar_sources && art.similar_sources.map((sim, sIdx) => (
+                        <a
+                          key={sIdx}
+                          href={sim.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          title={`Similar Coverage: ${sim.source}`}
+                          className="bg-slate-50 hover:bg-slate-100 border border-slate-200/80 rounded-lg p-1.5 flex items-center justify-center transition-colors shadow-sm"
+                        >
+                          <SourceLogo source={sim.source} url={sim.url} />
+                        </a>
+                      ))}
+                    </div>
                     
                     <span className="text-slate-350 group-hover:text-amber-500 transition-colors flex items-center gap-1 text-[11px] font-semibold">
-                      Read More <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                      Read Details <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                     </span>
                   </div>
                 </div>

@@ -55,17 +55,12 @@ class Deduplicator:
     def __init__(self):
         pass
 
-    def check_exact_database_duplicate(self, url: str, headline: str) -> bool:
-        """Checks if the article URL or exact headline already exists in news_articles."""
+    def check_exact_database_duplicate(self, url: str) -> bool:
+        """Checks if the article URL already exists in news_articles."""
         try:
             # Check URL
             res_url = supabase.table("news_articles").select("id").eq("source_url", url).execute()
             if res_url.data:
-                return True
-                
-            # Check exact Headline
-            res_headline = supabase.table("news_articles").select("id").eq("headline", headline).execute()
-            if res_headline.data:
                 return True
         except Exception as e:
             logger.error(f"Error checking exact DB duplicate: {e}")
@@ -80,11 +75,10 @@ class Deduplicator:
         """
         novel_articles = []
         
-        # Phase 1: Syntactic check (URL/exact title in DB)
+        # Phase 1: Syntactic check (URL in DB)
         for art in articles:
             url = art.get("source_url", "")
-            title = art.get("headline", "")
-            if not self.check_exact_database_duplicate(url, title):
+            if not self.check_exact_database_duplicate(url):
                 novel_articles.append(art)
                 
         logger.info(f"Filtered out exact DB duplicates. Novel articles to check: {len(novel_articles)}")
