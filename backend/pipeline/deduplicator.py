@@ -11,7 +11,6 @@ import logging
 import re
 from typing import List, Dict, Any
 from backend.services.supabase_service import supabase
-from backend.workflows.startup_pipeline import are_headlines_describing_same_event
 
 logger = logging.getLogger("startup_intelligence.pipeline.deduplicator")
 
@@ -37,8 +36,8 @@ def clean_and_tokenize(text: str) -> set[str]:
     return {w for w in words if w not in STOPWORDS and len(w) > 1}
 
 
-def calculate_token_overlap(title1: str, title2: str) -> float:
-    """Calculates the overlap percentage of key tokens between two titles."""
+def calculate_jaccard_similarity(title1: str, title2: str) -> float:
+    """Calculates the Jaccard similarity coefficient (intersection over union) of key tokens between two titles."""
     tokens1 = clean_and_tokenize(title1)
     tokens2 = clean_and_tokenize(title2)
     
@@ -46,9 +45,47 @@ def calculate_token_overlap(title1: str, title2: str) -> float:
         return 0.0
         
     intersection = tokens1.intersection(tokens2)
-    smaller_set_size = min(len(tokens1), len(tokens2))
+    union = tokens1.union(tokens2)
     
-    return len(intersection) / smaller_set_size
+    return len(intersection) / len(union)
+
+
+def are_contexts_describing_same_event(headline1: str, context1: str, headline2: str, context2: str) -> bool:
+    """Asks the local Ollama model if two stories describe the exact same corporate event based on their headlines and descriptions."""
+    import os
+    base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    
+    if not base_url:
+        return False
+        
+    # Clean and truncate contexts to prevent context window bloat
+    ctx1 = (context1 or "")[:1200].strip()
+    ctx2 = (context2 or "")[:1200].strip()
+    
+    prompt = f"""You are a precise semantic news deduplication assistant.
+    Your job is to determine if two news stories from different sources are reporting on the exact same corporate event (such as a funding round, launch, acquisition, or partnership for a startup), using their headlines and descriptions.
+    
+    Story 1:
+    Headline: "{headline1}"
+    Description: "{ctx1}"
+    
+    Story 2:
+    Headline: "{headline2}"
+    Description: "{ctx2}"
+    
+    Based on the headlines and descriptions, are these two stories describing the same corporate event?
+    Respond with only a single word: YES or NO. Do not explain."""
+    
+    try:
+        from backend.ai.router import call_ai
+        # Route through call_ai for observability logging
+        res = call_ai(prompt, task="extraction", json_format=False)
+        if isinstance(res, str):
+            clean_res = res.strip().upper()
+            return "YES" in clean_res
+    except Exception as e:
+        logger.warning(f"Error calling Ollama context verification: {e}")
+    return False
 
 
 class Deduplicator:
@@ -63,15 +100,15 @@ class Deduplicator:
             if res_url.data:
                 return True
         except Exception as e:
-            logger.error(f"Error checking exact DB duplicate: {e}")
+            logger.warning(f"DB duplicate check failed: {e}")
         return False
 
     def cluster_and_deduplicate(self, articles: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Deduplicates incoming articles by:
-        1. Checking database exact matches.
-        2. Grouping novel incoming items into clusters based on title similarity.
-        3. Merging similar articles in the same run to produce a single canonical item.
+        1. Filtering out exact URLs that already exist in the database.
+        2. Comparing headlines using token Jaccard similarity.
+        3. Falling back to LLM context/description semantic checks for moderate similarity scores.
         """
         novel_articles = []
         
@@ -83,7 +120,7 @@ class Deduplicator:
                 
         logger.info(f"Filtered out exact DB duplicates. Novel articles to check: {len(novel_articles)}")
         
-        # Phase 2: In-run Clustering using Token Overlap + Ollama fallback
+        # Phase 2: In-run Clustering
         clustered_articles: List[Dict[str, Any]] = []
         
         for incoming in novel_articles:
@@ -91,13 +128,23 @@ class Deduplicator:
             
             # Compare against already accumulated canonical articles
             for canonical in clustered_articles:
-                # 1. Check token overlap similarity threshold
-                overlap = calculate_token_overlap(incoming["headline"], canonical["headline"])
-                if overlap >= 0.55:
-                    logger.info(f"High token overlap ({overlap:.2f}) found between: '{incoming['headline']}' and '{canonical['headline']}'")
-                    # 2. Confirm semantically with local Ollama
-                    if are_headlines_describing_same_event(incoming["headline"], canonical["headline"]):
-                        logger.info(f"✅ Ollama confirmed semantic duplicate: '{incoming['headline']}' matches '{canonical['headline']}'")
+                similarity = calculate_jaccard_similarity(incoming["headline"], canonical["headline"])
+                
+                # High similarity: Merge immediately without LLM call
+                if similarity >= 0.75:
+                    logger.info(f"High headline Jaccard similarity ({similarity:.2f}) found between: '{incoming['headline']}' and '{canonical['headline']}'. Merging immediately.")
+                    matched_canonical = canonical
+                    break
+                
+                # Moderate similarity: Check context similarity via Ollama
+                elif similarity >= 0.35:
+                    logger.info(f"Moderate headline Jaccard similarity ({similarity:.2f}) found between: '{incoming['headline']}' and '{canonical['headline']}'. Checking context similarity.")
+                    
+                    ctx1 = incoming.get("description", "") or incoming.get("content", "")
+                    ctx2 = canonical.get("description", "") or canonical.get("content", "")
+                    
+                    if are_contexts_describing_same_event(incoming["headline"], ctx1, canonical["headline"], ctx2):
+                        logger.info(f"✅ Ollama confirmed semantic duplicate based on context matching: '{incoming['headline']}' matches '{canonical['headline']}'")
                         matched_canonical = canonical
                         break
             

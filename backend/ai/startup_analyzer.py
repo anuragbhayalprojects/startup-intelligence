@@ -107,7 +107,7 @@ def discover_startup_names(headline: str, paragraphs) -> list[dict]:
             else:
                 continue
                 
-            if isinstance(name, str) and name.strip() and name.lower() != "none":
+            if isinstance(name, str) and name.strip() and name.lower() not in ("none", "examplestartup", "acmecorp", "example startup", "acme corp"):
                 clean_list.append({
                     "name": name.strip(),
                     "description": desc.strip()

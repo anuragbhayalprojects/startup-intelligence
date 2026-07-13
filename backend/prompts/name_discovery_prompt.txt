@@ -46,8 +46,8 @@ Return ONLY a valid JSON object. No explanation, no markdown prose outside the J
 {
   "startups": [
     {
-      "name": "Incuspaze",
-      "description": "Incuspaze secured $10 million in a funding round led by Peak XV. The funds will be utilized to expand its coworking spaces across Tier 1 and Tier 2 cities in India."
+      "name": "ExampleStartup",
+      "description": "ExampleStartup secured $10 million in a funding round led by Peak XV. The funds will be utilized to expand its services across Tier 1 and Tier 2 cities in India."
     }
   ]
 }
