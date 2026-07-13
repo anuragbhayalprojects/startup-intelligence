@@ -59,6 +59,32 @@ class IdentityDiscoveryAgent(BaseAgent):
         cleaned_name = state.startup_name.strip()
         state.startup_name = cleaned_name
 
+        # Check if already exists in DB with resolved website to bypass search/crawl
+        try:
+            from backend.services.supabase_service import check_existing_startup
+            existing = check_existing_startup(state.startup_name)
+            if existing and existing.get("website"):
+                self.log_audit(state, f"[IdentityDiscovery] Startup '{state.startup_name}' already exists in DB. Bypassing search & crawl.")
+                print(f"⚡ [IdentityDiscovery] Cache hit: '{state.startup_name}' already exists. Bypassing web search.")
+                
+                snippets_v1 = {
+                    "official_website": [{"title": state.startup_name, "url": existing["website"]}],
+                    "linkedin": [{"title": state.startup_name, "url": existing.get("linkedin_url", "") or ""}]
+                }
+                state.article_data["discovered_snippets"] = snippets_v1
+                state.identity["website"] = existing["website"]
+                state.identity["identity_confidence"] = existing.get("identity_confidence", 100)
+                state.identity["verification_status"] = existing.get("status", "VERIFIED")
+                
+                if "crawled_content" not in state.article_data:
+                    state.article_data["crawled_content"] = {}
+                state.article_data["crawled_content"]["homepage"] = {
+                    "text_content": existing.get("description", "") or ""
+                }
+                return state
+        except Exception as e:
+            logger.warning(f"Error checking cache in IdentityDiscoveryAgent: {e}")
+
         pipeline_cfg = _load_pipeline_config()
         use_v2 = pipeline_cfg.get("v2_pipeline", {}).get("use_v2_pipeline", False)
 

@@ -142,6 +142,14 @@ def trigger_news_ingestion(
     """Manually triggers the news ingestion pipeline scraper in the background."""
     limit = payload.limit_per_source if payload else None
     sources = payload.sources if payload else None
+    
+    # Mark status as active immediately to provide instant UI console feedback
+    try:
+        from backend.api.routes.startups import update_scrape_status
+        update_scrape_status(current_step="Initiating news feed sync...", active=True)
+    except Exception:
+        pass
+        
     background_tasks.add_task(_run_ingestion_async, limit, sources)
     return {
         "status": "started",

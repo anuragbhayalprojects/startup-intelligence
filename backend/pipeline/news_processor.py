@@ -30,11 +30,11 @@ class NewsProcessor:
         except Exception:
             pass
 
-    def update_status(self, current_step: str = None, discovered_increment: int = 0, processed_name: str = None, active: bool = None):
+    def update_status(self, current_step: str = None, discovered_increment: int = 0, processed_name: str = None, active: bool = None, last_news_sync: dict = None):
         """Safely updates global SCRAPE_STATUS parameters."""
         try:
             from backend.api.routes.startups import update_scrape_status
-            update_scrape_status(current_step, discovered_increment, processed_name, active)
+            update_scrape_status(current_step, discovered_increment, processed_name, active, last_news_sync)
         except Exception:
             pass
 
