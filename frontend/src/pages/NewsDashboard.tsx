@@ -176,8 +176,8 @@ export default function NewsDashboard({ apiUrl, onSelectStartupByName }: NewsDas
           const data = await res.json();
           
           setSyncStatus(prev => {
-            // If active goes from true -> false, show success banner and refresh articles
-            if (prev && prev.active && !data.active) {
+            // Show success banner if a new sync completed log is received
+            if (data.last_news_sync && (!prev?.last_news_sync || prev.last_news_sync.completed_at !== data.last_news_sync.completed_at)) {
               setShowSyncSuccessBanner(true);
               fetchArticles();
             }
