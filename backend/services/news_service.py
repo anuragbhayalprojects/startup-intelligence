@@ -215,6 +215,21 @@ def sync_to_legacy_startup_news(article: Dict[str, Any]) -> None:
             logger.error(f"Failed to sync legacy news for startup_ref={startup_ref}: {e}")
 
 
+def resolve_source_search_terms(source_name: str) -> List[str]:
+    """Resolves a high-level source select name into its database aliases and variants."""
+    source_lower = source_name.lower()
+    terms = [source_name]
+    if "economic times" in source_lower:
+        terms.extend(["Economic Times", "The Economic Times", "Economic Times Startup"])
+    elif "yourstory" in source_lower:
+        terms.extend(["YourStory", "YourStory.com"])
+    elif "moneycontrol" in source_lower:
+        terms.extend(["Moneycontrol", "Moneycontrol.com"])
+    elif "mint" in source_lower:
+        terms.extend(["Mint", "livemint.com"])
+    return list(set(terms))
+
+
 def get_filtered_articles(
     search: Optional[str] = None,
     source: Optional[str] = None,
@@ -234,7 +249,13 @@ def get_filtered_articles(
         if category:
             query = query.eq("category", category)
         if source:
-            query = query.eq("source", source)
+            terms = resolve_source_search_terms(source)
+            or_conditions = []
+            for t in terms:
+                escaped_t = t.replace("\"", "\\\"")
+                or_conditions.append(f"source.eq.{t}")
+                or_conditions.append(f"similar_sources.cs.[{{\"source\":\"{escaped_t}\"}}]")
+            query = query.or_(",".join(or_conditions))
             
         # Standard filter logic
         if from_date:
@@ -254,6 +275,38 @@ def get_filtered_articles(
         # or requiring search match against multiple text fields (search/industry filters)
         filtered_articles = []
         for art in articles:
+            # Source promotion logic if source filter was requested
+            if source:
+                terms = resolve_source_search_terms(source)
+                terms_lower = [t.lower() for t in terms]
+                art_src_lower = (art.get("source") or "").lower()
+                if art_src_lower not in terms_lower:
+                    # Match must be in similar_sources. Promote it!
+                    similar = art.get("similar_sources") or []
+                    for idx_sim, sim in enumerate(similar):
+                        sim_src_lower = (sim.get("source") or "").lower()
+                        if sim_src_lower in terms_lower:
+                            # Swap matching entry with primary entry
+                            similar_copy = list(similar)
+                            similar_copy.pop(idx_sim)
+                            original_primary = {
+                                "source": art["source"],
+                                "headline": art["headline"],
+                                "url": art["source_url"],
+                                "published_at": art["published_at"],
+                                "description": art.get("content") or art.get("summary") or ""
+                            }
+                            similar_copy.append(original_primary)
+                            
+                            # Promote matching source details
+                            art = dict(art) # copy to avoid mutating original
+                            art["source"] = sim["source"]
+                            art["source_url"] = sim["url"]
+                            art["headline"] = sim["headline"]
+                            art["published_at"] = sim.get("published_at") or art["published_at"]
+                            art["similar_sources"] = similar_copy
+                            break
+
             # 1. Startup filter (check if name matches any startup in startups_mentioned JSONB)
             if startup:
                 mentions = art.get("startups_mentioned") or []
