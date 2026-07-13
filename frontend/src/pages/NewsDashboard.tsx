@@ -625,7 +625,7 @@ interface SyncConfigModalProps {
 }
 
 function SyncConfigModal({ sources, onClose, onStartSync }: SyncConfigModalProps) {
-  const [selectedIds, setSelectedIds] = useState<string[]>(() => sources.filter(s => s.enabled).map(s => s.id));
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [articleLimit, setArticleLimit] = useState(5);
 
   const handleToggle = (id: string) => {
