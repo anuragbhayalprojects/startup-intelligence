@@ -7,6 +7,15 @@ Rather than a generic database client, this platform implements a modular, high-
 
 ---
 
+### Core Visualizations
+
+![System Architecture Diagram](file:///Users/anurag/Projects/startup-intelligence/docs/system-architecture/assets/system_architecture_diagram.png)
+
+![Dashboard User Interface Mockup](file:///Users/anurag/Projects/startup-intelligence/docs/system-architecture/assets/dashboard_interface_mockup.png)
+
+
+---
+
 ## 2. Business Objectives & Vision
 *   **Venture Discovery**: Automatically surface and track fast-growing startups in target sectors (FinTech, InsurTech, WealthTech, SaaS, DeepTech) long before they reach mature public fundraising rounds.
 *   **ICICI Business Alignment**: Automatically match discovered startups to specific corporate business units (e.g. Retail Banking, Wealth Management, ICICI Prudential, ICICI Securities) and strategic focus areas based on a deterministic evaluation rubric.
