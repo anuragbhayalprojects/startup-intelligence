@@ -15,15 +15,26 @@ from backend.services.supabase_service import supabase
 logger = logging.getLogger("startup_intelligence.pipeline.deduplicator")
 
 STOPWORDS = {
-    "a", "an", "the", "and", "or", "but", "if", "then", "else", "when", "at", "by", 
-    "for", "with", "about", "against", "between", "into", "through", "during", "before", 
-    "after", "above", "below", "to", "from", "up", "down", "in", "out", "on", "off", 
-    "over", "under", "again", "further", "then", "once", "here", "there", "all", "any", 
-    "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", 
-    "only", "own", "same", "so", "than", "too", "very", "s", "t", "can", "will", "just", 
-    "don", "should", "now", "raises", "funding", "startup", "startups", "raises", "funding",
-    "raised", "round", "lead", "leads", "capital", "crore", "crores", "million", "millions",
-    "investment", "invests", "backed", "owned"
+    # Articles / determiners
+    "a", "an", "the", "this", "that", "these", "those",
+    # Prepositions (extended — commonly omitted but affect token count)
+    "of", "in", "on", "at", "by", "for", "with", "about", "against", "between",
+    "into", "through", "during", "before", "after", "above", "below", "to", "from",
+    "up", "down", "out", "off", "over", "under", "into", "onto",
+    # Conjunctions / pronouns
+    "and", "or", "but", "if", "then", "else", "when", "as", "its", "it", "he",
+    "she", "they", "we", "you", "i", "me", "him", "her", "us", "them",
+    # Common verbs that convey no specificity
+    "is", "are", "was", "were", "be", "been", "being", "has", "have", "had",
+    "do", "does", "did", "will", "would", "could", "should", "can", "may", "might",
+    # Adverbs / misc
+    "again", "further", "once", "here", "there", "all", "any", "both", "each",
+    "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only",
+    "own", "same", "so", "than", "too", "very", "just", "now", "s", "t", "don",
+    # Finance/startup domain noise words (non-differentiating)
+    "raises", "raised", "funding", "round", "lead", "leads", "capital",
+    "crore", "crores", "million", "millions", "investment", "invests", "backed",
+    "owned", "startup", "startups"
 }
 
 
@@ -123,13 +134,14 @@ class Deduplicator:
             for db_art in recent_articles:
                 similarity = calculate_jaccard_similarity(incoming["headline"], db_art["headline"])
                 
-                # High Jaccard similarity: matched!
-                if similarity >= 0.75:
+                # High Jaccard similarity (>=0.60): direct match, no LLM needed.
+                # Captures near-synonym rewrites like "Issues Guidelines" vs "Sets Rules"
+                if similarity >= 0.60:
                     logger.info(f"DB Match (Jaccard {similarity:.2f}): '{incoming['headline']}' matches DB '{db_art['headline']}'")
                     return db_art
                     
                 # Moderate Jaccard similarity: verify context semantically via Ollama
-                elif similarity >= 0.35:
+                elif similarity >= 0.30:
                     ctx1 = incoming.get("description") or incoming.get("content") or ""
                     ctx2 = db_art.get("summary") or db_art.get("content") or ""
                     
@@ -168,21 +180,22 @@ class Deduplicator:
             for canonical in clustered_articles:
                 similarity = calculate_jaccard_similarity(incoming["headline"], canonical["headline"])
                 
-                # High similarity: Merge immediately without LLM call
-                if similarity >= 0.75:
-                    logger.info(f"High headline Jaccard similarity ({similarity:.2f}) found between: '{incoming['headline']}' and '{canonical['headline']}'. Merging immediately.")
+                # High similarity (>=0.60): Merge immediately without LLM call.
+                # Lower threshold captures near-synonym rewrites of the same story.
+                if similarity >= 0.60:
+                    logger.info(f"High headline Jaccard similarity ({similarity:.2f}) — merging: '{incoming['headline']}' → '{canonical['headline']}'")
                     matched_canonical = canonical
                     break
                 
-                # Moderate similarity: Check context similarity via Ollama
-                elif similarity >= 0.35:
-                    logger.info(f"Moderate headline Jaccard similarity ({similarity:.2f}) found between: '{incoming['headline']}' and '{canonical['headline']}'. Checking context similarity.")
+                # Moderate similarity (0.30–0.60): Check context via Ollama
+                elif similarity >= 0.30:
+                    logger.info(f"Moderate headline Jaccard ({similarity:.2f}) — verifying via LLM: '{incoming['headline']}' vs '{canonical['headline']}'")
                     
                     ctx1 = incoming.get("description", "") or incoming.get("content", "")
                     ctx2 = canonical.get("description", "") or canonical.get("content", "")
                     
                     if are_contexts_describing_same_event(incoming["headline"], ctx1, canonical["headline"], ctx2):
-                        logger.info(f"✅ Ollama confirmed semantic duplicate based on context matching: '{incoming['headline']}' matches '{canonical['headline']}'")
+                        logger.info(f"✅ Ollama confirmed semantic duplicate: '{incoming['headline']}' matches '{canonical['headline']}'")
                         matched_canonical = canonical
                         break
             
