@@ -12,11 +12,11 @@ from supabase import create_client, Client
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from api.routes import startups
-from api.routes import enrichment as enrichment_routes
-from api.routes import scraping as scraping_routes
-from api.routes import observability as observability_routes
-from api.routes import news as news_routes
+from backend.api.routes import startups
+from backend.api.routes import enrichment as enrichment_routes
+from backend.api.routes import scraping as scraping_routes
+from backend.api.routes import observability as observability_routes
+from backend.api.routes import news as news_routes
 
 from backend.utils.tracing import (
     set_trace_id,
