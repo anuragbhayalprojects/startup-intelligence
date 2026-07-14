@@ -340,58 +340,65 @@ export default function NewsDashboard({ apiUrl, onSelectStartupByName }: NewsDas
 
       {/* Sync Active Progress Banner */}
       {syncStatus?.active && (
-        <div className="space-y-4">
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 shadow-sm animate-pulse" id="sync-active-banner">
-            <Loader2 className="text-amber-500 animate-spin mt-0.5 shrink-0" size={18} />
-            <div className="flex-1 min-w-0">
-              <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wider">Sync Ingestion Active</h4>
-              <p className="text-sm text-amber-700 font-medium mt-1">
-                Currently running: <span className="font-bold underline">{syncStatus.current_step}</span>
-              </p>
-              <p className="text-xs text-amber-600/80 mt-1">
-                Startup mentions resolved so far in this run: <span className="font-bold">{syncStatus.discovered_count}</span>
-              </p>
-            </div>
-          </div>
-
-          {/* Sync Terminal Log Stream */}
-          <div className="space-y-2 text-left bg-white border border-slate-200 rounded-xl p-4 shadow-sm animate-fade-in">
-            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold uppercase tracking-wide">
-              <Terminal size={12} className="text-slate-400" />
-              <span>Interactive Log Console Stream</span>
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping"></span>
-            </div>
-
-            <div 
-              ref={newsTerminalRef}
-              className="bg-slate-900 border border-slate-800 rounded-xl p-4 h-48 overflow-y-auto font-mono text-[11px] leading-relaxed text-slate-300 shadow-inner select-text custom-scrollbar"
-              style={{
-                boxShadow: "inset 0 4px 6px -1px rgb(0 0 0 / 0.2), inset 0 2px 4px -2px rgb(0 0 0 / 0.2)"
-              }}
-            >
-              {(!syncStatus.logs || syncStatus.logs.length === 0) ? (
-                <div className="text-slate-500 italic h-full flex items-center justify-center">
-                  Waiting for news sync run tasks to output log buffers...
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {syncStatus.logs.map((log, index) => {
-                    let lineClass = "text-slate-300";
-                    if (log.includes("❌") || log.includes("Error") || log.includes("Failed")) lineClass = "text-rose-400 font-semibold";
-                    else if (log.includes("✨") || log.includes("Completed") || log.includes("Saved")) lineClass = "text-emerald-400 font-semibold";
-                    else if (log.includes("🔄") || log.includes("Starting") || log.includes("Extracting")) lineClass = "text-amber-400";
-                    return (
-                      <div key={index} className={lineClass}>
-                        {log}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 shadow-sm animate-pulse" id="sync-active-banner">
+          <Loader2 className="text-amber-500 animate-spin mt-0.5 shrink-0" size={18} />
+          <div className="flex-1 min-w-0">
+            <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wider">Sync Ingestion Active</h4>
+            <p className="text-sm text-amber-700 font-medium mt-1">
+              Currently running: <span className="font-bold underline">{syncStatus.current_step}</span>
+            </p>
+            <p className="text-xs text-amber-600/80 mt-1">
+              Startup mentions resolved so far in this run: <span className="font-bold">{syncStatus.discovered_count}</span>
+            </p>
           </div>
         </div>
       )}
+
+      {/* Sync Terminal Log Stream - Permanently Visible */}
+      <div className="space-y-2 text-left bg-white border border-slate-200 rounded-xl p-4 shadow-sm animate-fade-in">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold uppercase tracking-wide">
+            <Terminal size={12} className="text-slate-400" />
+            <span>Interactive Log Console Stream</span>
+            {syncStatus?.active && (
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping"></span>
+            )}
+          </div>
+          {syncStatus?.active && (
+            <span className="text-[9px] font-semibold text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded animate-pulse">
+              INGESTION RUNNING
+            </span>
+          )}
+        </div>
+
+        <div 
+          ref={newsTerminalRef}
+          className="bg-slate-900 border border-slate-800 rounded-xl p-4 h-48 overflow-y-auto font-mono text-[11px] leading-relaxed text-slate-300 shadow-inner select-text custom-scrollbar"
+          style={{
+            boxShadow: "inset 0 4px 6px -1px rgb(0 0 0 / 0.2), inset 0 2px 4px -2px rgb(0 0 0 / 0.2)"
+          }}
+        >
+          {(!syncStatus?.logs || syncStatus.logs.length === 0) ? (
+            <div className="text-slate-500 italic h-full flex items-center justify-center">
+              No recent news sync runs recorded in this session. Click "Sync News Feed" to start.
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {syncStatus.logs.map((log, index) => {
+                let lineClass = "text-slate-300";
+                if (log.includes("❌") || log.includes("Error") || log.includes("Failed")) lineClass = "text-rose-400 font-semibold";
+                else if (log.includes("✨") || log.includes("Completed") || log.includes("Saved")) lineClass = "text-emerald-400 font-semibold";
+                else if (log.includes("🔄") || log.includes("Starting") || log.includes("Extracting") || log.includes("🔗")) lineClass = "text-amber-400";
+                return (
+                  <div key={index} className={lineClass}>
+                    {log}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Sync Completed Success Banner */}
       {showSyncSuccessBanner && syncStatus?.last_news_sync && (
