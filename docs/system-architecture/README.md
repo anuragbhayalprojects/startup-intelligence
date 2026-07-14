@@ -51,12 +51,12 @@ graph TD
 
     subgraph AI Gateway & Models
         Gateway[AI Gateway Router]
-        LocalOllama[(Local Ollama Qwen2.5)]
+        LocalOllama[("Local Ollama Qwen2.5")]
         CloudOR[OpenRouter Cloud API]
     end
 
     subgraph Storage & Telemetry
-        DB[(Supabase PostgreSQL)]
+        DB[("Supabase PostgreSQL")]
         RLS[Row Level Security]
         Obs[Observability Traces]
     end

@@ -11,16 +11,16 @@ To prevent duplicate stories from polluting the dashboard, the pipeline runs a h
 ```mermaid
 flowchart TD
     Raw[Raw Ingested Article] --> CheckDB{1. URL Match in DB?}
-    CheckDB -->|Yes| Merge[2. Append Source & Link to Existing Card]
+    CheckDB -->|Yes| Merge["2. Append Source & Link to Existing Card"]
     CheckDB -->|No| Tokenizer[3. Tokenize Headline]
     
-    Tokenizer --> RemoveStop[4. Remove Stopwords & Normalise]
-    RemoveStop --> CalcJaccard[5. Calculate Jaccard Similarity]
+    Tokenizer --> RemoveStop["4. Remove Stopwords & Normalise"]
+    RemoveStop --> CalcJaccard["5. Calculate Jaccard Similarity"]
     
     CalcJaccard --> Threshold{6. Jaccard Score?}
-    Threshold -->|>= 0.60| Merge
-    Threshold -->|< 0.30| SaveNew[7. Save as New Canonical Article]
-    Threshold -->|0.30 to 0.60| LLMCheck{8. LLM Semantic Verify}
+    Threshold -->|">= 0.60"| Merge
+    Threshold -->|"< 0.30"| SaveNew["7. Save as New Canonical Article"]
+    Threshold -->|"0.30 to 0.60"| LLMCheck{8. LLM Semantic Verify}
     
     LLMCheck -->|Same Event Match| Merge
     LLMCheck -->|Different Event| SaveNew

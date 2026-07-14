@@ -12,12 +12,12 @@ Requests flow through a structured controller-service architecture:
 graph TD
     Client[Web Client Request] --> API[1. FastAPI Routing main.py]
     API --> Middleware[2. Latency & Telemetry Middleware]
-    Middleware --> Routers[3. Route Routers backend/api/routes/]
+    Middleware --> Routers["3. Route Routers backend/api/routes/"]
     
     subgraph Route Handlers
-        Routers -->|/news| News[News Sync & Parsing]
-        Routers -->|/startups| Startups[Startup Registries & Assignments]
-        Routers -->|/observability| Obs[Traces, Prompt Ledgers & Logs]
+        Routers -->|"/news"| News["News Sync & Parsing"]
+        Routers -->|"/startups"| Startups["Startup Registries & Assignments"]
+        Routers -->|"/observability"| Obs["Traces, Prompt Ledgers & Logs"]
     end
     
     News --> Proc[4. NewsProcessor Pipeline]

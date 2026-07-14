@@ -13,14 +13,14 @@ This workflow traces the sequence of operations when a user triggers a manual sy
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as Analyst (User)
-    participant UI as React Client (Dashboard)
-    participant API as FastAPI Router (/news/trigger)
+    actor User as "Analyst (User)"
+    participant UI as "React Client (Dashboard)"
+    participant API as "FastAPI Router (/news/trigger)"
     participant Proc as NewsProcessor
     participant Agg as NewsAggregator
     participant Dedup as Deduplicator
-    participant GW as AI Gateway (Ollama/OR)
-    participant DB as Supabase DB
+    participant GW as "AI Gateway (Ollama/OR)"
+    participant DB as "Supabase DB"
 
     User->>UI: Click "Sync News Feed"
     UI->>API: POST /api/news/trigger (selected_sources, limit)
@@ -73,14 +73,14 @@ This workflow traces the sequence of operations when an analyst clicks **"Add & 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as Analyst (User)
-    participant UI as React Client (News Drawer)
-    participant API as FastAPI Router (/resolve-startup)
-    participant DB as Supabase DB
+    actor User as "Analyst (User)"
+    participant UI as "React Client (News Drawer)"
+    participant API as "FastAPI Router (/resolve-startup)"
+    participant DB as "Supabase DB"
     participant Orch as AgentOrchestrator
     participant Discovery as IdentityDiscoveryAgent
     participant Resolution as IdentityResolutionAgent
-    participant Enricher as Parallel Modular Enrichers
+    participant Enricher as "Parallel Modular Enrichers"
 
     User->>UI: Click "Add & Enrich Profile"
     UI->>API: POST /api/news/resolve-startup (startup_name, article_id, enrich=true)

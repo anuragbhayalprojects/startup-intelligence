@@ -10,7 +10,7 @@ Below is the structured execution flow for raw data ingestion to database storag
 
 ```mermaid
 graph TD
-    A[1. News Sources] -->|Crawl Feeds| B[2. RSS / Search Feeds]
+    A[1. News Sources] -->|Crawl Feeds| B["2. RSS / Search Feeds"]
     B -->|Parse XML| C[3. Feed Parser]
     C -->|Identify Link| D[4. Lazy Article Fetch]
     D -->|HTML Parsing| E[5. 9-Layer Paragraph Filter]
@@ -20,13 +20,13 @@ graph TD
     H -->|Isolate Sections| I[9. Startup Name Discovery]
     I -->|Identify Mentions| J[10. Unresolved Mentions Registry]
     J -->|Synchronous Link| K[11. Identity Discovery Search]
-    K -->|Candidate List| L[12. Website & Domain Resolution]
+    K -->|Candidate List| L["12. Website & Domain Resolution"]
     L -->|Validate URL| M[13. Playwright Dynamic Crawl]
     M -->|Extract HTML Text| N[14. Identity Resolution Verification]
     N -->|Calculate Confidence| O[15. Parallel Modular Enrichment]
-    O -->|Group Results| P[16. Taxonomy & Industry Mapping]
+    O -->|Group Results| P["16. Taxonomy & Industry Mapping"]
     P -->|Canonical Classification| Q[17. Deterministic Scoring Rubric]
-    Q -->|Compute Scores| R[18. News/Digest Linkage]
+    Q -->|Compute Scores| R["18. News/Digest Linkage"]
     R -->|Dual-Write Tables| S[19. Supabase Storage]
     S -->|Real-Time Channel| T[20. Frontend Dashboard UI]
 ```

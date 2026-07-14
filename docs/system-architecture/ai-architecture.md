@@ -20,13 +20,13 @@ flowchart TD
     
     subgraph Cloud Failover Loop
         LocalRetry -->|Failover Trigger| Cloud[6. OpenRouter API]
-        Cloud -->|Anthropic/Claude / OpenAI| CloudRetry[7. Cloud Retry Loop]
+        Cloud -->|"Anthropic/Claude / OpenAI"| CloudRetry[7. Cloud Retry Loop]
     end
     
     Ollama -->|Success| Verify[8. Response Validator]
     Cloud -->|Success| Verify
     
-    Verify -->|Invalid JSON / Formatting Schema| RetryGen[9. Self-Correction Loop]
+    Verify -->|"Invalid JSON / Formatting Schema"| RetryGen[9. Self-Correction Loop]
     RetryGen -->|Regenerate Prompt| Router
     
     Verify -->|Valid JSON| Persist[10. Write Prompt Ledger]
