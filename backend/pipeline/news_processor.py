@@ -20,25 +20,39 @@ from bs4 import BeautifulSoup
 logger = logging.getLogger("startup_intelligence.pipeline.news_processor")
 
 def fetch_full_article_content(url: str) -> str:
-    """Fetches the target URL, parses its HTML, and extracts clean, formatted paragraph text using shared context validator."""
+    """Fetches the target URL and extracts clean, boilerplate-free paragraph text.
+    
+    Applies the full 9-layer content filter pipeline from context_validator.py:
+    - CSS scoping, blocked phrases/patterns, disclaimer detection,
+      author bio detection, CTA detection, position heuristics, and paragraph cap.
+    """
     if not url:
         return ""
     try:
         from backend.scrapers.common.context_validator import extract_clean_paragraphs
+        from bs4 import BeautifulSoup
         headers = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
         response = requests.get(url, headers=headers, timeout=10)
         if response.status_code != 200:
             return ""
-            
+
+        # Count raw <p> tags for diagnostic logging
+        soup = BeautifulSoup(response.text, "html.parser")
+        raw_count = len(soup.find_all("p"))
+
         paragraphs = extract_clean_paragraphs(response.text)
         if paragraphs:
+            logger.info(f"Content extraction: {raw_count} raw <p> tags → {len(paragraphs)} clean paragraphs kept (URL: {url})")
             return "\n\n".join(paragraphs)
+        else:
+            logger.warning(f"No clean paragraphs extracted from {url} ({raw_count} raw tags found)")
     except Exception as e:
         logger.warning(f"Failed to scrape full content for {url}: {e}")
         
     return ""
+
 
 
 
