@@ -207,7 +207,7 @@ export default function NewsDashboard({ apiUrl, onSelectStartupByName }: NewsDas
     
     const checkStatus = async () => {
       try {
-        const res = await fetch(`${apiUrl}/scrape/status`);
+        const res = await fetch(`${apiUrl}/news/sync/status`);
         if (res.ok) {
           const data = await res.json();
           

@@ -17,6 +17,8 @@ import requests
 import re
 from bs4 import BeautifulSoup
 
+logger = logging.getLogger("startup_intelligence.pipeline.news_processor")
+
 def fetch_full_article_content(url: str) -> str:
     """Fetches the target URL, parses its HTML, and extracts clean, formatted paragraph text using shared context validator."""
     if not url:
@@ -55,29 +57,36 @@ def is_ingestion_aborted() -> bool:
 
 
 class NewsProcessor:
-    def __init__(self, silent: bool = False):
+    def __init__(self, silent: bool = False, log_fn=None, status_fn=None):
+        """Initialize the news processor.
+        
+        Args:
+            silent: Suppress all logging/status updates (used by scheduler).
+            log_fn: Optional callable(msg: str) for writing log lines.
+            status_fn: Optional callable(**kwargs) for updating sync status.
+        """
         self.aggregator = NewsAggregator()
         self.deduplicator = Deduplicator()
         self.silent = silent
+        self._log_fn = log_fn
+        self._status_fn = status_fn
 
     def add_log(self, msg: str):
-        """Safely logs message to console and global SCRAPE_STATUS logs."""
+        """Logs message to console and invokes the injected log callback if set."""
         logger.info(msg)
-        if self.silent:
+        if self.silent or self._log_fn is None:
             return
         try:
-            from backend.api.routes.startups import add_scrape_log
-            add_scrape_log(msg)
+            self._log_fn(msg)
         except Exception:
             pass
 
     def update_status(self, current_step: str = None, discovered_increment: int = 0, processed_name: str = None, active: bool = None, last_news_sync: dict = None):
-        """Safely updates global SCRAPE_STATUS parameters."""
-        if self.silent:
+        """Invokes the injected status callback if set."""
+        if self.silent or self._status_fn is None:
             return
         try:
-            from backend.api.routes.startups import update_scrape_status
-            update_scrape_status(current_step, discovered_increment, processed_name, active, last_news_sync)
+            self._status_fn(current_step=current_step, discovered_increment=discovered_increment, active=active, last_news_sync=last_news_sync)
         except Exception:
             pass
 

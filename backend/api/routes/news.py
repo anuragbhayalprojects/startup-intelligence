@@ -19,7 +19,47 @@ from backend.pipeline.news_processor import NewsProcessor
 from backend.services.email_service import dispatch_gmail_digest
 from backend.utils.tracing import generate_trace_id, set_trace_id, log_trace
 
+import threading
+from datetime import datetime
+
 router = APIRouter(prefix="/news", tags=["news"])
+
+# Thread-safe global news sync status for real-time console feedback
+NEWS_SYNC_STATUS = {
+    "active": False,
+    "current_step": "Idle",
+    "logs": [],
+    "discovered_count": 0,
+    "last_news_sync": None
+}
+news_status_lock = threading.Lock()
+
+def add_news_sync_log(message: str):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_line = f"[{timestamp}] {message}"
+    print(log_line)
+    with news_status_lock:
+        NEWS_SYNC_STATUS["logs"].append(log_line)
+        if len(NEWS_SYNC_STATUS["logs"]) > 200:
+            NEWS_SYNC_STATUS["logs"].pop(0)
+
+def update_news_sync_status(current_step: str = None, discovered_increment: int = 0, active: bool = None, last_news_sync: dict = None):
+    with news_status_lock:
+        if current_step is not None:
+            NEWS_SYNC_STATUS["current_step"] = current_step
+        if active is not None:
+            NEWS_SYNC_STATUS["active"] = active
+        if discovered_increment > 0:
+            NEWS_SYNC_STATUS["discovered_count"] += discovered_increment
+        if last_news_sync is not None:
+            NEWS_SYNC_STATUS["last_news_sync"] = last_news_sync
+
+@router.get("/sync/status")
+def get_news_sync_status():
+    """Returns the current news sync logs and active execution status."""
+    with news_status_lock:
+        return NEWS_SYNC_STATUS
+
 
 
 class CustomSourcePayload(BaseModel):
@@ -124,14 +164,19 @@ def _run_ingestion_async(limit_per_source: Optional[int], sources_filter: Option
     log_trace(startup_name="Global News Aggregator", article_url=None)
     
     try:
-        processor = NewsProcessor()
+        # Pass callbacks directly to avoid circular import issues
+        processor = NewsProcessor(
+            log_fn=add_news_sync_log,
+            status_fn=update_news_sync_status
+        )
         if not limit_per_source:
             from backend.pipeline.scheduler import load_scheduler_config
             config = load_scheduler_config()
             limit_per_source = config.get("max_articles_per_source_run", 5)
         processor.run_ingestion_pipeline(limit_per_source=limit_per_source, sources_filter=sources_filter)
     except Exception as e:
-        print(f"❌ Background manual scraper trigger failed: {e}")
+        add_news_sync_log(f"❌ Background manual scraper trigger failed: {e}")
+        update_news_sync_status(current_step="Failed", active=False)
 
 
 @router.post("/trigger")
@@ -140,15 +185,17 @@ def trigger_news_ingestion(
     payload: Optional[TriggerIngestionPayload] = Body(default=None)
 ):
     """Manually triggers the news ingestion pipeline scraper in the background."""
+    if NEWS_SYNC_STATUS["active"]:
+        raise HTTPException(status_code=400, detail="A news sync is already active. Please wait for it to complete.")
+
     limit = payload.limit_per_source if payload else None
     sources = payload.sources if payload else None
     
-    # Mark status as active immediately to provide instant UI console feedback
-    try:
-        from backend.api.routes.startups import update_scrape_status
-        update_scrape_status(current_step="Initiating news feed sync...", active=True)
-    except Exception:
-        pass
+    with news_status_lock:
+        NEWS_SYNC_STATUS["active"] = True
+        NEWS_SYNC_STATUS["current_step"] = "Initiating news feed sync..."
+        NEWS_SYNC_STATUS["logs"] = []
+        NEWS_SYNC_STATUS["discovered_count"] = 0
         
     background_tasks.add_task(_run_ingestion_async, limit, sources)
     return {
@@ -162,12 +209,8 @@ def abort_news_ingestion():
     """Interrupts and stops any running news sync ingestion."""
     from backend.pipeline.news_processor import set_ingestion_aborted
     set_ingestion_aborted(True)
-    try:
-        from backend.api.routes.startups import add_scrape_log, update_scrape_status
-        add_scrape_log("🛑 User requested manual sync cancellation.")
-        update_scrape_status(current_step="Idle (Interrupted)", active=False)
-    except Exception:
-        pass
+    add_news_sync_log("🛑 User requested manual sync cancellation.")
+    update_news_sync_status(current_step="Idle (Interrupted)", active=False)
     return {"status": "success", "message": "Interruption request sent."}
 
 
