@@ -43,16 +43,17 @@ EXTRACTION & DESCRIPTION RULES:
 
 OUTPUT FORMAT:
 Return ONLY a valid JSON object. No explanation, no markdown prose outside the JSON block.
+Do NOT copy or repeat any values from this example — generate new values based solely on the article above.
 
 ```json
 {
   "startups": [
     {
-      "name": "ExampleStartup",
-      "description": "ExampleStartup secured $10 million in a funding round led by Peak XV. The funds will be utilized to expand its services across Tier 1 and Tier 2 cities in India."
+      "name": "<STARTUP_NAME>",
+      "description": "<2-3 sentence factual description of what happened to this startup in the article.>"
     }
   ],
-  "ai_summary": "• ExampleStartup announced the successful closure of a $10M Series A round.\n• The funding will be deployed to establish operations in 15 new regional tech corridors.\n• Key areas of development include automated claim processing models and merchant dashboard tools."
+  "ai_summary": "<100-150 word factual summary of the article. Write plain prose sentences. Do NOT use markdown dashes (- ) or asterisks. Use bullet symbol • only if listing multiple distinct points. Do not invent facts not present in the article.>"
 }
 ```
 
@@ -60,6 +61,6 @@ If nothing qualifies, return:
 ```json
 {
   "startups": [],
-  "ai_summary": "A clean, bulleted ~100-150 word summary of the news article context, focused on key takeaways and corporate actions."
+  "ai_summary": "<100-150 word plain-prose summary of the article's key facts and takeaways.>"
 }
 ```

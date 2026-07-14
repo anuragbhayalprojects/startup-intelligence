@@ -132,16 +132,30 @@ export default function NewsDrawer({ article, onClose, onSelectStartupByName }: 
           )}
 
           {/* AI Summary Section */}
-          {article.summary && (
-            <div className="bg-slate-50 p-5 rounded-xl border border-slate-100 space-y-2.5">
-              <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                <Sparkles className="text-amber-500" size={14} /> AI Executive Summary
-              </h4>
-              <p className="text-xs text-slate-655 text-slate-700 leading-relaxed font-medium">
-                {article.summary}
-              </p>
-            </div>
-          )}
+          {article.summary && (() => {
+            // Split on newlines, strip leading bullet markers, filter empty lines
+            const summaryLines = article.summary
+              .split("\n")
+              .map((l: string) => l.replace(/^[\s•\-\*]+/, "").trim())
+              .filter((l: string) => l.length > 0);
+            return (
+              <div className="bg-slate-50 p-5 rounded-xl border border-slate-100 space-y-2.5">
+                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                  <Sparkles className="text-amber-500" size={14} /> AI Executive Summary
+                </h4>
+                <div className="space-y-1.5">
+                  {summaryLines.map((line: string, idx: number) => (
+                    <p key={idx} className="text-xs text-slate-700 leading-relaxed font-medium flex items-start gap-1.5">
+                      <span className="text-amber-400 mt-0.5 shrink-0">•</span>
+                      <span>{line}</span>
+                    </p>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
+
 
           {/* Similar Sources (Duplicates merged) */}
           {article.similar_sources && article.similar_sources.length > 0 && (

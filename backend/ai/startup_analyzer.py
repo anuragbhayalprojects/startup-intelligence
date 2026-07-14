@@ -109,21 +109,56 @@ def discover_startup_names(headline: str, paragraphs) -> list[dict]:
             else:
                 continue
                 
-            if isinstance(name, str) and name.strip() and name.lower() not in ("none", "examplestartup", "acmecorp", "example startup", "acme corp"):
+            if isinstance(name, str) and name.strip() and name.lower() not in ("none", "examplestartup", "acmecorp", "example startup", "acme corp", "<startup_name>"):
                 clean_list.append({
                     "name": name.strip(),
-                    "description": desc.strip()
+                    "description": _clean_summary(desc)
                 })
                 
         print(f"✨ [Pass 1] Extracted {len(clean_list)} startups: {[item['name'] for item in clean_list]}")
         return {
             "startups": clean_list,
-            "ai_summary": ai_summary_str.strip()
+            "ai_summary": _clean_summary(ai_summary_str)
         }
     except Exception as e:
         print(f"⚠️ [Pass 1] Name discovery failed: {e}")
         
     return {"startups": [], "ai_summary": ""}
+
+
+def _clean_summary(text: str) -> str:
+    """Strips LLM formatting artifacts from summary/description text:
+    - Removes markdown bullet dashes '- ' at line starts
+    - Removes angle-bracket schema placeholders like <STARTUP_NAME>
+    - Removes example placeholder text that leaked from the prompt
+    """
+    if not text or not isinstance(text, str):
+        return ""
+    
+    import re
+    
+    # Guard: if output looks like a schema placeholder, discard it
+    if text.strip().startswith("<") and text.strip().endswith(">"):
+        return ""
+    
+    # Guard: if it contains known example placeholder markers, discard it
+    example_markers = ["ExampleStartup", "<STARTUP_NAME>", "A clean, bulleted", "100-150 word"]
+    if any(marker.lower() in text.lower() for marker in example_markers):
+        return ""
+    
+    lines = text.split("\n")
+    cleaned_lines = []
+    for line in lines:
+        # Strip leading markdown dash bullets: "- text" → "text"
+        line = re.sub(r"^\s*[-*]\s+", "", line)
+        # Strip leading asterisk-bold: "**text**" → "text"  
+        line = re.sub(r"\*\*(.*?)\*\*", r"\1", line)
+        # Strip remaining standalone asterisks
+        line = line.replace("**", "").replace("*", "")
+        cleaned_lines.append(line)
+    
+    return "\n".join(cleaned_lines).strip()
+
 
 # --- News Summary: Startup-Specific News Snippet Generation ---
 
