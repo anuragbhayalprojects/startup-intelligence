@@ -88,6 +88,32 @@ export default function NewsDashboard({ apiUrl, onSelectStartupByName }: NewsDas
   // Drawer state
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
 
+  // Read/Unread state
+  const [readArticleIds, setReadArticleIds] = useState<number[]>(() => {
+    try {
+      const saved = localStorage.getItem("read_news_article_ids");
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const handleOpenArticle = (art: NewsArticle) => {
+    setSelectedArticle(art);
+    if (!readArticleIds.includes(art.id)) {
+      const updated = [...readArticleIds, art.id];
+      setReadArticleIds(updated);
+      localStorage.setItem("read_news_article_ids", JSON.stringify(updated));
+    }
+  };
+
+  const handleMarkAllRead = () => {
+    const allIds = articles.map(a => a.id);
+    const uniqueRead = Array.from(new Set([...readArticleIds, ...allIds]));
+    setReadArticleIds(uniqueRead);
+    localStorage.setItem("read_news_article_ids", JSON.stringify(uniqueRead));
+  };
+
   // Filters State
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState("");
@@ -471,7 +497,16 @@ export default function NewsDashboard({ apiUrl, onSelectStartupByName }: NewsDas
           </div>
           
           {/* Active Filter Badges */}
-          <div className="md:col-span-3 flex items-end justify-end pb-1.5">
+          <div className="md:col-span-3 flex items-end justify-end pb-1.5 gap-2">
+            {articles.length > 0 && articles.some(a => !readArticleIds.includes(a.id)) && (
+              <button
+                onClick={handleMarkAllRead}
+                className="text-[10px] bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold px-3 py-1.5 rounded-lg border border-amber-200/70 cursor-pointer transition-colors flex items-center gap-1 shadow-sm"
+              >
+                ✓ Mark all as read
+              </button>
+            )}
+
             {(search || sourceFilter || categoryFilter || industryFilter || startupFilter || fromDate || toDate) && (
               <button
                 onClick={() => {
@@ -511,20 +546,28 @@ export default function NewsDashboard({ apiUrl, onSelectStartupByName }: NewsDas
               const pubDate = art.published_at ? new Date(art.published_at) : new Date();
               const dateStr = pubDate.toLocaleDateString(undefined, { day: "numeric", month: "short" });
               const timeStr = pubDate.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+              const isUnread = !readArticleIds.includes(art.id);
 
               return (
                 <div
                   key={art.id}
-                  onClick={() => setSelectedArticle(art)}
-                  className="p-5 flex items-start gap-5 hover:bg-slate-50/50 cursor-pointer transition-all hover:pl-6 text-left group"
+                  onClick={() => handleOpenArticle(art)}
+                  className={`p-5 flex items-start gap-5 hover:bg-slate-50/50 cursor-pointer transition-all hover:pl-6 text-left group border-l-2 ${
+                    isUnread ? "bg-amber-50/15 border-l-amber-500 pl-6" : "border-l-transparent"
+                  }`}
                 >
                   {/* Left Column: Date & Time */}
-                  <div className="w-24 shrink-0 text-left">
-                    <p className="text-xs font-bold text-slate-900 font-mono tracking-tight">{dateStr}</p>
-                    <p className="text-[10px] text-slate-400 font-mono mt-0.5">{timeStr}</p>
-                    <span className="inline-block mt-2 text-[9px] bg-slate-100 text-slate-500 font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
-                      {art.category.replace("_", " ")}
-                    </span>
+                  <div className="w-24 shrink-0 text-left flex items-start gap-1.5">
+                    {isUnread && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse mt-1 shrink-0" title="Unread" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs font-bold font-mono tracking-tight ${isUnread ? "text-amber-800" : "text-slate-900"}`}>{dateStr}</p>
+                      <p className="text-[10px] text-slate-400 font-mono mt-0.5">{timeStr}</p>
+                      <span className="inline-block mt-2 text-[9px] bg-slate-100 text-slate-500 font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
+                        {art.category.replace("_", " ")}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Middle Column: Headline, Summary, Mentions */}
@@ -596,20 +639,30 @@ export default function NewsDashboard({ apiUrl, onSelectStartupByName }: NewsDas
                         <SourceLogo source={art.source} url={art.source_url} />
                       </a>
                       
-                      {/* Similar Sources */}
-                      {art.similar_sources && art.similar_sources.map((sim, sIdx) => (
-                        <a
-                          key={sIdx}
-                          href={sim.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          title={`Similar Coverage: ${sim.source}`}
-                          className="bg-slate-50 hover:bg-slate-100 border border-slate-200/80 rounded-lg p-1.5 flex items-center justify-center transition-colors shadow-sm"
-                        >
-                          <SourceLogo source={sim.source} url={sim.url} />
-                        </a>
-                      ))}
+                      {/* Similar Sources (Deduplicated by publisher name) */}
+                      {(() => {
+                        const renderedSources = new Set<string>([art.source.toLowerCase()]);
+                        return art.similar_sources && art.similar_sources.filter(sim => {
+                          const srcLower = sim.source.toLowerCase();
+                          if (renderedSources.has(srcLower)) {
+                            return false;
+                          }
+                           renderedSources.add(srcLower);
+                           return true;
+                        }).map((sim, sIdx) => (
+                          <a
+                            key={sIdx}
+                            href={sim.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            title={`Similar Coverage: ${sim.source}`}
+                            className="bg-slate-50 hover:bg-slate-100 border border-slate-200/80 rounded-lg p-1.5 flex items-center justify-center transition-colors shadow-sm"
+                          >
+                            <SourceLogo source={sim.source} url={sim.url} />
+                          </a>
+                        ));
+                      })()}
                     </div>
                     
                     <span className="text-slate-350 group-hover:text-amber-500 transition-colors flex items-center gap-1 text-[11px] font-semibold">
