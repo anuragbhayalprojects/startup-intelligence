@@ -212,10 +212,23 @@ export default function NewsDashboard({ apiUrl, onSelectStartupByName }: NewsDas
           const data = await res.json();
           
           setSyncStatus(prev => {
-            // Show success banner if a new sync completed log is received
-            if (data.last_news_sync && (!prev?.last_news_sync || prev.last_news_sync.completed_at !== data.last_news_sync.completed_at)) {
-              setShowSyncSuccessBanner(true);
-              fetchArticles();
+            if (data.last_news_sync) {
+              const lastSeenTimestamp = localStorage.getItem("news_last_seen_sync_completed_at");
+              
+              // If we have a completed sync and either:
+              // 1. We haven't recorded any seen timestamp (initial page visit/clear state)
+              // 2. The completed sync timestamp is newer/different from what we have seen
+              if (lastSeenTimestamp) {
+                if (data.last_news_sync.completed_at !== lastSeenTimestamp) {
+                  setShowSyncSuccessBanner(true);
+                  localStorage.setItem("news_last_seen_sync_completed_at", data.last_news_sync.completed_at);
+                  fetchArticles();
+                }
+              } else {
+                // On very first load of the application, mark the existing completed sync as seen
+                // so it does not pop up retrospectively on reload.
+                localStorage.setItem("news_last_seen_sync_completed_at", data.last_news_sync.completed_at);
+              }
             }
             return data;
           });
@@ -230,6 +243,7 @@ export default function NewsDashboard({ apiUrl, onSelectStartupByName }: NewsDas
 
     return () => clearInterval(intervalId);
   }, []);
+
 
   // Scraper Trigger
   const handleTriggerScraper = async (selectedSources: string[], articleLimit: number) => {
