@@ -103,6 +103,44 @@ class Deduplicator:
             logger.warning(f"DB duplicate check failed: {e}")
         return False
 
+    def check_semantic_database_duplicate(self, incoming: Dict[str, Any], days_limit: int = 7) -> Dict[str, Any] | None:
+        """
+        Compares the incoming article against recent articles in the database.
+        Returns the matched database article row if a duplicate is found, so it can be merged.
+        """
+        try:
+            from datetime import datetime, timedelta, timezone
+            cutoff_date = (datetime.now(timezone.utc) - timedelta(days=days_limit)).isoformat()
+            
+            # Fetch recent articles from Supabase
+            res = supabase.table("news_articles") \
+                .select("id, headline, source, source_url, published_at, similar_sources, summary, content") \
+                .gte("published_at", cutoff_date) \
+                .execute()
+                
+            recent_articles = res.data or []
+            
+            for db_art in recent_articles:
+                similarity = calculate_jaccard_similarity(incoming["headline"], db_art["headline"])
+                
+                # High Jaccard similarity: matched!
+                if similarity >= 0.75:
+                    logger.info(f"DB Match (Jaccard {similarity:.2f}): '{incoming['headline']}' matches DB '{db_art['headline']}'")
+                    return db_art
+                    
+                # Moderate Jaccard similarity: verify context semantically via Ollama
+                elif similarity >= 0.35:
+                    ctx1 = incoming.get("description") or incoming.get("content") or ""
+                    ctx2 = db_art.get("summary") or db_art.get("content") or ""
+                    
+                    if are_contexts_describing_same_event(incoming["headline"], ctx1, db_art["headline"], ctx2):
+                        logger.info(f"✅ DB Match (Semantic LLM): '{incoming['headline']}' matches DB '{db_art['headline']}'")
+                        return db_art
+        except Exception as e:
+            logger.warning(f"Error checking semantic DB duplicate: {e}")
+            
+        return None
+
     def cluster_and_deduplicate(self, articles: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Deduplicates incoming articles by:

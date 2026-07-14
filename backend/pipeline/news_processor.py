@@ -76,6 +76,50 @@ class NewsProcessor:
                 description = art["description"]
                 content = art["content"]
                 
+                # Check if this incoming canonical story is a semantic duplicate of a database article
+                db_dup = self.deduplicator.check_semantic_database_duplicate(art)
+                if db_dup:
+                    self.add_log(f"🔗 Match found in DB for duplicate coverage: '{headline}'. Appending new source logo.")
+                    # Format incoming article and its similar sources to append
+                    incoming_sources = [{
+                        "source": art["source"],
+                        "headline": art["headline"],
+                        "url": art["source_url"],
+                        "published_at": art["published_at"],
+                        "description": art.get("description", ""),
+                        "content": art.get("content", "")
+                    }]
+                    for sim in art.get("similar_sources", []):
+                        incoming_sources.append({
+                            "source": sim["source"],
+                            "headline": sim["headline"],
+                            "url": sim["url"],
+                            "published_at": sim["published_at"],
+                            "description": sim.get("description", ""),
+                            "content": sim.get("content", "")
+                        })
+                    
+                    # Merge with existing similar sources in database
+                    existing_sources = db_dup.get("similar_sources") or []
+                    if not isinstance(existing_sources, list):
+                        existing_sources = []
+                    
+                    # Add incoming sources if they are not already in existing_sources (deduplicated by URL)
+                    existing_urls = {x.get("url") for x in existing_sources}
+                    for inc_src in incoming_sources:
+                        if inc_src.get("url") and inc_src.get("url") not in existing_urls:
+                            existing_sources.append(inc_src)
+                            
+                    # Update database row in news_articles
+                    from backend.services.supabase_service import supabase
+                    supabase.table("news_articles").update({
+                        "similar_sources": existing_sources
+                    }).eq("id", db_dup["id"]).execute()
+                    
+                    saved_count += 1
+                    self.update_status(discovered_increment=1)
+                    continue
+
                 self.update_status(current_step=f"Processing {idx + 1}/{len(canonical_articles)}: {headline[:40]}...")
                 self.add_log(f"Extracting startup mentions from: '{headline}'")
                 paragraphs = [content] if content else [description]
