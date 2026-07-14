@@ -21,7 +21,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 SCHEDULER_CONFIG_PATH = os.path.join(PROJECT_ROOT, "backend", "config", "scheduler.json")
 
 # In-memory execution states to prevent duplicate trigger loops
-_LAST_POLL_TIME: Optional[datetime] = None
+_LAST_POLL_TIME: datetime = datetime.now(timezone.utc)
 _SENT_DIGESTS_TODAY: set[str] = set()  # set of keys: "YYYY-MM-DD:HH:MM"
 
 
@@ -88,7 +88,7 @@ async def scheduler_loop():
 def _run_processor_sync():
     """Sync wrapper to execute pipeline runs inside threads."""
     try:
-        processor = NewsProcessor()
+        processor = NewsProcessor(silent=True)
         # Cap articles per source to avoid overloading Ollama on local loops
         processor.run_ingestion_pipeline(limit_per_source=3)
     except Exception as e:

@@ -17,13 +17,16 @@ logger = logging.getLogger("startup_intelligence.pipeline.news_processor")
 
 
 class NewsProcessor:
-    def __init__(self):
+    def __init__(self, silent: bool = False):
         self.aggregator = NewsAggregator()
         self.deduplicator = Deduplicator()
+        self.silent = silent
 
     def add_log(self, msg: str):
         """Safely logs message to console and global SCRAPE_STATUS logs."""
         logger.info(msg)
+        if self.silent:
+            return
         try:
             from backend.api.routes.startups import add_scrape_log
             add_scrape_log(msg)
@@ -32,6 +35,8 @@ class NewsProcessor:
 
     def update_status(self, current_step: str = None, discovered_increment: int = 0, processed_name: str = None, active: bool = None, last_news_sync: dict = None):
         """Safely updates global SCRAPE_STATUS parameters."""
+        if self.silent:
+            return
         try:
             from backend.api.routes.startups import update_scrape_status
             update_scrape_status(current_step, discovered_increment, processed_name, active, last_news_sync)
