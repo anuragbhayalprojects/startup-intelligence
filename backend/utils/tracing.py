@@ -52,7 +52,18 @@ def _safe_supabase_insert(table_name: str, payload: dict):
     """Safely attempts to insert a record into Supabase, logging errors instead of raising."""
     trace_id = get_trace_id()
     if not trace_id:
-        return None
+        trace_id = generate_trace_id()
+        set_trace_id(trace_id)
+        # Create a root trace record in Supabase so foreign keys in other tables are satisfied
+        try:
+            from backend.services.supabase_service import supabase
+            supabase.table("obs_traces").insert({
+                "trace_id": trace_id,
+                "startup_name": "NewsIngestion",
+                "article_url": "Sync Feed"
+            }).execute()
+        except Exception as e:
+            logger.warning(f"Failed to automatically create root trace record: {e}")
         
     payload["trace_id"] = trace_id
     
