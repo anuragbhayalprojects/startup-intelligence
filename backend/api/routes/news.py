@@ -157,6 +157,22 @@ def trigger_news_ingestion(
     }
 
 
+@router.post("/abort")
+def abort_news_ingestion():
+    """Interrupts and stops any running news sync ingestion."""
+    from backend.pipeline.news_processor import set_ingestion_aborted
+    set_ingestion_aborted(True)
+    try:
+        from backend.api.routes.startups import add_scrape_log, update_scrape_status
+        add_scrape_log("🛑 User requested manual sync cancellation.")
+        update_scrape_status(current_step="Idle (Interrupted)", active=False)
+    except Exception:
+        pass
+    return {"status": "success", "message": "Interruption request sent."}
+
+
+
+
 def _run_digest_async(edition: str):
     """Runs the email digest in a background worker context."""
     dispatch_gmail_digest(edition)

@@ -253,6 +253,15 @@ export default function NewsDashboard({ apiUrl, onSelectStartupByName }: NewsDas
     }
   };
 
+  const handleAbortSync = async () => {
+    try {
+      await fetch(`${apiUrl}/news/abort`, { method: "POST" });
+      setShowSyncSuccessBanner(false);
+    } catch (e) {
+      console.error("Failed to abort news ingestion:", e);
+    }
+  };
+
   // Digest Trigger
   const handleTriggerDigest = async (edition: string) => {
     setSendingDigest(true);
@@ -340,17 +349,25 @@ export default function NewsDashboard({ apiUrl, onSelectStartupByName }: NewsDas
 
       {/* Sync Active Progress Banner */}
       {syncStatus?.active && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 shadow-sm animate-pulse" id="sync-active-banner">
-          <Loader2 className="text-amber-500 animate-spin mt-0.5 shrink-0" size={18} />
-          <div className="flex-1 min-w-0">
-            <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wider">Sync Ingestion Active</h4>
-            <p className="text-sm text-amber-700 font-medium mt-1">
-              Currently running: <span className="font-bold underline">{syncStatus.current_step}</span>
-            </p>
-            <p className="text-xs text-amber-600/80 mt-1">
-              Startup mentions resolved so far in this run: <span className="font-bold">{syncStatus.discovered_count}</span>
-            </p>
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start justify-between gap-3 shadow-sm animate-pulse" id="sync-active-banner">
+          <div className="flex items-start gap-3">
+            <Loader2 className="text-amber-500 animate-spin mt-0.5 shrink-0" size={18} />
+            <div className="flex-1 min-w-0">
+              <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wider">Sync Ingestion Active</h4>
+              <p className="text-sm text-amber-700 font-medium mt-1">
+                Currently running: <span className="font-bold underline">{syncStatus.current_step}</span>
+              </p>
+              <p className="text-xs text-amber-600/80 mt-1">
+                Startup mentions resolved so far in this run: <span className="font-bold">{syncStatus.discovered_count}</span>
+              </p>
+            </div>
           </div>
+          <button
+            onClick={handleAbortSync}
+            className="bg-rose-600 hover:bg-rose-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold shadow-sm transition-all cursor-pointer border-0 shrink-0"
+          >
+            🛑 Interrupt
+          </button>
         </div>
       )}
 

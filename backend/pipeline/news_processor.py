@@ -56,6 +56,17 @@ def fetch_full_article_content(url: str) -> str:
 
 
 
+_INGESTION_ABORTED = False
+
+def set_ingestion_aborted(val: bool):
+    global _INGESTION_ABORTED
+    _INGESTION_ABORTED = val
+
+def is_ingestion_aborted() -> bool:
+    global _INGESTION_ABORTED
+    return _INGESTION_ABORTED
+
+
 class NewsProcessor:
     def __init__(self, silent: bool = False):
         self.aggregator = NewsAggregator()
@@ -88,6 +99,7 @@ class NewsProcessor:
         Runs the full ingestion, deduplication, and startup mapping flow.
         Reuses the existing Startup Intelligence pipeline where appropriate.
         """
+        set_ingestion_aborted(False)
         self.add_log("Starting Startup News Ingestion Pipeline...")
         self.update_status(current_step="Fetching RSS sources...", active=True)
         
@@ -111,6 +123,12 @@ class NewsProcessor:
 
         # 3. Process each canonical story
         for idx, art in enumerate(canonical_articles):
+            if is_ingestion_aborted():
+                self.add_log("🛑 Ingestion pipeline interrupted by user. Stopping execution...")
+                self.update_status(current_step="Idle (Interrupted)", active=False)
+                set_ingestion_aborted(False)
+                return {"status": "interrupted", "processed_count": idx, "saved_count": saved_count}
+                
             try:
                 headline = art["headline"]
                 description = art["description"]
