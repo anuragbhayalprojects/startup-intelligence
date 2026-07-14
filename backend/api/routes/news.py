@@ -316,6 +316,12 @@ async def resolve_startup_from_news(
     if existing:
         startup_id = existing["id"]
         website = existing.get("website", "")
+        # If enriching, update status to Enriching to flag background processing in the database
+        if payload.enrich:
+            try:
+                supabase.table("startups").update({"status": "Enriching"}).eq("id", startup_id).execute()
+            except Exception as e:
+                print(f"Failed to update status to Enriching for existing startup: {e}")
     else:
         # Create a basic startup registry record
         ins = {
@@ -327,7 +333,8 @@ async def resolve_startup_from_news(
             "subsector": "Unknown",
             "funding_stage": "Unknown",
             "business_models": [],
-            "country": "India"
+            "country": "India",
+            "status": "Enriching" if payload.enrich else "Screening"
         }
         resp = supabase.table("startups").insert(ins).execute()
         if not resp.data:
@@ -336,7 +343,23 @@ async def resolve_startup_from_news(
         website = ""
         assign_fprs_for_startup(startup_id)
         
-    # 3. Handle enrichment vs basic insertion
+    # Synchronously update mentions in news_articles immediately so the UI reflects the change instantly
+    _update_news_articles_mentions(payload.startup_name, startup_id, website)
+    
+    # Synchronously link this article to the startup news history immediately
+    try:
+        save_startup_news(
+            startup_id=startup_id,
+            headline=art["headline"],
+            summary=art.get("summary") or art.get("description") or "",
+            source=art["source"],
+            source_url=art["source_url"],
+            published_at=art["published_at"]
+        )
+    except Exception as e:
+        print(f"Failed to link news event: {e}")
+
+    # 3. Handle background enrichment task if chosen
     if payload.enrich:
         background_tasks.add_task(
             _enrich_single_startup_async,
@@ -347,21 +370,7 @@ async def resolve_startup_from_news(
             art["source"],
             art["source_url"]
         )
-    else:
-        # Update mentions in news_articles
-        _update_news_articles_mentions(payload.startup_name, startup_id, website)
-        # Link this article to the startup history in startup_news table
-        try:
-            save_startup_news(
-                startup_id=startup_id,
-                headline=art["headline"],
-                summary=art.get("summary") or art.get("description") or "",
-                source=art["source"],
-                source_url=art["source_url"],
-                published_at=art["published_at"]
-            )
-        except Exception as e:
-            print(f"Failed to link news event: {e}")
+
             
     return {
         "status": "success",
