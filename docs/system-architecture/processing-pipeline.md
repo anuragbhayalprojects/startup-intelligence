@@ -9,21 +9,27 @@ This document explains the processing pipeline, covering headline deduplication 
 To prevent duplicate stories from polluting the dashboard, the pipeline runs a hybrid (syntactic + semantic) deduplication process inside `backend/pipeline/deduplicator.py`:
 
 ```mermaid
-flowchart TD
-    Raw[Raw Ingested Article] --> CheckDB{1. URL Match in DB?}
-    CheckDB -->|Yes| Merge["2. Append Source & Link to Existing Card"]
-    CheckDB -->|No| Tokenizer[3. Tokenize Headline]
+flowchart TB
+    subgraph Verification["Phase 1: DB Lookup & Matching"]
+        Raw["Raw Ingested Article"] --> CheckDB{1. URL Match in DB?}
+        CheckDB -->|Yes| Merge["2. Append Source & Link to Existing Card"]
+        CheckDB -->|No| Tokenizer["3. Tokenize Headline"]
+    end
     
-    Tokenizer --> RemoveStop["4. Remove Stopwords & Normalise"]
-    RemoveStop --> CalcJaccard["5. Calculate Jaccard Similarity"]
+    subgraph JaccardCheck["Phase 2: Syntactic Overlap Check"]
+        Tokenizer --> RemoveStop["4. Remove Stopwords & Normalise"]
+        RemoveStop --> CalcJaccard["5. Calculate Jaccard Similarity"]
+        CalcJaccard --> Threshold{6. Jaccard Score?}
+    end
     
-    CalcJaccard --> Threshold{6. Jaccard Score?}
-    Threshold -->|">= 0.60"| Merge
-    Threshold -->|"< 0.30"| SaveNew["7. Save as New Canonical Article"]
-    Threshold -->|"0.30 to 0.60"| LLMCheck{8. LLM Semantic Verify}
-    
-    LLMCheck -->|Same Event Match| Merge
-    LLMCheck -->|Different Event| SaveNew
+    subgraph SemanticCheck["Phase 3: Semantic Verification & Save"]
+        Threshold -->|">= 0.60"| Merge
+        Threshold -->|"< 0.30"| SaveNew["7. Save as New Canonical Article"]
+        Threshold -->|"0.30 to 0.60"| LLMCheck{8. LLM Semantic Verify}
+        
+        LLMCheck -->|Same Event Match| Merge
+        LLMCheck -->|Different Event| SaveNew
+    end
 ```
 
 ### Jaccard Syntactic Deduplication Formula

@@ -9,20 +9,24 @@ This document details the backend engineering layer of the **Startup Intelligenc
 Requests flow through a structured controller-service architecture:
 
 ```mermaid
-graph TD
-    Client[Web Client Request] --> API[1. FastAPI Routing main.py]
-    API --> Middleware[2. Latency & Telemetry Middleware]
-    Middleware --> Routers["3. Route Routers backend/api/routes/"]
+flowchart TB
+    subgraph Entry["Phase 1: Request Entry"]
+        Client["Web Client Request"] --> API["1. FastAPI Routing main.py"]
+        API --> Middleware["2. Latency & Telemetry Middleware"]
+        Middleware --> Routers["3. Route Routers backend/api/routes/"]
+    end
     
-    subgraph Route Handlers
+    subgraph RouteHandlers["Phase 2: API Routers"]
         Routers -->|"/news"| News["News Sync & Parsing"]
         Routers -->|"/startups"| Startups["Startup Registries & Assignments"]
         Routers -->|"/observability"| Obs["Traces, Prompt Ledgers & Logs"]
     end
     
-    News --> Proc[4. NewsProcessor Pipeline]
-    Startups --> Repos[5. Supabase Repositories]
-    Obs --> DB[6. Telemetry Tracing Table Writes]
+    subgraph Services["Phase 3: Services & Storage"]
+        News --> Proc["4. NewsProcessor Pipeline"]
+        Startups --> Repos["5. Supabase Repositories"]
+        Obs --> DB["6. Telemetry Tracing Table Writes"]
+    end
 ```
 
 ---

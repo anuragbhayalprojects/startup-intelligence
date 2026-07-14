@@ -9,28 +9,32 @@ This document explains the AI Layer of the **Startup Intelligence OS**, detailin
 Below is the execution flow for any AI reasoning call:
 
 ```mermaid
-flowchart TD
-    Req[1. AI Request Payload] --> Registry[2. Check Model Registry]
-    Registry --> Router[3. Gateway Model Router]
-    
-    subgraph Local Execution Loop
-        Router -->|Default Route| Ollama[4. Call Local Ollama]
-        Ollama -->|Timeout / Conn Error| LocalRetry[5. Local Retry Loop]
+flowchart TB
+    subgraph Routing["Phase 1: Gateway Routing"]
+        Req["1. AI Request Payload"] --> Registry["2. Check Model Registry"]
+        Registry --> Router["3. Gateway Model Router"]
     end
     
-    subgraph Cloud Failover Loop
-        LocalRetry -->|Failover Trigger| Cloud[6. OpenRouter API]
-        Cloud -->|"Anthropic/Claude / OpenAI"| CloudRetry[7. Cloud Retry Loop]
+    subgraph Local["Phase 2: Local Execution Loop"]
+        Router -->|Default Route| Ollama["4. Call Local Ollama"]
+        Ollama -->|Timeout / Conn Error| LocalRetry["5. Local Retry Loop"]
     end
     
-    Ollama -->|Success| Verify[8. Response Validator]
-    Cloud -->|Success| Verify
+    subgraph Cloud["Phase 3: Cloud Failover Loop"]
+        LocalRetry -->|Failover Trigger| CloudAPI["6. OpenRouter API"]
+        CloudAPI -->|"Anthropic/Claude / OpenAI"| CloudRetry["7. Cloud Retry Loop"]
+    end
     
-    Verify -->|"Invalid JSON / Formatting Schema"| RetryGen[9. Self-Correction Loop]
-    RetryGen -->|Regenerate Prompt| Router
-    
-    Verify -->|Valid JSON| Persist[10. Write Prompt Ledger]
-    Persist --> Return[11. Return Parsed JSON]
+    subgraph Verification["Phase 4: Verification & Logging"]
+        Ollama -->|Success| Verify["8. Response Validator"]
+        CloudAPI -->|Success| Verify
+        
+        Verify -->|"Invalid JSON / Formatting Schema"| RetryGen["9. Self-Correction Loop"]
+        RetryGen -->|Regenerate Prompt| Router
+        
+        Verify -->|Valid JSON| Persist["10. Write Prompt Ledger"]
+        Persist --> Return["11. Return Parsed JSON"]
+    end
 ```
 
 ---
