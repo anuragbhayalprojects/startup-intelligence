@@ -30,6 +30,8 @@ graph TD
     TraceDrawer --> LedgerView[Prompt Ledger Call Views]
 ```
 
+![Visual Diagram - Frontend-Architecture Diagram 1](assets/frontend-architecture_diagram_1.png)
+
 ---
 
 ## 2. Page View Handlers (`frontend/src/pages/`)

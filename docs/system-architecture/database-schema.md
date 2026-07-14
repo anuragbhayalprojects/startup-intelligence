@@ -17,6 +17,8 @@ erDiagram
     OBS_TRACES ||--o{ OBS_DB_MUTATIONS : "contains writes"
 ```
 
+![Visual Diagram - Database-Schema Diagram 1](assets/database-schema_diagram_1.png)
+
 ---
 
 ## 2. Table Specifications

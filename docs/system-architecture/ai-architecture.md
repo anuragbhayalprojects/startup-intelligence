@@ -37,6 +37,8 @@ flowchart TB
     end
 ```
 
+![Visual Diagram - Ai-Architecture Diagram 1](assets/ai-architecture_diagram_1.png)
+
 ---
 
 ## 2. Gateway Client & Failover Routing (`backend/ai/gateway/ai_gateway.py`)

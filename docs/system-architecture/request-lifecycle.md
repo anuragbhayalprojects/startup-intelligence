@@ -62,6 +62,8 @@ sequenceDiagram
     UI->>User: Renders Ingestion Sync Success Banner
 ```
 
+![Visual Diagram - Request-Lifecycle Diagram 1](assets/request-lifecycle_diagram_1.png)
+
 ---
 
 ## 2. Startup Resolution & Enrichment Workflow ("Add & Enrich Profile")
@@ -123,6 +125,8 @@ sequenceDiagram
     
     Note over Orch: Task completed & status updated
 ```
+
+![Visual Diagram - Request-Lifecycle Diagram 2](assets/request-lifecycle_diagram_2.png)
 
 ---
 

@@ -31,6 +31,8 @@ graph TD
     Wait --> Tick[7. Scheduler Tick Loop Begins]
 ```
 
+![Visual Diagram - Trigger-Catalogue Diagram 1](assets/trigger-catalogue_diagram_1.png)
+
 ### 2. Manual News Sync Execution Trace
 1.  **Request Dispatch**: Browser posts request payload to `/api/news/trigger`.
 2.  **Acquire Lock**: Acquires `news_status_lock` thread lock to prevent concurrent sync executions.

@@ -102,6 +102,8 @@ classDiagram
     AiGateway --> ObservabilityTelemetry : log prompt ledger
 ```
 
+![Visual Diagram - Repository-Architecture Diagram 1](assets/repository-architecture_diagram_1.png)
+
 *   **`AgentOrchestrator`** acts as the core dispatcher for the intelligence engine. It initializes a clean `StartupState` object, coordinates calls to the `IdentityDiscovery` and `IdentityResolution` agents (Phase 2), and executes the 5 parallel `Enricher` threads (Phase 3) before calculating metrics and writing to database tables.
 *   **`AiGateway`** acts as a proxy for all LLM calls. It wraps prompt loading, rate-limiting, and error-handling. It manages dynamic fallback routing, shifting execution to the local Ollama instance or external OpenRouter targets based on health configuration variables.
 *   **`ObservabilityTelemetry`** (`backend/utils/tracing.py`) intercepts call-flows repo-wide. It wraps the Supabase PostgreSQL connector to intercept query latency, logs execution logs in `obs_prompt_ledger`, and maintains trace-state propagation across background threads using `ContextVar` namespaces.

@@ -43,13 +43,13 @@ Rather than a generic database client, this platform implements a modular, high-
 
 ```mermaid
 graph TD
-    subgraph Web Client (Frontend)
+    subgraph WebClient ["Web Client (Frontend)"]
         UI[React Dashboard]
         Logs[Real-Time Terminals]
         Drawer[News Side-Drawer Reader]
     end
 
-    subgraph API & Pipeline Layer (Backend)
+    subgraph APIPipeline ["API & Pipeline Layer (Backend)"]
         Router[FastAPI Routing Server]
         Aggregator[News Aggregator Engine]
         Deduplicator[Semantic Deduplicator]
@@ -58,19 +58,19 @@ graph TD
         Scraper[Common Context Scrapers]
     end
 
-    subgraph AI Gateway & Models
+    subgraph AIEngine ["AI Gateway & Models"]
         Gateway[AI Gateway Router]
         LocalOllama[("Local Ollama Qwen2.5")]
         CloudOR[OpenRouter Cloud API]
     end
 
-    subgraph Storage & Telemetry
+    subgraph StorageTelemetry ["Storage & Telemetry"]
         DB[("Supabase PostgreSQL")]
         RLS[Row Level Security]
         Obs[Observability Traces]
     end
 
-    subgraph External Feeds
+    subgraph ExternalFeeds ["External Feeds"]
         RSS[RSS / Google News Feeds]
         Playwright[Dynamic Playwright Browser]
     end
@@ -93,6 +93,8 @@ graph TD
     DB -->|Fetch Grid| UI
     Logs -->|Event Stream| Router
 ```
+
+![Visual Diagram - Readme Diagram 1](assets/README_diagram_1.png)
 
 ---
 

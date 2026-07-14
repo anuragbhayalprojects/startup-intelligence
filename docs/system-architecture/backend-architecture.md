@@ -29,6 +29,8 @@ flowchart TB
     end
 ```
 
+![Visual Diagram - Backend-Architecture Diagram 1](assets/backend-architecture_diagram_1.png)
+
 ---
 
 ## 2. Main Application & Middleware (`backend/main.py`)

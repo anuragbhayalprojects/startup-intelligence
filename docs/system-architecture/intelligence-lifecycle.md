@@ -42,6 +42,8 @@ flowchart TB
     end
 ```
 
+![Visual Diagram - Intelligence-Lifecycle Diagram 1](assets/intelligence-lifecycle_diagram_1.png)
+
 ---
 
 ## 2. Phase-by-Phase Execution Specifications
@@ -148,6 +150,8 @@ stateDiagram-v2
     Verified --> [*]
     Ignore --> [*]
 ```
+
+![Visual Diagram - Intelligence-Lifecycle Diagram 2](assets/intelligence-lifecycle_diagram_2.png)
 
 ---
 

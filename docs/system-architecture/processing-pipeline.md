@@ -32,6 +32,8 @@ flowchart TB
     end
 ```
 
+![Visual Diagram - Processing-Pipeline Diagram 1](assets/processing-pipeline_diagram_1.png)
+
 ### Jaccard Syntactic Deduplication Formula
 We compute Jaccard similarity by dividing the intersection of unique words by the union of unique words in both headlines:
 

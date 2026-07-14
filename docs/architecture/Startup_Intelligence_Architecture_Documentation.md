@@ -347,6 +347,8 @@ flowchart TB
     style RelGate fill:#ffebee,stroke:#c62828,stroke-width:2px
 ```
 
+![Visual Diagram - Startup Intelligence Architecture Documentation Diagram 1](assets/Startup_Intelligence_Architecture_Documentation_diagram_1.png)
+
 ---
 
 ## SECTION 7 — PROMPT ARCHITECTURE CATALOG
@@ -509,6 +511,8 @@ sequenceDiagram
     API-->>UI: HTTP 200 OK (updated JSON)
     UI->>UI: Refresh drawer tabs and tags
 ```
+
+![Visual Diagram - Startup Intelligence Architecture Documentation Diagram 2](assets/Startup_Intelligence_Architecture_Documentation_diagram_2.png)
 
 ---
 
