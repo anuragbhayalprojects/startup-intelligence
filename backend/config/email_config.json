@@ -3,7 +3,8 @@
   "provider": "gmail",
   "sender": "startupengagement@gmail.com",
   "recipient_list": [
-    "anuragbhayal@gmail.com"
+    "anuragbhayal@gmail.com",
+    "anurag.bhayal@icici.bank.in"
   ],
   "cc": [],
   "bcc": [],
