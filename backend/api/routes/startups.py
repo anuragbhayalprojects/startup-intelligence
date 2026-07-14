@@ -127,10 +127,20 @@ def assign_fprs_for_startup(startup_id: int):
 
 def backfill_unassigned_startups():
     try:
+        # Bulk query startups and existing assignments to check membership locally
         startups_res = supabase.table("startups").select("id").execute()
-        startups = startups_res.data or []
-        for s in startups:
-            assign_fprs_for_startup(s["id"])
+        all_ids = {s["id"] for s in startups_res.data or []}
+        
+        assigned_res = supabase.table("startup_assignments").select("startup_id").execute()
+        assigned_ids = {a["startup_id"] for a in assigned_res.data or [] if a.get("startup_id") is not None}
+        
+        unassigned_ids = all_ids - assigned_ids
+        if not unassigned_ids:
+            return
+            
+        print(f"🔄 Backfilling assignments for {len(unassigned_ids)} unassigned startups...")
+        for s_id in unassigned_ids:
+            assign_fprs_for_startup(s_id)
     except Exception as e:
         print(f"❌ Failed during startup assignments backfill: {e}")
 
