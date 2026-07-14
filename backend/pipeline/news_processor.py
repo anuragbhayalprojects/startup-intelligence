@@ -13,7 +13,47 @@ from backend.pipeline.deduplicator import Deduplicator
 from backend.services.news_service import save_canonical_article
 from backend.workflows.startup_pipeline import discover_startup_names, process_startup
 
-logger = logging.getLogger("startup_intelligence.pipeline.news_processor")
+import requests
+import re
+from bs4 import BeautifulSoup
+
+def fetch_full_article_content(url: str) -> str:
+    """Fetches the target URL, parses its HTML, and extracts clean, formatted paragraph text."""
+    if not url:
+        return ""
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        response = requests.get(url, headers=headers, timeout=10)
+        if response.status_code != 200:
+            return ""
+            
+        soup = BeautifulSoup(response.text, "html.parser")
+        
+        # Strip script, style, header, footer, nav tags
+        for element in soup(["script", "style", "header", "footer", "nav", "aside", "form"]):
+            element.decompose()
+            
+        # Try to locate the main article content container
+        article_elem = soup.find("article") or soup.find(class_=re.compile("article|post|story|content-body|entry-content", re.IGNORECASE))
+        target_soup = article_elem if article_elem else soup
+        
+        paragraphs = []
+        for p in target_soup.find_all("p"):
+            text = p.get_text().strip()
+            # Ignore short helper lines or cookie consent/social share lines
+            if len(text) > 40 and not any(term in text.lower() for term in ["cookie", "subscribe", "newsletter", "follow us", "all rights reserved"]):
+                paragraphs.append(text)
+                
+        if paragraphs:
+            return "\n\n".join(paragraphs)
+    except Exception as e:
+        logger.warning(f"Failed to scrape full content for {url}: {e}")
+        
+    return ""
+
+
 
 
 class NewsProcessor:
@@ -121,6 +161,19 @@ class NewsProcessor:
                     continue
 
                 self.update_status(current_step=f"Processing {idx + 1}/{len(canonical_articles)}: {headline[:40]}...")
+                self.add_log(f"Fetching full article content from: {art['source_url']}")
+                
+                full_content = fetch_full_article_content(art["source_url"])
+                if full_content:
+                    self.add_log(f"Successfully scraped full article content ({len(full_content)} chars).")
+                    content = full_content
+                else:
+                    self.add_log("Could not parse full article body, falling back to RSS summary.")
+                    content = content or description
+                    
+                # Update the article content attribute in place
+                art["content"] = content
+                
                 self.add_log(f"Extracting startup mentions from: '{headline}'")
                 paragraphs = [content] if content else [description]
                 
