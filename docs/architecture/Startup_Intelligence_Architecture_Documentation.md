@@ -310,38 +310,38 @@ Detailed specification profiles for the multi-agent orchestration pool.
 ## SECTION 6 — MULTI-AGENT EXECUTION FLOW DIAGRAM
 
 ```mermaid
-graph TD
+flowchart TB
     %% Sequence Node Definitions
-    Start[Raw News Article Ingested] --> Discovery[IdentityDiscoveryAgent<br/>DDG Search + Crawling]
-    Discovery --> Legal[LegalNameAgent<br/>Extract corporate identities]
-    Legal --> Resolution[IdentityResolutionAgent<br/>Evaluate weights & check duplicate]
+    Start["Raw News Article Ingested"] --> Discovery["IdentityDiscoveryAgent<br/>DDG Search + Crawling"]
+    Discovery --> Legal["LegalNameAgent<br/>Extract corporate identities"]
+    Legal --> Resolution["IdentityResolutionAgent<br/>Evaluate weights & check duplicate"]
     
     %% Phase 1 Gate
-    Resolution --> Gate{Resolution Score >= 50?}
-    Gate -->|No| NEEDS_REVIEW[Set status to Needs Review<br/>Halt downstream agents]
-    Gate -->|Yes| Downstream[Run Downstream Agents Pool]
+    Resolution --> Gate{"Resolution Score >= 50?"}
+    Gate -->|No| NEEDS_REVIEW["Set status to Needs Review<br/>Halt downstream agents"]
+    Gate -->|Yes| Downstream["Run Downstream Agents Pool"]
     
     %% Downstream Pool Details
-    subgraph Downstream Vetting & Enrichment
-        Downstream --> Desc[DescriptionGeneratorAgent<br/>Limit to 100-150 words]
-        Desc --> Product[ProductIntelligenceAgent<br/>Extract structural products]
-        Product --> Taxonomy[IndustryClassificationAgent<br/>early taxonomy normalization]
-        Taxonomy --> Competitor[CompetitorIntelligenceAgent<br/>Map competition]
-        Competitor --> Funding[FundingIntelligenceAgent<br/>Extract Series round]
-        Funding --> Opportunity[OpportunityMappingAgent<br/>Generate use-cases]
+    subgraph DownstreamVetting ["Downstream Vetting & Enrichment"]
+        Downstream --> Desc["DescriptionGeneratorAgent<br/>Limit to 100-150 words"]
+        Desc --> Product["ProductIntelligenceAgent<br/>Extract structural products"]
+        Product --> Taxonomy["IndustryClassificationAgent<br/>early taxonomy normalization"]
+        Taxonomy --> Competitor["CompetitorIntelligenceAgent<br/>Map competition"]
+        Competitor --> Funding["FundingIntelligenceAgent<br/>Extract Series round"]
+        Funding --> Opportunity["OpportunityMappingAgent<br/>Generate use-cases"]
     end
     
     %% Vetting Filters
-    Opportunity --> BizProb[BusinessProblemAgent<br/>Match against RAG index]
-    BizProb --> RelGate{Relevance Score >= 30?}
+    Opportunity --> BizProb["BusinessProblemAgent<br/>Match against RAG index"]
+    BizProb --> RelGate{"Relevance Score >= 30?"}
     
-    RelGate -->|Yes| Strategic[StrategicFitAgent & SignalAgent<br/>Priority Scoring Calculation]
-    RelGate -->|No| ScoringFallback[Bypass Strategic Fit<br/>Cap Priority Score = Relevance]
+    RelGate -->|Yes| Strategic["StrategicFitAgent & SignalAgent<br/>Priority Scoring Calculation"]
+    RelGate -->|No| ScoringFallback["Bypass Strategic Fit<br/>Cap Priority Score = Relevance"]
     
     %% Persistence Layer
-    Strategic & ScoringFallback --> Rec[RecommendationAgent<br/>Outreach drafts]
-    Rec --> DB[supabase_service.py<br/>Persist all columns]
-    DB --> Complete[Registry Dashboard Ready]
+    Strategic & ScoringFallback --> Rec["RecommendationAgent<br/>Outreach drafts"]
+    Rec --> DB["supabase_service.py<br/>Persist all columns"]
+    DB --> Complete["Registry Dashboard Ready"]
 
     style Gate fill:#ffebee,stroke:#c62828,stroke-width:2px
     style RelGate fill:#ffebee,stroke:#c62828,stroke-width:2px
@@ -489,19 +489,19 @@ The Startup Intelligence OS implements a conceptual Knowledge Graph layer to map
 ```mermaid
 sequenceDiagram
     autonumber
-    participant UI as client/DetailModal.tsx
-    participant API as api/routes/startups.py
-    participant Orch as workflows/agent_orchestrator.py
-    participant Discovery as agents/identity_discovery_agent.py
-    participant Legal as agents/legal_name_agent.py
-    participant DB as services/supabase_service.py
+    participant UI as "client/DetailModal.tsx"
+    participant API as "api/routes/startups.py"
+    participant Orch as "workflows/agent_orchestrator.py"
+    participant Discovery as "agents/identity_discovery_agent.py"
+    participant Legal as "agents/legal_name_agent.py"
+    participant DB as "services/supabase_service.py"
 
     UI->>API: POST /api/analyze/{id}
     API->>Orch: run_pipeline(raw_startup)
-    Orch->>Discovery: run(state) [Standardize brand name & Search DDG]
-    Discovery-->>Orch: Clean brand name ("FinBox"), website, crawls
-    Orch->>Legal: run(state) [Incorporate article details]
-    Legal-->>Orch: headquarters ("Bengaluru"), founded_year ("2016")
+    Orch->>Discovery: "run(state) [Standardize brand name & Search DDG]"
+    Discovery-->>Orch: "Clean brand name ('FinBox'), website, crawls"
+    Orch->>Legal: "run(state) [Incorporate article details]"
+    Legal-->>Orch: "headquarters ('Bengaluru'), founded_year ('2016')"
     Orch->>Orch: Run downstreams (Products, Taxonomy, Strategic Fit)
     Orch->>DB: persist_to_database(state)
     DB-->>Orch: DB upsert completed
