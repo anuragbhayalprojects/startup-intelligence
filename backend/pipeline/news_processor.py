@@ -18,10 +18,11 @@ import re
 from bs4 import BeautifulSoup
 
 def fetch_full_article_content(url: str) -> str:
-    """Fetches the target URL, parses its HTML, and extracts clean, formatted paragraph text."""
+    """Fetches the target URL, parses its HTML, and extracts clean, formatted paragraph text using shared context validator."""
     if not url:
         return ""
     try:
+        from backend.scrapers.common.context_validator import extract_clean_paragraphs
         headers = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
@@ -29,29 +30,15 @@ def fetch_full_article_content(url: str) -> str:
         if response.status_code != 200:
             return ""
             
-        soup = BeautifulSoup(response.text, "html.parser")
-        
-        # Strip script, style, header, footer, nav tags
-        for element in soup(["script", "style", "header", "footer", "nav", "aside", "form"]):
-            element.decompose()
-            
-        # Try to locate the main article content container
-        article_elem = soup.find("article") or soup.find(class_=re.compile("article|post|story|content-body|entry-content", re.IGNORECASE))
-        target_soup = article_elem if article_elem else soup
-        
-        paragraphs = []
-        for p in target_soup.find_all("p"):
-            text = p.get_text().strip()
-            # Ignore short helper lines or cookie consent/social share lines
-            if len(text) > 40 and not any(term in text.lower() for term in ["cookie", "subscribe", "newsletter", "follow us", "all rights reserved"]):
-                paragraphs.append(text)
-                
+        paragraphs = extract_clean_paragraphs(response.text)
         if paragraphs:
             return "\n\n".join(paragraphs)
     except Exception as e:
         logger.warning(f"Failed to scrape full content for {url}: {e}")
         
     return ""
+
+
 
 
 
