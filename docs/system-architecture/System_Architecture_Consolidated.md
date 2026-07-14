@@ -403,7 +403,100 @@ stateDiagram-v2
 *   For the scoring formulas, see ****Processing Pipeline Deep-Dive****.
 
 
-# SECTION 4 — PROCESSING PIPELINE
+# SECTION 4 — NEWS LIFECYCLE DIAGRAM
+---
+
+This document provides a comprehensive blueprint of the end-to-end News Lifecycle within the **Startup Intelligence OS**, tracking an article from external publication to final database persistence and React UI display.
+
+---
+
+## 1. End-to-End News Lifecycle Flowchart
+
+```mermaid
+flowchart TD
+    %% Phase 1: Ingestion Trigger & Fetching
+    subgraph Phase1 ["Phase 1: Ingestion Trigger & Fetching"]
+        Cron["Cron Scheduler (Scheduled News Sync)"] -->|Trigger| Fetch["Fetch RSS Raw XML feeds"]
+        UI_Sync["UI Dashboard 'Sync News' Button"] -->|Trigger| Fetch
+        UI_Manual["UI Side-Drawer 'Add & Enrich' Button"] -->|Trigger Manual URL| Fetch
+    end
+
+    %% Phase 2: URL Duplication Pre-Filter
+    subgraph Phase2 ["Phase 2: URL Duplication Pre-Filter"]
+        Fetch --> QueryDB{"Query Supabase: URL Exists?"}
+        QueryDB -->|Yes| SkipIngest["Discard (Already Processed)"]
+        QueryDB -->|No| CleanText["Clean HTML tags & normalize text fields"]
+    end
+
+    %% Phase 3: Syntactic & Semantic Deduplication
+    subgraph Phase3 ["Phase 3: Syntactic & Semantic Deduplication"]
+        CleanText --> CalcJaccard["Calculate Jaccard Token Overlap with active headlines"]
+        CalcJaccard --> JaccardCheck{"Jaccard Overlap Score?"}
+        
+        JaccardCheck -->|Jaccard >= 0.60| MergeSource["Merge: Link URL to Existing Canonical Card"]
+        JaccardCheck -->|Jaccard < 0.30| SaveNewCanonical["Register as New Canonical Card"]
+        
+        JaccardCheck -->|Jaccard between 0.30 and 0.60| CallLLMDedup["Call Ollama: Semantic Comparison Prompt"]
+        CallLLMDedup --> LLMMatch{"Is Same Event?"}
+        LLMMatch -->|Yes| MergeSource
+        LLMMatch -->|No| SaveNewCanonical
+    end
+
+    %% Phase 4: Entity Discovery (Ollama)
+    subgraph Phase4 ["Phase 4: Entity Discovery"]
+        SaveNewCanonical --> ScrapeBody["Scrape Article Content (BeautifulSoup/HTTPX)"]
+        ScrapeBody --> ScrapeSuccess{"Scrape Successful?"}
+        ScrapeSuccess -->|Blocked| Playwright["Trigger Headless Playwright Browser Scraper"]
+        ScrapeSuccess -->|Yes| DiscoveryPrompt["Execute Ollama Pass 1: Brand Discovery Prompt"]
+        Playwright --> DiscoveryPrompt
+        
+        DiscoveryPrompt --> DiscoveryCheck{"Operating Startups Discovered?"}
+        DiscoveryCheck -->|No| MarkProcessed["Mark Ingestion Processed (Idle)"]
+        DiscoveryCheck -->|Yes| ResolveStartup["Trigger Mention Linkage & Status In-Progress"]
+    end
+
+    %% Phase 5: Identity Resolution & Vetting
+    subgraph Phase5 ["Phase 5: Identity Resolution & Vetting"]
+        ResolveStartup --> CheckRegistry{"Check Supabase 'startups' Table"}
+        CheckRegistry --> RegistryMatch{"Registry Match Score >= 50?"}
+        
+        RegistryMatch -->|Yes| LinkExist["Link Article Mention to existing Startup ID"]
+        RegistryMatch -->|No| CreateRegistry["Create New Startup Record & Set Status 'Enriching'"]
+        
+        LinkExist --> SaveStartupNews["Save to 'startup_news' Table"]
+        CreateRegistry --> SaveStartupNews
+    end
+
+    %% Phase 6: Multi-Agent Enrichment & Scoring
+    subgraph Phase6 ["Phase 6: Multi-Agent Enrichment & Scoring"]
+        CreateRegistry --> TriggerOrch["FastAPI BackgroundTask: Orchestrator ThreadPool"]
+        TriggerOrch --> ParallelAgents["Run Parallel Agents (Discovery, Legal, Product, Competitor, Funding)"]
+        ParallelAgents --> RAGLookup["Query local challenges RAG index (retriever.py)"]
+        RAGLookup --> PriorityScore["Calculate Strategic Fit & Priority Score weights"]
+        PriorityScore --> SaveRegistry["Upsert to 'startups' & 'startup_analysis' tables"]
+    end
+
+    %% Phase 7: Real-Time Event Display
+    subgraph Phase7 ["Phase 7: Real-Time Event Display"]
+        SaveRegistry --> PushEvent["Supabase Postgres Real-Time Channel Event"]
+        PushEvent --> UI_Listener["React Dashboard Event Listener"]
+        UI_Listener --> UI_Grid["Update News Feed Grid (Status: Active, badge changes dashed -> solid)"]
+    end
+
+    %% Styling
+    style JaccardCheck fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style RegistryMatch fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style QueryDB fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style LLMMatch fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style DiscoveryCheck fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style ScrapeSuccess fill:#ffebee,stroke:#c62828,stroke-width:2px
+```
+
+![Visual Diagram - Consolidated Diagram 5](assets/consolidated_diagram_5.png)
+
+
+
+# SECTION 5 — PROCESSING PIPELINE
 ---
 
 This document explains the processing pipeline, covering headline deduplication formulas, the verification scoring matrices, and the BFSI priority assignments.
@@ -438,7 +531,7 @@ flowchart TB
     end
 ```
 
-![Visual Diagram - Consolidated Diagram 5](assets/consolidated_diagram_5.png)
+![Visual Diagram - Consolidated Diagram 6](assets/consolidated_diagram_6.png)
 
 
 ### Jaccard Syntactic Deduplication Formula
@@ -524,7 +617,7 @@ If a startup cannot be classified, it is assigned to a default triage queue.
 *   For config mappings, see ****Configuration Registry****.
 
 
-# SECTION 5 — AI ARCHITECTURE
+# SECTION 6 — AI ARCHITECTURE
 ---
 
 This document explains the AI Layer of the **Startup Intelligence OS**, detailing the AI Gateway client design, local-first routing rules, prompt templates, and the retrieval-first RAG embedding cache mechanism.
@@ -564,7 +657,7 @@ flowchart TB
     end
 ```
 
-![Visual Diagram - Consolidated Diagram 6](assets/consolidated_diagram_6.png)
+![Visual Diagram - Consolidated Diagram 7](assets/consolidated_diagram_7.png)
 
 
 ---
@@ -647,7 +740,7 @@ Startup Intelligence OS integrates **Graphify** to minimize input tokens. Rather
 *   For the telemetry log schema, see ****Database Architecture****.
 
 
-# SECTION 6 — REQUEST LIFECYCLE
+# SECTION 7 — REQUEST LIFECYCLE
 ---
 
 This document traces the request, processing, and database execution lifecycle for the two primary operations in the **Startup Intelligence OS**: Manual News Feed Ingestion and Single Startup Enrichment.
@@ -712,7 +805,7 @@ sequenceDiagram
     UI->>User: Renders Ingestion Sync Success Banner
 ```
 
-![Visual Diagram - Consolidated Diagram 7](assets/consolidated_diagram_7.png)
+![Visual Diagram - Consolidated Diagram 8](assets/consolidated_diagram_8.png)
 
 
 ---
@@ -777,7 +870,7 @@ sequenceDiagram
     Note over Orch: Task completed & status updated
 ```
 
-![Visual Diagram - Consolidated Diagram 8](assets/consolidated_diagram_8.png)
+![Visual Diagram - Consolidated Diagram 9](assets/consolidated_diagram_9.png)
 
 
 ---
@@ -802,7 +895,7 @@ Every write transaction executed during these lifecycles is intercepted by the b
 *   For DB schemas, see ****Database Architecture****.
 
 
-# SECTION 7 — BACKEND ARCHITECTURE
+# SECTION 8 — BACKEND ARCHITECTURE
 ---
 
 This document details the backend engineering layer of the **Startup Intelligence OS**, explaining the FastAPI routers, service dependencies, scheduling threads, and logging middleware.
@@ -834,7 +927,7 @@ flowchart TB
     end
 ```
 
-![Visual Diagram - Consolidated Diagram 9](assets/consolidated_diagram_9.png)
+![Visual Diagram - Consolidated Diagram 10](assets/consolidated_diagram_10.png)
 
 
 ---
@@ -900,7 +993,7 @@ flowchart TB
 *   For details on the background tasks scheduler, see ****Configuration Registry****.
 
 
-# SECTION 8 — FRONTEND ARCHITECTURE
+# SECTION 9 — FRONTEND ARCHITECTURE
 ---
 
 This document details the frontend engineering layer of the **Startup Intelligence OS**, explaining the React single-page application structure, state management, and user interaction modals.
@@ -933,7 +1026,7 @@ graph TD
     TraceDrawer --> LedgerView[Prompt Ledger Call Views]
 ```
 
-![Visual Diagram - Consolidated Diagram 10](assets/consolidated_diagram_10.png)
+![Visual Diagram - Consolidated Diagram 11](assets/consolidated_diagram_11.png)
 
 
 ---
@@ -983,7 +1076,7 @@ graph TD
 *   **Real-time sync logs**: Provides visual feedback by streaming logs to the dashboard console while background tasks run.
 
 
-# SECTION 9 — DATABASE SCHEMA
+# SECTION 10 — DATABASE SCHEMA
 ---
 
 This document explains the PostgreSQL database structure hosted in **Supabase**, including schemas, RLS security configurations, and trace log tables.
@@ -1003,7 +1096,7 @@ erDiagram
     OBS_TRACES ||--o{ OBS_DB_MUTATIONS : "contains writes"
 ```
 
-![Visual Diagram - Consolidated Diagram 11](assets/consolidated_diagram_11.png)
+![Visual Diagram - Consolidated Diagram 12](assets/consolidated_diagram_12.png)
 
 
 ---
@@ -1177,7 +1270,7 @@ This column stores structured intelligence returned by the Parallel Enricher pip
 *   For configuration mappings, see ****Configuration Registry****.
 
 
-# SECTION 10 — CONFIG REGISTRY
+# SECTION 11 — CONFIG REGISTRY
 ---
 
 This registry lists every configurable setting, thresholds configuration, and file location inside the **Startup Intelligence OS**. Decoupled parameter boundaries allow you to customize pipeline behaviour without editing source code.
@@ -1252,7 +1345,7 @@ Adding a new RSS feed target or disabling an existing crawler can be done direct
 *   For the scoring weight definitions, see ****Processing Pipeline Deep-Dive****.
 
 
-# SECTION 11 — TRIGGER CATALOGUE
+# SECTION 12 — TRIGGER CATALOGUE
 ---
 
 This document catalogs every execution trigger, background event, and state change within the **Startup Intelligence OS**.
@@ -1286,7 +1379,7 @@ graph TD
     Wait --> Tick[7. Scheduler Tick Loop Begins]
 ```
 
-![Visual Diagram - Consolidated Diagram 12](assets/consolidated_diagram_12.png)
+![Visual Diagram - Consolidated Diagram 13](assets/consolidated_diagram_13.png)
 
 
 ### 2. Manual News Sync Execution Trace
@@ -1309,7 +1402,7 @@ graph TD
 *   For table triggers details, see ****Database Architecture****.
 
 
-# SECTION 12 — LOCAL DEPLOYMENT
+# SECTION 13 — LOCAL DEPLOYMENT
 ---
 
 This guide provides step-by-step instructions to clone, configure, build, and run the **Startup Intelligence OS** locally.
@@ -1435,7 +1528,7 @@ Open `http://localhost:5173` in your browser.
 *   **Fix**: The client uses the Standard httpx connector. Ensure your environment variables do not override proxy parameters (`http_proxy`, `https_proxy`) which can disrupt connection loops.
 
 
-# SECTION 13 — FUTURE EXTENSION
+# SECTION 14 — FUTURE EXTENSION
 ---
 
 This guide explains how to extend **Startup Intelligence OS**, providing step-by-step instructions for adding new AI agents, custom scrapers, database tables, and scoring parameters.
@@ -1545,7 +1638,7 @@ To add a new table (e.g. `startup_patents`):
 3.  **Update Python models**: Declare the new model and properties inside `backend/models/`.
 
 
-# SECTION 14 — TOOLS AND UTILITIES
+# SECTION 15 — TOOLS AND UTILITIES
 ---
 
 This document lists all the languages, frameworks, developer tools, libraries, and utilities used to build, test, and run the **Startup Intelligence OS**.
