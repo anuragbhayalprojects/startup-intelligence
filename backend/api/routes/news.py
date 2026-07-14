@@ -262,7 +262,14 @@ def _update_news_articles_mentions(startup_name: str, startup_id: int, website: 
 
 
 def _enrich_single_startup_async(startup_id: int, startup_name: str, headline: str, summary: str, source: str, source_url: str):
-    """Runs full multi-agent enrichment in a background worker context."""
+    """Runs full multi-agent enrichment in a background worker context with proper tracing."""
+    from backend.utils.tracing import generate_trace_id, set_trace_id, log_trace
+    
+    # 1. Establish trace context for this background worker thread
+    trace_id = generate_trace_id()
+    set_trace_id(trace_id)
+    log_trace(startup_name=startup_name, article_url=source_url)
+    
     raw_startup = {
         "startup_name": startup_name,
         "headline": headline,
@@ -283,6 +290,7 @@ def _enrich_single_startup_async(startup_id: int, startup_name: str, headline: s
             _update_news_articles_mentions(startup_name, state.startup_id, web_val)
     except Exception as e:
         print(f"Error in single startup enrichment background task: {e}")
+
 
 
 @router.post("/resolve-startup")
