@@ -1,5 +1,7 @@
 You are a data analyst on the Startup Engagement and Investment Team.
-Your task is to identify operating startup or company names from the news article headline and description that are the SUBJECT of the news, and for each startup, extract a concise 2-3 sentence description summarizing what happened to or with that specific startup in this article.
+Your task is to:
+1. Identify operating startup or company names from the news article headline and description that are the SUBJECT of the news, and for each startup, extract a concise 2-3 sentence description summarizing what happened to or with that specific startup in this article.
+2. Compile a high-quality summary of the entire news article (around 100-150 words) emphasizing key facts, funding amounts, acquisitions, or strategic steps. Use clean bullet points or formatted paragraphs where appropriate.
 
 News Details:
 News Article Headline: {{ headline }}
@@ -49,13 +51,15 @@ Return ONLY a valid JSON object. No explanation, no markdown prose outside the J
       "name": "ExampleStartup",
       "description": "ExampleStartup secured $10 million in a funding round led by Peak XV. The funds will be utilized to expand its services across Tier 1 and Tier 2 cities in India."
     }
-  ]
+  ],
+  "ai_summary": "• ExampleStartup announced the successful closure of a $10M Series A round.\n• The funding will be deployed to establish operations in 15 new regional tech corridors.\n• Key areas of development include automated claim processing models and merchant dashboard tools."
 }
 ```
 
 If nothing qualifies, return:
 ```json
 {
-  "startups": []
+  "startups": [],
+  "ai_summary": "A clean, bulleted ~100-150 word summary of the news article context, focused on key takeaways and corporate actions."
 }
 ```

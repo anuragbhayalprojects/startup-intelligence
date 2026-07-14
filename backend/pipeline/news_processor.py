@@ -75,7 +75,9 @@ class NewsProcessor:
                 self.add_log(f"Extracting startup mentions from: '{headline}'")
                 paragraphs = [content] if content else [description]
                 
-                discovered_items = discover_startup_names(headline, paragraphs)
+                p1_res = discover_startup_names(headline, paragraphs)
+                discovered_items = p1_res.get("startups") or []
+                ai_summary = p1_res.get("ai_summary") or ""
                 
                 # Check for startup names in all clustered duplicate articles in the same cluster to retain all startups!
                 similar_sources = art.get("similar_sources") or []
@@ -84,7 +86,8 @@ class NewsProcessor:
                     sim_desc = sim.get("description") or ""
                     sim_content = sim.get("content") or ""
                     sim_paragraphs = [sim_content] if sim_content else ([sim_desc] if sim_desc else [])
-                    sim_items = discover_startup_names(sim_headline, sim_paragraphs)
+                    sim_res = discover_startup_names(sim_headline, sim_paragraphs)
+                    sim_items = sim_res.get("startups") or []
                     for item in sim_items:
                         item_name = item.get("name") if isinstance(item, dict) else item
                         # Add if not already in discovered_items
@@ -93,7 +96,6 @@ class NewsProcessor:
                             discovered_items.append(item)
 
                 startups_mentioned = []
-                ai_summary = None
 
                 if discovered_items:
                     self.add_log(f"Discovered potential startups: {discovered_items}")
@@ -123,7 +125,7 @@ class NewsProcessor:
                                 save_startup_news(
                                     startup_id=s_id,
                                     headline=headline,
-                                    summary=description,
+                                    summary=ai_summary or description,
                                     source=art["source"],
                                     source_url=art["source_url"],
                                     published_at=art["published_at"]
@@ -143,13 +145,13 @@ class NewsProcessor:
 
                 # Reuse the pre-extracted/generated AI summary, fallback to raw description if none was generated
                 if not ai_summary:
-                    ai_summary = description
+                    ai_summary = description or headline
                 
                 # 4. Save canonical article to DB (which triggers legacy startup_news sync)
                 saved = save_canonical_article(
                     headline=headline,
                     summary=ai_summary,
-                    content=content,
+                    content=content or description,
                     source=art["source"],
                     source_url=art["source_url"],
                     published_at=art["published_at"],

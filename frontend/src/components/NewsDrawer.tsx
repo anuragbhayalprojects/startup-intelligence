@@ -177,8 +177,50 @@ export default function NewsDrawer({ article, onClose, onSelectStartupByName }: 
             <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
               📝 Full Ingested Article
             </h4>
-            <div className="text-slate-600 text-xs leading-relaxed space-y-3.5 whitespace-pre-wrap bg-white rounded-lg border border-slate-100 p-5 shadow-sm">
-              {article.content || article.summary || "No full content parsed for this news feed item."}
+            <div className="text-slate-600 text-xs leading-relaxed space-y-3.5 bg-white rounded-lg border border-slate-100 p-5 shadow-sm text-left">
+              {(() => {
+                const text = article.content || article.summary || "";
+                if (!text) {
+                  return <p className="text-slate-400 italic">No full content parsed for this news feed item.</p>;
+                }
+                
+                // If it already has paragraphs, split by double newlines
+                if (text.includes("\n\n")) {
+                  return text.split("\n\n").map((para, pIdx) => (
+                    <p key={pIdx} className="mb-3.5 last:mb-0 leading-relaxed text-justify">
+                      {para.trim()}
+                    </p>
+                  ));
+                }
+                
+                // If it has single newlines but looks formatted
+                if (text.includes("\n") && text.split("\n").length > 3) {
+                  return text.split("\n").map((para, pIdx) => (
+                    <p key={pIdx} className="mb-3.5 last:mb-0 leading-relaxed text-justify">
+                      {para.trim()}
+                    </p>
+                  ));
+                }
+
+                // If it is just one giant single block of text, split by sentences (every 3 sentences)
+                const sentences = text.match(/[^.!?]+[.!?]+(\s|$)/g) || [text];
+                const paragraphs: string[] = [];
+                let currentPara: string[] = [];
+                
+                sentences.forEach((sentence, idx) => {
+                  currentPara.push(sentence.trim());
+                  if (currentPara.length === 3 || idx === sentences.length - 1) {
+                    paragraphs.push(currentPara.join(" "));
+                    currentPara = [];
+                  }
+                });
+
+                return paragraphs.map((para, pIdx) => (
+                  <p key={pIdx} className="mb-3.5 last:mb-0 leading-relaxed text-justify">
+                    {para}
+                  </p>
+                ));
+              })()}
             </div>
           </div>
         </div>

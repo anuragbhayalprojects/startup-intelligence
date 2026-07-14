@@ -90,9 +90,11 @@ def discover_startup_names(headline: str, paragraphs) -> list[dict]:
         from backend.ai.router import call_ai
         data = call_ai(prompt, task="extraction", json_format=True)
         
+        ai_summary_str = ""
         startups = []
         if isinstance(data, dict):
             startups = data.get("startups") or data.get("extracted_startup_names") or []
+            ai_summary_str = data.get("ai_summary") or ""
         elif isinstance(data, list):
             startups = data
             
@@ -114,11 +116,14 @@ def discover_startup_names(headline: str, paragraphs) -> list[dict]:
                 })
                 
         print(f"✨ [Pass 1] Extracted {len(clean_list)} startups: {[item['name'] for item in clean_list]}")
-        return clean_list
+        return {
+            "startups": clean_list,
+            "ai_summary": ai_summary_str.strip()
+        }
     except Exception as e:
         print(f"⚠️ [Pass 1] Name discovery failed: {e}")
         
-    return None
+    return {"startups": [], "ai_summary": ""}
 
 # --- News Summary: Startup-Specific News Snippet Generation ---
 
